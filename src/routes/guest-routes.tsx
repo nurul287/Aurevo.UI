@@ -1,6 +1,6 @@
-import EmailConfirmationPage from "@/pages/email-confirmation-page";
-import LoginPage from "@/pages/login-page";
-import RegisterPage from "@/pages/register-page";
+import EmailConfirmationPage from "@/pages/auth/email-confirmation-page";
+import LoginPage from "@/pages/auth/login-page";
+import RegisterPage from "@/pages/auth/register-page";
 import GuestGuard from "../components/guards/guest-guard";
 import { APP_PATHS } from "../constants/app-paths";
 

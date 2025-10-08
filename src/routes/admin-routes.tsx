@@ -1,4 +1,4 @@
-import AdminDashboardPage from "@/pages/admin-dashboard-page";
+import AdminDashboardPage from "@/pages/admin/admin-dashboard-page";
 import AdminGuard from "../components/guards/admin-guard";
 import { APP_PATHS } from "../constants/app-paths";
 
