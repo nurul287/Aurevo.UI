@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useGuestCart } from "@/contexts/guest-cart-context";
 import { useCart } from "@/hooks/use-cart";
 import { useCreateGuestOrder } from "@/services/order/use-order-mutation";
+import { useToast } from "@/hooks/use-toast";
 import {
   CheckCircleIcon,
   CreditCardIcon,
@@ -32,6 +33,7 @@ const CheckoutPage = () => {
   const { sessionId } = useGuestCart();
   const navigate = useNavigate();
   const createGuestOrderMutation = useCreateGuestOrder();
+  const { showError, showWarning } = useToast();
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -64,7 +66,7 @@ const CheckoutPage = () => {
     try {
       // Validate required fields
       if (!formData.firstName || !formData.phone || !formData.email) {
-        alert("First name, phone number, and email are required");
+        showWarning("Required fields missing", "First name, phone number, and email are required");
         setIsSubmitting(false);
         return;
       }
@@ -103,7 +105,7 @@ const CheckoutPage = () => {
       navigate(`/order-confirmation?${params.toString()}`);
     } catch (error) {
       console.error("Checkout error:", error);
-      alert("Failed to process checkout. Please try again.");
+      showError("Failed to process checkout", "Something went wrong. Please try again.");
       setIsSubmitting(false);
     }
   };

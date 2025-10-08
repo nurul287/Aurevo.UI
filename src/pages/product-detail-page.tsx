@@ -5,6 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/auth-context";
 import { useCart } from "@/hooks/use-cart";
+import { useToast } from "@/hooks/use-toast";
 import { useProduct } from "@/services";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
@@ -15,6 +16,7 @@ const ProductDetailPage = () => {
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const { showError, showWarning } = useToast();
 
   const { data: product, isLoading, error } = useProduct(id || "");
   const { addItem, isAddingToCart } = useCart();
@@ -33,12 +35,15 @@ const ProductDetailPage = () => {
 
   const handleAddToCart = async () => {
     if (!product) {
-      alert("Product not loaded");
+      showError("Product not loaded", "Please refresh the page and try again");
       return;
     }
 
     if (!selectedSize) {
-      alert("Please select a size");
+      showWarning(
+        "Size required",
+        "Please select a size before adding to cart"
+      );
       return;
     }
 
@@ -49,17 +54,23 @@ const ProductDetailPage = () => {
       );
 
       if (!variant) {
-        alert("Selected variant not available");
+        showWarning(
+          "Variant not available",
+          "Selected variant is not available"
+        );
         return;
       }
 
       // Use the unified cart hook (works for both logged-in and guest users)
       await addItem(product.id, variant.id, quantity);
 
-      alert(`${product.name} has been added to your cart`);
+      // Success toast is handled by the cart hook
     } catch (error) {
       console.error("Add to cart error:", error);
-      alert("Failed to add item to cart");
+      showError(
+        "Failed to add item to cart",
+        "Something went wrong. Please try again."
+      );
     }
   };
 

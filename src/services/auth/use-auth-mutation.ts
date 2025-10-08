@@ -1,3 +1,4 @@
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { SignInData, SignUpData, UserProfile } from "@/services/types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -8,6 +9,7 @@ import { authQueryKeys } from "./use-auth-query";
  */
 export function useSignIn() {
   const queryClient = useQueryClient();
+  const { showError } = useToast();
 
   return useMutation({
     mutationFn: async ({ email, password }: SignInData) => {
@@ -31,6 +33,10 @@ export function useSignIn() {
     },
     onError: (error) => {
       console.error("Sign in error:", error);
+      showError(
+        "Sign in failed",
+        error.message || "Invalid email or password. Please try again."
+      );
     },
   });
 }
@@ -40,6 +46,7 @@ export function useSignIn() {
  */
 export function useSignUp() {
   const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
 
   return useMutation({
     mutationFn: async ({ email, password, userData }: SignUpData) => {
@@ -58,9 +65,18 @@ export function useSignUp() {
       if (data.session) {
         queryClient.setQueryData(authQueryKeys.session, data.session);
       }
+
+      showSuccess(
+        "Account created!",
+        "Please check your email to confirm your account"
+      );
     },
     onError: (error) => {
       console.error("Sign up error:", error);
+      showError(
+        "Sign up failed",
+        error.message || "Something went wrong. Please try again."
+      );
     },
   });
 }
@@ -70,6 +86,7 @@ export function useSignUp() {
  */
 export function useSignOut() {
   const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
 
   return useMutation({
     mutationFn: async () => {
@@ -80,9 +97,18 @@ export function useSignOut() {
       // Clear all auth-related cache
       queryClient.setQueryData(authQueryKeys.session, null);
       queryClient.removeQueries({ queryKey: ["auth", "profile"] });
+
+      showSuccess(
+        "Signed out successfully",
+        "You have been logged out of your account"
+      );
     },
     onError: (error) => {
       console.error("Sign out error:", error);
+      showError(
+        "Sign out failed",
+        error.message || "Something went wrong. Please try again."
+      );
     },
   });
 }

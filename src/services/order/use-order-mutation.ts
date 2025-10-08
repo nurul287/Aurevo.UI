@@ -1,3 +1,4 @@
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -41,6 +42,7 @@ interface OrderItem {
  */
 export function useCreateGuestOrder() {
   const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
 
   return useMutation({
     mutationFn: async (
@@ -161,18 +163,6 @@ export function useCreateGuestOrder() {
       const result = await response.json();
       console.log("✅ Order created via edge function:", result);
 
-      // Clear the guest cart after successful order creation
-      // const { error: clearCartError } = await supabase
-      //   .from("cart_items")
-      //   .delete()
-      //   .eq("session_id", data.sessionId);
-
-      // if (clearCartError) {
-      //   console.warn("⚠️ Could not clear guest cart:", clearCartError);
-      //   // Don't fail the order for this
-      // }
-
-      // Invalidate cart queries - use userId if logged in, otherwise sessionId
       if (userId) {
         queryClient.invalidateQueries({
           queryKey: ["cart", "items", userId],
@@ -194,8 +184,18 @@ export function useCreateGuestOrder() {
         guest_token: result.guest_token,
       };
     },
+    onSuccess: (data) => {
+      showSuccess(
+        "Order created successfully!",
+        `Order #${data.order.order_number} has been placed`
+      );
+    },
     onError: (error) => {
       console.error("Create guest order error:", error);
+      showError(
+        "Failed to create order",
+        error.message || "Something went wrong. Please try again."
+      );
     },
   });
 }
@@ -204,6 +204,8 @@ export function useCreateGuestOrder() {
  * Hook for creating a user account after order completion
  */
 export function useCreateUserAfterOrder() {
+  const { showError } = useToast();
+
   return useMutation({
     mutationFn: async ({
       email,
@@ -254,6 +256,10 @@ export function useCreateUserAfterOrder() {
     },
     onError: (error) => {
       console.error("Create user after order error:", error);
+      showError(
+        "Failed to create account",
+        error.message || "Something went wrong. Please try again."
+      );
     },
   });
 }
@@ -265,6 +271,8 @@ export function useFetchOrderWithGuestToken(
   orderId: string,
   guestToken?: string
 ) {
+  const { showError } = useToast();
+
   return useMutation({
     mutationFn: async () => {
       console.log("🔍 Fetching order with guest token:", {
@@ -340,6 +348,10 @@ export function useFetchOrderWithGuestToken(
     },
     onError: (error) => {
       console.error("Fetch order error:", error);
+      showError(
+        "Failed to fetch order",
+        error.message || "Something went wrong. Please try again."
+      );
     },
   });
 }

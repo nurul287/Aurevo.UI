@@ -1,3 +1,4 @@
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { cartQueryKeys } from "./use-cart-query";
@@ -7,6 +8,7 @@ import { cartQueryKeys } from "./use-cart-query";
  */
 export function useAddToCart() {
   const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
 
   return useMutation({
     mutationFn: async ({
@@ -144,7 +146,7 @@ export function useAddToCart() {
         return data;
       }
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       // Invalidate only the combined cart query instead of 3 separate queries
       queryClient.invalidateQueries({
         queryKey: cartQueryKeys.all(
@@ -152,9 +154,20 @@ export function useAddToCart() {
           variables.sessionId
         ),
       });
+
+      // Show success toast
+      const productName = data?.product?.name || "Product";
+      showSuccess(
+        "Added to cart!",
+        `${productName} has been added to your cart`
+      );
     },
     onError: (error) => {
       console.error("Add to cart error:", error);
+      showError(
+        "Failed to add to cart",
+        error.message || "Something went wrong. Please try again."
+      );
     },
   });
 }
@@ -164,6 +177,7 @@ export function useAddToCart() {
  */
 export function useUpdateCartItemQuantity() {
   const queryClient = useQueryClient();
+  const { showError } = useToast();
 
   return useMutation({
     mutationFn: async ({
@@ -257,6 +271,10 @@ export function useUpdateCartItemQuantity() {
         );
       }
       console.error("Update cart item quantity error:", err);
+      showError(
+        "Failed to update quantity",
+        err.message || "Something went wrong. Please try again."
+      );
     },
     onSettled: (_, __, variables) => {
       // Always refetch after error or success to ensure server state
@@ -275,6 +293,7 @@ export function useUpdateCartItemQuantity() {
  */
 export function useRemoveFromCart() {
   const queryClient = useQueryClient();
+  const { showError } = useToast();
 
   return useMutation({
     mutationFn: async ({
@@ -346,6 +365,10 @@ export function useRemoveFromCart() {
         );
       }
       console.error("Remove from cart error:", err);
+      showError(
+        "Failed to remove item",
+        err.message || "Something went wrong. Please try again."
+      );
     },
     onSettled: (_, __, variables) => {
       // Always refetch after error or success to ensure server state
@@ -365,6 +388,7 @@ export function useRemoveFromCart() {
  */
 export function useClearCart() {
   const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
 
   return useMutation({
     mutationFn: async ({
@@ -400,9 +424,18 @@ export function useClearCart() {
           variables.sessionId
         ),
       });
+
+      showSuccess(
+        "Cart cleared!",
+        "All items have been removed from your cart"
+      );
     },
     onError: (error) => {
       console.error("Clear cart error:", error);
+      showError(
+        "Failed to clear cart",
+        error.message || "Something went wrong. Please try again."
+      );
     },
   });
 }

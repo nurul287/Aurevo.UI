@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
+import { useToast } from "@/hooks/use-toast";
 import { useAddToCart, useProducts } from "@/services";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
@@ -9,6 +10,7 @@ const ProductsPage = () => {
   const { user } = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
   const [allProducts, setAllProducts] = useState<any[]>([]);
+  const { showError, showWarning } = useToast();
 
   const {
     data: productsData,
@@ -40,7 +42,10 @@ const ProductsPage = () => {
       // For now, use the first variant if available
       const variant = product.variants?.[0];
       if (!variant) {
-        alert("This product has no available variants");
+        showWarning(
+          "No variants available",
+          "This product has no available variants"
+        );
         return;
       }
 
@@ -55,10 +60,13 @@ const ProductsPage = () => {
         quantity: 1,
       });
 
-      alert(`${product.name} has been added to your cart`);
+      // Success toast is handled by the mutation's onSuccess callback
     } catch (error) {
       console.error("Add to cart error:", error);
-      alert("Failed to add item to cart");
+      showError(
+        "Failed to add item to cart",
+        "Something went wrong. Please try again."
+      );
     }
   };
 
