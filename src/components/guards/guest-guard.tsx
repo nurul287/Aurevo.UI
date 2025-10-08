@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { Navigate, Outlet } from "react-router-dom";
 
 const GuestGuard = () => {
-  const { user, loading } = useAuth();
+  const { isAuthenticated, isAdmin, loading } = useAuth();
 
   if (loading) {
     return (
@@ -11,8 +11,9 @@ const GuestGuard = () => {
       </div>
     );
   }
-
-  if (user) {
+  if (isAuthenticated && isAdmin) {
+    return <Navigate to="/admin" replace />;
+  } else if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
 

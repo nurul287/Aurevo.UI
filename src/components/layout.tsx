@@ -10,6 +10,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
+import { Button } from "./ui/button";
 
 const Layout = () => {
   const { user, isAdmin, signOut } = useAuth();
@@ -184,17 +185,9 @@ const Layout = () => {
                   )}
                 </div>
               ) : (
-                <div className="flex items-center space-x-2">
-                  <Link
-                    to="/login"
-                    className="text-sm font-medium text-gray-700 hover:text-primary-600"
-                  >
-                    Sign In
-                  </Link>
-                  <Link to="/register" className="btn-primary btn-sm">
-                    Sign Up
-                  </Link>
-                </div>
+                <Button variant="destructive" asChild>
+                  <Link to="/login">Sign In</Link>
+                </Button>
               )}
 
               {/* Mobile menu button */}

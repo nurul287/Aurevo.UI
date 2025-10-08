@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 const AuthGuard = () => {
-  const { user, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -13,7 +13,7 @@ const AuthGuard = () => {
     );
   }
 
-  if (!user) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

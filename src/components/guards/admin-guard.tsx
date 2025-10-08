@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 const AdminGuard = () => {
-  const { user, loading, isAdmin } = useAuth();
+  const { isAuthenticated, loading, isAdmin } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -13,11 +13,9 @@ const AdminGuard = () => {
     );
   }
 
-  if (!user) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  if (!isAdmin) {
+  } else if (!isAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
