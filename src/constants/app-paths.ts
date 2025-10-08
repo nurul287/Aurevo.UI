@@ -1,0 +1,28 @@
+// Path constants for consistent routing
+export const APP_PATHS = {
+  // Public paths
+  home: "/",
+  products: "/products",
+  productDetail: (id: string) => `/products/${id}`,
+  cart: "/cart",
+  login: "/login",
+  register: "/register",
+  emailConfirmation: "/email-confirmation",
+  checkout: "/checkout",
+  orderConfirmation: "/order-confirmation",
+  dashboard: "/dashboard",
+
+  // Admin paths
+  admin: "/admin",
+  adminDashboard: "/admin/dashboard",
+  adminProducts: "/admin/products",
+  adminUsers: "/admin/users",
+  adminOrders: "/admin/orders",
+
+  // Error paths
+  notFound: "*",
+  error: "/error",
+} as const;
+
+// Type for path values
+export type AppPath = (typeof APP_PATHS)[keyof typeof APP_PATHS];
