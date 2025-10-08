@@ -1,4 +1,5 @@
 import AdminDashboardPage from "@/pages/admin/admin-dashboard-page";
+import AdminInventoryPage from "@/pages/admin/admin-inventory-page";
 import AdminOrdersPage from "@/pages/admin/admin-orders-page";
 import AdminProductsPage from "@/pages/admin/admin-products-page";
 import { AdminLayout } from "../components/admin/admin-layout";
@@ -17,10 +18,10 @@ export const adminRoutes = [
           { path: "", element: <AdminDashboardPage /> },
           { path: "dashboard", element: <AdminDashboardPage /> },
           { path: "orders", element: <AdminOrdersPage /> },
+          { path: "inventory", element: <AdminInventoryPage /> },
           { path: "inventory/products", element: <AdminProductsPage /> },
           // Add more admin routes here as needed
           // { path: 'inventory/categories', element: <AdminCategories /> },
-          // { path: 'inventory/stock', element: <AdminStock /> },
           // { path: 'analytics', element: <AdminAnalytics /> },
           // { path: 'users', element: <AdminUsers /> },
           // { path: 'settings', element: <AdminSettings /> },

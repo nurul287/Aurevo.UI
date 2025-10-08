@@ -1,0 +1,703 @@
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+// Toast notifications are handled by the mutation hooks
+import {
+  useAllInventoryMovements,
+  useDecreaseStock,
+  useInventoryLevels,
+  useInventoryStats,
+  useLowStockItems,
+  useRestockInventory,
+} from "@/services/inventory";
+import {
+  AlertTriangle,
+  Download,
+  Filter,
+  Package,
+  Plus,
+  RotateCcw,
+  Search,
+  Trash2,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
+import { useState } from "react";
+
+export default function AdminInventoryPage() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedMovementType, setSelectedMovementType] =
+    useState<string>("all");
+  const [isRestockDialogOpen, setIsRestockDialogOpen] = useState(false);
+  const [isDecreaseDialogOpen, setIsDecreaseDialogOpen] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState<any>(null);
+  const [restockQuantity, setRestockQuantity] = useState("");
+  const [restockCost, setRestockCost] = useState("");
+  const [restockReference, setRestockReference] = useState("");
+  const [restockNotes, setRestockNotes] = useState("");
+  const [decreaseQuantity, setDecreaseQuantity] = useState("");
+  const [decreaseReason, setDecreaseReason] = useState("");
+
+  // Toast notifications are handled by the mutation hooks
+
+  // Queries
+  const { data: inventoryLevels, isLoading: inventoryLoading } =
+    useInventoryLevels();
+  const { data: lowStockItems, isLoading: lowStockLoading } =
+    useLowStockItems();
+  const { data: inventoryStats, isLoading: statsLoading } = useInventoryStats();
+  const { data: movements } = useAllInventoryMovements({
+    movement_type:
+      selectedMovementType === "all" ? undefined : selectedMovementType,
+    limit: 100,
+  });
+
+  // Mutations
+  const restockMutation = useRestockInventory();
+  const decreaseMutation = useDecreaseStock();
+
+  // Filter inventory levels
+  const filteredInventory =
+    inventoryLevels?.filter(
+      (item) =>
+        item.product_variants.products.name
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        item.product_variants.name
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        item.product_variants.sku
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase())
+    ) || [];
+
+  // Filter movements
+  const filteredMovements =
+    movements?.filter(
+      (movement) =>
+        movement.product_variants?.products?.name
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        movement.product_variants?.name
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase())
+    ) || [];
+
+  const handleRestock = async () => {
+    if (!selectedVariant || !restockQuantity) return;
+
+    try {
+      await restockMutation.mutateAsync({
+        variant_id: selectedVariant.id,
+        quantity: parseInt(restockQuantity),
+        cost_per_unit: restockCost ? parseFloat(restockCost) : undefined,
+        reference_number: restockReference || undefined,
+        notes: restockNotes || undefined,
+      });
+
+      // Reset form
+      setRestockQuantity("");
+      setRestockCost("");
+      setRestockReference("");
+      setRestockNotes("");
+      setSelectedVariant(null);
+      setIsRestockDialogOpen(false);
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const handleDecreaseStock = async () => {
+    if (!selectedVariant || !decreaseQuantity) return;
+
+    try {
+      await decreaseMutation.mutateAsync({
+        variant_id: selectedVariant.id,
+        quantity: parseInt(decreaseQuantity),
+      });
+
+      // Reset form
+      setDecreaseQuantity("");
+      setDecreaseReason("");
+      setSelectedVariant(null);
+      setIsDecreaseDialogOpen(false);
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const getStockStatusBadge = (quantity: number, threshold: number) => {
+    if (quantity === 0) {
+      return <Badge variant="destructive">Out of Stock</Badge>;
+    } else if (quantity <= threshold) {
+      return <Badge variant="secondary">Low Stock</Badge>;
+    } else {
+      return <Badge variant="default">In Stock</Badge>;
+    }
+  };
+
+  const getMovementTypeBadge = (type: string) => {
+    const variants = {
+      restock: { variant: "default" as const, icon: TrendingUp },
+      sale: { variant: "secondary" as const, icon: TrendingDown },
+      reserve: { variant: "outline" as const, icon: Package },
+      unreserve: { variant: "outline" as const, icon: RotateCcw },
+      cancel: { variant: "destructive" as const, icon: Trash2 },
+      return: { variant: "secondary" as const, icon: RotateCcw },
+    };
+
+    const config = variants[type as keyof typeof variants] || {
+      variant: "outline" as const,
+      icon: Package,
+    };
+    const Icon = config.icon;
+
+    return (
+      <Badge variant={config.variant} className="flex items-center gap-1">
+        <Icon className="h-3 w-3" />
+        {type.charAt(0).toUpperCase() + type.slice(1)}
+      </Badge>
+    );
+  };
+
+  if (inventoryLoading || lowStockLoading || statsLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Loading...
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-8 w-16 bg-gray-200 rounded animate-pulse" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Inventory Management
+          </h1>
+          <p className="text-muted-foreground">
+            Manage product inventory, track stock levels, and monitor movements
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+          <Dialog
+            open={isRestockDialogOpen}
+            onOpenChange={setIsRestockDialogOpen}
+          >
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Restock
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Restock Inventory</DialogTitle>
+                <DialogDescription>
+                  Add stock to a product variant
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="variant">Product Variant</Label>
+                  <Select
+                    onValueChange={(value) => {
+                      const variant = inventoryLevels?.find(
+                        (item) => item.product_variants.id === value
+                      );
+                      setSelectedVariant(variant?.product_variants);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a variant" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {inventoryLevels?.map((item) => (
+                        <SelectItem
+                          key={item.product_variants.id}
+                          value={item.product_variants.id}
+                        >
+                          {item.product_variants.products.name} -{" "}
+                          {item.product_variants.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="quantity">Quantity</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    value={restockQuantity}
+                    onChange={(e) => setRestockQuantity(e.target.value)}
+                    placeholder="Enter quantity"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="cost">Cost per Unit (Optional)</Label>
+                  <Input
+                    id="cost"
+                    type="number"
+                    step="0.01"
+                    value={restockCost}
+                    onChange={(e) => setRestockCost(e.target.value)}
+                    placeholder="Enter cost per unit"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="reference">Reference Number (Optional)</Label>
+                  <Input
+                    id="reference"
+                    value={restockReference}
+                    onChange={(e) => setRestockReference(e.target.value)}
+                    placeholder="PO number, invoice, etc."
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="notes">Notes (Optional)</Label>
+                  <Textarea
+                    id="notes"
+                    value={restockNotes}
+                    onChange={(e) => setRestockNotes(e.target.value)}
+                    placeholder="Additional notes"
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsRestockDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleRestock}
+                    disabled={
+                      restockMutation.isPending ||
+                      !selectedVariant ||
+                      !restockQuantity
+                    }
+                  >
+                    {restockMutation.isPending ? "Restocking..." : "Restock"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Stock Value
+            </CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              ${inventoryStats?.totalStockValue.toLocaleString() || 0}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Stock Quantity
+            </CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {inventoryStats?.totalStockQuantity.toLocaleString() || 0}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Low Stock Items
+            </CardTitle>
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              {inventoryStats?.lowStockCount || 0}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Variants
+            </CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {inventoryStats?.totalVariants || 0}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tabs */}
+      <Tabs defaultValue="inventory" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="inventory">Inventory Levels</TabsTrigger>
+          <TabsTrigger value="low-stock">Low Stock</TabsTrigger>
+          <TabsTrigger value="movements">Stock Movements</TabsTrigger>
+        </TabsList>
+
+        {/* Inventory Levels Tab */}
+        <TabsContent value="inventory" className="space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search products, variants, or SKUs..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button variant="outline" size="sm">
+              <Filter className="h-4 w-4 mr-2" />
+              Filter
+            </Button>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Inventory Levels</CardTitle>
+              <CardDescription>
+                Current stock levels for all product variants
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product</TableHead>
+                    <TableHead>Variant</TableHead>
+                    <TableHead>SKU</TableHead>
+                    <TableHead>Stock</TableHead>
+                    <TableHead>Reserved</TableHead>
+                    <TableHead>Available</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredInventory.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">
+                        {item.product_variants.products.name}
+                      </TableCell>
+                      <TableCell>{item.product_variants.name}</TableCell>
+                      <TableCell>{item.product_variants.sku}</TableCell>
+                      <TableCell>{item.quantity}</TableCell>
+                      <TableCell>{item.reserved_quantity}</TableCell>
+                      <TableCell>{item.available_quantity}</TableCell>
+                      <TableCell>
+                        {getStockStatusBadge(
+                          item.quantity,
+                          item.product_variants.products.low_stock_threshold
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedVariant(item.product_variants);
+                              setIsRestockDialogOpen(true);
+                            }}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedVariant(item.product_variants);
+                              setIsDecreaseDialogOpen(true);
+                            }}
+                          >
+                            <TrendingDown className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Low Stock Tab */}
+        <TabsContent value="low-stock" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Low Stock Items</CardTitle>
+              <CardDescription>
+                Products that are below their low stock threshold
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product</TableHead>
+                    <TableHead>Variant</TableHead>
+                    <TableHead>Current Stock</TableHead>
+                    <TableHead>Threshold</TableHead>
+                    <TableHead>Reorder Point</TableHead>
+                    <TableHead>Reorder Quantity</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {lowStockItems?.map((item) => (
+                    <TableRow key={item.variant_id}>
+                      <TableCell className="font-medium">
+                        {item.product_name}
+                      </TableCell>
+                      <TableCell>{item.variant_name}</TableCell>
+                      <TableCell className="text-red-600 font-semibold">
+                        {item.current_stock}
+                      </TableCell>
+                      <TableCell>{item.low_stock_threshold}</TableCell>
+                      <TableCell>{item.reorder_point}</TableCell>
+                      <TableCell>{item.reorder_quantity}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            // Find the variant and open restock dialog
+                            const variant = inventoryLevels?.find(
+                              (inv) =>
+                                inv.product_variants.id === item.variant_id
+                            )?.product_variants;
+                            if (variant) {
+                              setSelectedVariant(variant);
+                              setIsRestockDialogOpen(true);
+                            }
+                          }}
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Restock
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Stock Movements Tab */}
+        <TabsContent value="movements" className="space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search movements..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select
+              value={selectedMovementType}
+              onValueChange={setSelectedMovementType}
+            >
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="restock">Restock</SelectItem>
+                <SelectItem value="sale">Sale</SelectItem>
+                <SelectItem value="reserve">Reserve</SelectItem>
+                <SelectItem value="unreserve">Unreserve</SelectItem>
+                <SelectItem value="cancel">Cancel</SelectItem>
+                <SelectItem value="return">Return</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Stock Movements</CardTitle>
+              <CardDescription>
+                Recent inventory movements and changes
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Product</TableHead>
+                    <TableHead>Variant</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Quantity</TableHead>
+                    <TableHead>Previous</TableHead>
+                    <TableHead>New</TableHead>
+                    <TableHead>Reference</TableHead>
+                    <TableHead>Notes</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredMovements.map((movement) => (
+                    <TableRow key={movement.id}>
+                      <TableCell>
+                        {new Date(movement.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {movement.product_variants?.products?.name}
+                      </TableCell>
+                      <TableCell>{movement.product_variants?.name}</TableCell>
+                      <TableCell>
+                        {getMovementTypeBadge(movement.movement_type)}
+                      </TableCell>
+                      <TableCell
+                        className={
+                          movement.quantity > 0
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }
+                      >
+                        {movement.quantity > 0 ? "+" : ""}
+                        {movement.quantity}
+                      </TableCell>
+                      <TableCell>{movement.previous_quantity}</TableCell>
+                      <TableCell>{movement.new_quantity}</TableCell>
+                      <TableCell>{movement.reference_number || "-"}</TableCell>
+                      <TableCell>{movement.notes || "-"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Decrease Stock Dialog */}
+      <Dialog
+        open={isDecreaseDialogOpen}
+        onOpenChange={setIsDecreaseDialogOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Decrease Stock</DialogTitle>
+            <DialogDescription>
+              Remove stock from a product variant
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="decrease-quantity">Quantity</Label>
+              <Input
+                id="decrease-quantity"
+                type="number"
+                value={decreaseQuantity}
+                onChange={(e) => setDecreaseQuantity(e.target.value)}
+                placeholder="Enter quantity to decrease"
+              />
+            </div>
+            <div>
+              <Label htmlFor="decrease-reason">Reason (Optional)</Label>
+              <Textarea
+                id="decrease-reason"
+                value={decreaseReason}
+                onChange={(e) => setDecreaseReason(e.target.value)}
+                placeholder="Reason for stock decrease"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsDecreaseDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDecreaseStock}
+                disabled={
+                  decreaseMutation.isPending ||
+                  !selectedVariant ||
+                  !decreaseQuantity
+                }
+                variant="destructive"
+              >
+                {decreaseMutation.isPending
+                  ? "Decreasing..."
+                  : "Decrease Stock"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
