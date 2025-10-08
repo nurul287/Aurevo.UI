@@ -19,11 +19,10 @@ const AppRoutes = () => {
 
         // Protected routes (require authentication)
         ...protectedRoutes,
-
-        // Admin routes (require admin privileges)
-        ...adminRoutes,
       ],
     },
+    // Admin routes with their own layout (no main site navigation)
+    ...adminRoutes,
   ]);
   return routes;
 };
