@@ -1,11 +1,10 @@
--- Improved create_order stored procedure
--- Migration: 007_improved_create_order.sql
+-- Fix cart cleanup bug in create_order stored procedure
+-- Migration: 014_fix_cart_cleanup.sql
 
--- Drop the existing function
-DROP FUNCTION IF EXISTS public.create_order(uuid, text, text, jsonb, jsonb, jsonb, text, text, text, timestamptz);
-DROP FUNCTION IF EXISTS public.create_order(uuid, text, text, jsonb, jsonb, jsonb, text, text, text);
+-- Drop and recreate the function with the fix
+DROP FUNCTION IF EXISTS public.create_order(uuid, text, text, jsonb, jsonb, jsonb, text, text, text, text);
 
--- Create improved create_order function
+-- Create improved create_order function with fixed cart cleanup
 CREATE OR REPLACE FUNCTION public.create_order(
   user_id uuid,
   email text,
@@ -129,11 +128,11 @@ BEGIN
     now()
   );
 
-  -- Clean up cart items
+  -- Clean up cart items - FIXED VERSION
   IF user_id IS NOT NULL THEN
     -- For authenticated users, remove cart items by user_id and variant_ids
     DELETE FROM public.cart_items ci
-    WHERE ci.user_id = create_order.user_id
+    WHERE ci.user_id = user_id  -- FIXED: was create_order.user_id
       AND ci.variant_id IN (
         SELECT oi.variant_id
         FROM public.order_items oi
@@ -171,4 +170,4 @@ GRANT EXECUTE ON FUNCTION public.create_order(uuid, text, text, jsonb, jsonb, js
 REVOKE EXECUTE ON FUNCTION public.create_order(uuid, text, text, jsonb, jsonb, jsonb, text, text, text, text) FROM public;
 
 -- Add comment
-COMMENT ON FUNCTION public.create_order(uuid, text, text, jsonb, jsonb, jsonb, text, text, text, text) IS 'Creates a new order with proper inventory management and cart cleanup';
+COMMENT ON FUNCTION public.create_order(uuid, text, text, jsonb, jsonb, jsonb, text, text, text, text) IS 'Creates a new order with proper inventory management and cart cleanup - FIXED VERSION';

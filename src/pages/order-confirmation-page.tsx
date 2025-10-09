@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useFetchOrderWithGuestToken } from "@/services/order/use-order-mutation";
+import { useFetchOrderWithGuestToken } from "@/services/order/use-order-query";
 import { CheckCircleIcon, HomeIcon, PackageIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -15,7 +15,11 @@ const OrderConfirmationPage = () => {
   const [fullOrderData, setFullOrderData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  const fetchOrderMutation = useFetchOrderWithGuestToken(
+  const {
+    data: orderData,
+    isLoading: orderLoading,
+    error: orderError,
+  } = useFetchOrderWithGuestToken(
     orderDetails?.orderId || "",
     orderDetails?.guestToken
   );
@@ -35,20 +39,16 @@ const OrderConfirmationPage = () => {
   }, [searchParams]);
 
   useEffect(() => {
-    if (orderDetails?.orderId) {
+    if (orderData) {
+      setFullOrderData(orderData);
+      setLoading(false);
+    } else if (orderError) {
+      console.error("Failed to fetch order details:", orderError);
+      setLoading(false);
+    } else if (orderLoading) {
       setLoading(true);
-      fetchOrderMutation.mutate(undefined, {
-        onSuccess: (data) => {
-          setFullOrderData(data);
-          setLoading(false);
-        },
-        onError: (error) => {
-          console.error("Failed to fetch order details:", error);
-          setLoading(false);
-        },
-      });
     }
-  }, [orderDetails?.orderId, orderDetails?.guestToken]);
+  }, [orderData, orderError, orderLoading]);
 
   if (!orderDetails) {
     return (
@@ -60,7 +60,7 @@ const OrderConfirmationPage = () => {
             order confirmation.
           </p>
           <Link to="/">
-            <Button variant="gradient" size="lg">
+            <Button variant="default" size="lg">
               Go Home
             </Button>
           </Link>
@@ -188,7 +188,7 @@ const OrderConfirmationPage = () => {
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/">
-              <Button variant="gradient" size="lg" className="w-full sm:w-auto">
+              <Button variant="default" size="lg" className="w-full sm:w-auto">
                 <HomeIcon className="w-4 h-4 mr-2" />
                 Continue Shopping
               </Button>

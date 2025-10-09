@@ -1,357 +1,476 @@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { FulfillmentStatus, OrderStatus, PaymentStatus } from "../types";
+import { orderQueryKeys } from "./use-order-query";
 
-interface CreateGuestOrderData {
-  // Guest information
+// Mutation parameter interfaces
+export interface UpdateOrderStatusParams {
+  orderId: string;
+  status: OrderStatus;
+  internalNotes?: string;
+}
+
+export interface UpdatePaymentStatusParams {
+  orderId: string;
+  paymentStatus: PaymentStatus;
+  internalNotes?: string;
+}
+
+export interface UpdateFulfillmentStatusParams {
+  orderId: string;
+  fulfillmentStatus: FulfillmentStatus;
+  trackingNumber?: string;
+  estimatedDeliveryDate?: string;
+  internalNotes?: string;
+}
+
+export interface UpdateOrderNotesParams {
+  orderId: string;
+  notes?: string;
+  internalNotes?: string;
+}
+
+export interface BulkUpdateOrderStatusParams {
+  orderIds: string[];
+  status: OrderStatus;
+  internalNotes?: string;
+}
+
+export interface CreateGuestOrderParams {
   email: string;
-  phone: string;
-  firstName: string;
+  phone?: string;
+  firstName?: string;
   lastName?: string;
-
-  // Shipping information
-  district: string;
-  thana: string;
-  address: string;
-  orderNote?: string;
-
-  // Cart information
-  sessionId: string;
-
-  // Payment information
-  paymentMethod: string;
-
-  // Optional user ID (if guest creates account)
-  userId?: string;
-}
-
-interface CreateGuestOrderResponse {
-  order: any;
-  guest_token?: string;
-}
-
-interface OrderItem {
-  product_id: string;
-  variant_id: string;
-  quantity: number;
-  unit_price: number;
+  billingAddress: any;
+  shippingAddress: any;
+  items: Array<{
+    product_id: string;
+    variant_id?: string;
+    quantity: number;
+    unit_price: number;
+  }>;
+  subtotal: number;
+  tax_amount?: number;
+  shipping_amount?: number;
+  discount_amount?: number;
+  total_amount: number;
+  payment_method: string;
+  notes?: string;
+  session_id?: string;
 }
 
 /**
- * Hook for creating a guest order using the edge function
+ * Hook for updating order status
+ */
+export function useUpdateOrderStatus() {
+  const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
+
+  return useMutation({
+    mutationFn: async (params: UpdateOrderStatusParams) => {
+      console.log("📦 Updating order status:", params);
+
+      const { data, error } = await supabase
+        .from("orders")
+        .update({
+          status: params.status,
+          internal_notes: params.internalNotes,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", params.orderId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("❌ Error updating order status:", error);
+        throw error;
+      }
+
+      console.log("✅ Order status updated:", data);
+      return data;
+    },
+    onSuccess: (data, variables) => {
+      const statusLabels = {
+        pending: "Pending",
+        confirmed: "Confirmed",
+        processing: "Processing",
+        shipped: "Shipped",
+        delivered: "Delivered",
+        cancelled: "Cancelled",
+        refunded: "Refunded",
+      };
+
+      showSuccess(
+        "Order Status Updated",
+        `Order ${data.order_number} status updated to ${
+          statusLabels[variables.status]
+        }`
+      );
+
+      // Invalidate and refetch order queries
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({
+        queryKey: orderQueryKeys.order(variables.orderId),
+      });
+      queryClient.invalidateQueries({ queryKey: ["orders", "stats"] });
+    },
+    onError: (error) => {
+      console.error("❌ Error updating order status:", error);
+      showError("Failed to Update Order Status", error.message);
+    },
+  });
+}
+
+/**
+ * Hook for updating payment status
+ */
+export function useUpdatePaymentStatus() {
+  const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
+
+  return useMutation({
+    mutationFn: async (params: UpdatePaymentStatusParams) => {
+      console.log("💳 Updating payment status:", params);
+
+      const { data, error } = await supabase
+        .from("orders")
+        .update({
+          payment_status: params.paymentStatus,
+          internal_notes: params.internalNotes,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", params.orderId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("❌ Error updating payment status:", error);
+        throw error;
+      }
+
+      console.log("✅ Payment status updated:", data);
+      return data;
+    },
+    onSuccess: (data, variables) => {
+      const statusLabels = {
+        pending: "Pending",
+        paid: "Paid",
+        failed: "Failed",
+        refunded: "Refunded",
+        partially_refunded: "Partially Refunded",
+      };
+
+      showSuccess(
+        "Payment Status Updated",
+        `Order ${data.order_number} payment status updated to ${
+          statusLabels[variables.paymentStatus]
+        }`
+      );
+
+      // Invalidate and refetch order queries
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({
+        queryKey: orderQueryKeys.order(variables.orderId),
+      });
+      queryClient.invalidateQueries({ queryKey: ["orders", "stats"] });
+    },
+    onError: (error) => {
+      console.error("❌ Error updating payment status:", error);
+      showError("Failed to Update Payment Status", error.message);
+    },
+  });
+}
+
+/**
+ * Hook for updating fulfillment status
+ */
+export function useUpdateFulfillmentStatus() {
+  const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
+
+  return useMutation({
+    mutationFn: async (params: UpdateFulfillmentStatusParams) => {
+      console.log("🚚 Updating fulfillment status:", params);
+
+      const updateData: any = {
+        fulfillment_status: params.fulfillmentStatus,
+        internal_notes: params.internalNotes,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (params.trackingNumber) {
+        updateData.tracking_number = params.trackingNumber;
+      }
+
+      if (params.estimatedDeliveryDate) {
+        updateData.estimated_delivery_date = params.estimatedDeliveryDate;
+      }
+
+      const { data, error } = await supabase
+        .from("orders")
+        .update(updateData)
+        .eq("id", params.orderId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("❌ Error updating fulfillment status:", error);
+        throw error;
+      }
+
+      console.log("✅ Fulfillment status updated:", data);
+      return data;
+    },
+    onSuccess: (data, variables) => {
+      const statusLabels = {
+        unfulfilled: "Unfulfilled",
+        partial: "Partially Fulfilled",
+        fulfilled: "Fulfilled",
+      };
+
+      showSuccess(
+        "Fulfillment Status Updated",
+        `Order ${data.order_number} fulfillment status updated to ${
+          statusLabels[variables.fulfillmentStatus]
+        }`
+      );
+
+      // Invalidate and refetch order queries
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({
+        queryKey: orderQueryKeys.order(variables.orderId),
+      });
+      queryClient.invalidateQueries({ queryKey: ["orders", "stats"] });
+    },
+    onError: (error) => {
+      console.error("❌ Error updating fulfillment status:", error);
+      showError("Failed to Update Fulfillment Status", error.message);
+    },
+  });
+}
+
+/**
+ * Hook for updating order notes
+ */
+export function useUpdateOrderNotes() {
+  const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
+
+  return useMutation({
+    mutationFn: async (params: UpdateOrderNotesParams) => {
+      console.log("📝 Updating order notes:", params);
+
+      const { data, error } = await supabase
+        .from("orders")
+        .update({
+          notes: params.notes,
+          internal_notes: params.internalNotes,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", params.orderId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("❌ Error updating order notes:", error);
+        throw error;
+      }
+
+      console.log("✅ Order notes updated:", data);
+      return data;
+    },
+    onSuccess: (data) => {
+      showSuccess(
+        "Order Notes Updated",
+        `Notes updated for order ${data.order_number}`
+      );
+
+      // Invalidate and refetch order queries
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({
+        queryKey: orderQueryKeys.order(data.id),
+      });
+    },
+    onError: (error) => {
+      console.error("❌ Error updating order notes:", error);
+      showError("Failed to Update Order Notes", error.message);
+    },
+  });
+}
+
+/**
+ * Hook for bulk updating order status
+ */
+export function useBulkUpdateOrderStatus() {
+  const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
+
+  return useMutation({
+    mutationFn: async (params: BulkUpdateOrderStatusParams) => {
+      console.log("📦 Bulk updating order status:", params);
+
+      const { data, error } = await supabase
+        .from("orders")
+        .update({
+          status: params.status,
+          internal_notes: params.internalNotes,
+          updated_at: new Date().toISOString(),
+        })
+        .in("id", params.orderIds)
+        .select();
+
+      if (error) {
+        console.error("❌ Error bulk updating order status:", error);
+        throw error;
+      }
+
+      console.log("✅ Order status bulk updated:", data);
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      const statusLabels = {
+        pending: "Pending",
+        confirmed: "Confirmed",
+        processing: "Processing",
+        shipped: "Shipped",
+        delivered: "Delivered",
+        cancelled: "Cancelled",
+        refunded: "Refunded",
+      };
+
+      showSuccess(
+        "Orders Updated",
+        `${variables.orderIds.length} orders updated to ${
+          statusLabels[variables.status]
+        }`
+      );
+
+      // Invalidate and refetch order queries
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["orders", "stats"] });
+    },
+    onError: (error) => {
+      console.error("❌ Error bulk updating order status:", error);
+      showError("Failed to Update Orders", error.message);
+    },
+  });
+}
+
+/**
+ * Hook for deleting an order (soft delete by setting status to cancelled)
+ */
+export function useCancelOrder() {
+  const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
+
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      console.log("❌ Cancelling order:", orderId);
+
+      const { data, error } = await supabase
+        .from("orders")
+        .update({
+          status: "cancelled",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", orderId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("❌ Error cancelling order:", error);
+        throw error;
+      }
+
+      console.log("✅ Order cancelled:", data);
+      return data;
+    },
+    onSuccess: (data) => {
+      showSuccess(
+        "Order Cancelled",
+        `Order ${data.order_number} has been cancelled`
+      );
+
+      // Invalidate and refetch order queries
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({
+        queryKey: orderQueryKeys.order(data.id),
+      });
+      queryClient.invalidateQueries({ queryKey: ["orders", "stats"] });
+    },
+    onError: (error) => {
+      console.error("❌ Error cancelling order:", error);
+      showError("Failed to Cancel Order", error.message);
+    },
+  });
+}
+
+/**
+ * Hook for creating a guest order
  */
 export function useCreateGuestOrder() {
   const queryClient = useQueryClient();
   const { showSuccess, showError } = useToast();
 
   return useMutation({
-    mutationFn: async (
-      data: CreateGuestOrderData
-    ): Promise<CreateGuestOrderResponse> => {
-      console.log("🛒 Creating guest order via edge function:", data);
+    mutationFn: async (params: CreateGuestOrderParams) => {
+      console.log("🛒 Creating guest order:", params);
 
-      // Get auth session to determine if user is logged in
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const userId = session?.user?.id;
+      // Generate guest token in frontend
+      const generateGuestToken = () => {
+        const arr = new Uint8Array(16);
+        crypto.getRandomValues(arr);
+        return Array.from(arr)
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+      };
 
-      console.log("🔐 User session:", { userId, sessionId: data.sessionId });
+      const guest_token = generateGuestToken();
 
-      // Get cart items - prioritize user_id if logged in, otherwise use session_id
-      let cartQuery = supabase.from("cart_items").select(
-        `
-          *,
-          product:products!product_id(*),
-          variant:product_variants!variant_id(*)
-        `
+      // Use the stored procedure to create the order
+      const { data: order, error: orderError } = await supabase.rpc(
+        "create_order",
+        {
+          user_id: null, // Guest order
+          email: params.email,
+          phone: params.phone,
+          items: params.items.map((item) => ({
+            product_id: item.product_id,
+            variant_id: item.variant_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+          })),
+          billing_address: params.billingAddress,
+          shipping_address: params.shippingAddress,
+          notes: params.notes,
+          session_id: params.session_id,
+          payment_method: params.payment_method,
+          guest_token: guest_token,
+        }
       );
 
-      // If user is logged in, query by user_id, otherwise by session_id
-      if (userId) {
-        cartQuery = cartQuery.eq("user_id", userId);
-      } else if (data.sessionId) {
-        cartQuery = cartQuery.eq("session_id", data.sessionId);
-      } else {
-        throw new Error("No user ID or session ID available");
+      if (orderError) {
+        console.error("❌ Error creating order:", orderError);
+        throw orderError;
       }
 
-      const { data: cartItems, error: cartError } = await cartQuery;
-
-      console.log("cartItems", cartItems);
-
-      if (cartError) {
-        console.error("❌ Error fetching cart items:", cartError);
-        throw new Error("Failed to fetch cart items");
-      }
-
-      if (!cartItems || cartItems.length === 0) {
-        throw new Error("Cart is empty");
-      }
-
-      // Prepare order items for the edge function
-      const items: OrderItem[] = cartItems.map((cartItem) => {
-        const variantPrice = (cartItem.variant as any)?.price;
-        const productPrice = (cartItem.product as any)?.base_price;
-        const price = variantPrice || productPrice || cartItem.price || 0;
-
-        return {
-          product_id: cartItem.product_id,
-          variant_id: cartItem.variant_id,
-          quantity: cartItem.quantity,
-          unit_price: price,
-        };
-      });
-
-      // Prepare billing and shipping addresses
-      const billingAddress = {
-        first_name: data.firstName,
-        last_name: data.lastName,
-        email: data.email,
-        phone: data.phone,
-        district: data.district,
-        thana: data.thana,
-        address: data.address,
-      };
-
-      const shippingAddress = {
-        first_name: data.firstName,
-        last_name: data.lastName,
-        email: data.email,
-        phone: data.phone,
-        district: data.district,
-        thana: data.thana,
-        address: data.address,
-      };
-
-      // Use the session we already fetched earlier
-      const authToken = session?.access_token;
-      console.log("authToken", session, authToken);
-
-      // Call the edge function
-      const edgeFunctionUrl = `${
-        import.meta.env.VITE_SUPABASE_URL
-      }/functions/v1/create-order`;
-
-      const response = await fetch(edgeFunctionUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${
-            authToken || import.meta.env.VITE_SUPABASE_ANON_KEY
-          }`,
-        },
-        body: JSON.stringify({
-          user_id: userId || data.userId || null,
-          email: data.email,
-          phone: data.phone,
-          items: items,
-          billing_address: billingAddress,
-          shipping_address: shippingAddress,
-          notes: data.orderNote || null,
-          session_id: data.sessionId,
-          payment_method: data.paymentMethod || "cash",
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("❌ Edge function error:", errorData);
-        throw new Error(errorData.error || "Failed to create order");
-      }
-
-      const result = await response.json();
-      console.log("✅ Order created via edge function:", result);
-
-      if (userId) {
-        queryClient.invalidateQueries({
-          queryKey: ["cart", "items", userId],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["cart", "all", userId],
-        });
-      } else {
-        queryClient.invalidateQueries({
-          queryKey: ["cart", "", data.sessionId],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["cart", "all", "", data.sessionId],
-        });
-      }
-
-      return {
-        order: result.order,
-        guest_token: result.guest_token,
-      };
+      console.log("✅ Guest order created:", order);
+      return { order, guest_token };
     },
     onSuccess: (data) => {
       showSuccess(
-        "Order created successfully!",
-        `Order #${data.order.order_number} has been placed`
+        "Order Created",
+        `Your order ${data.order.order_number} has been created successfully`
       );
+
+      // Invalidate and refetch order queries
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["orders", "stats"] });
     },
     onError: (error) => {
-      console.error("Create guest order error:", error);
-      showError(
-        "Failed to create order",
-        error.message || "Something went wrong. Please try again."
-      );
-    },
-  });
-}
-
-/**
- * Hook for creating a user account after order completion
- */
-export function useCreateUserAfterOrder() {
-  const { showError } = useToast();
-
-  return useMutation({
-    mutationFn: async ({
-      email,
-      password,
-      orderId,
-    }: {
-      email: string;
-      password: string;
-      orderId: string;
-    }) => {
-      console.log("👤 Creating user account after order:", { email, orderId });
-
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (authError) {
-        console.error("❌ Error creating auth user:", authError);
-        throw new Error(`Failed to create account: ${authError.message}`);
-      }
-
-      if (!authData.user) {
-        throw new Error("Failed to create user");
-      }
-
-      // Update the order to link it to the new user
-      const { error: updateOrderError } = await supabase
-        .from("orders")
-        .update({ user_id: authData.user.id })
-        .eq("id", orderId);
-
-      if (updateOrderError) {
-        console.warn("⚠️ Could not link order to user:", updateOrderError);
-        // Don't fail the user creation for this
-      }
-
-      console.log("✅ User account created and linked to order:", {
-        userId: authData.user.id,
-        orderId,
-      });
-
-      return {
-        user: authData.user,
-        orderId,
-      };
-    },
-    onError: (error) => {
-      console.error("Create user after order error:", error);
-      showError(
-        "Failed to create account",
-        error.message || "Something went wrong. Please try again."
-      );
-    },
-  });
-}
-
-/**
- * Hook for fetching order details with guest token support
- */
-export function useFetchOrderWithGuestToken(
-  orderId: string,
-  guestToken?: string
-) {
-  const { showError } = useToast();
-
-  return useMutation({
-    mutationFn: async () => {
-      console.log("🔍 Fetching order with guest token:", {
-        orderId,
-        guestToken,
-      });
-
-      if (guestToken) {
-        // For guest orders, we need to verify the token first
-        const { data: order, error } = await supabase.rpc(
-          "verify_guest_token",
-          {
-            p_order_id: orderId,
-            p_token: guestToken,
-          }
-        );
-
-        if (error) {
-          console.error("❌ Error verifying guest token:", error);
-          throw new Error("Invalid guest token");
-        }
-
-        if (!order) {
-          throw new Error("Order not found or invalid token");
-        }
-
-        // Fetch order details
-        const { data: orderDetails, error: orderError } = await supabase
-          .from("orders")
-          .select(
-            `
-            *,
-            order_items (
-              *,
-              product:products (*),
-              variant:product_variants (*)
-            )
-          `
-          )
-          .eq("id", orderId)
-          .single();
-
-        if (orderError) {
-          console.error("❌ Error fetching order details:", orderError);
-          throw new Error("Failed to fetch order details");
-        }
-
-        return orderDetails;
-      } else {
-        // For authenticated users, use normal RLS
-        const { data: orderDetails, error: orderError } = await supabase
-          .from("orders")
-          .select(
-            `
-            *,
-            order_items (
-              *,
-              product:products (*),
-              variant:product_variants (*)
-            )
-          `
-          )
-          .eq("id", orderId)
-          .single();
-
-        if (orderError) {
-          console.error("❌ Error fetching order details:", orderError);
-          throw new Error("Failed to fetch order details");
-        }
-
-        return orderDetails;
-      }
-    },
-    onError: (error) => {
-      console.error("Fetch order error:", error);
-      showError(
-        "Failed to fetch order",
-        error.message || "Something went wrong. Please try again."
-      );
+      console.error("❌ Error creating guest order:", error);
+      showError("Failed to Create Order", error.message);
     },
   });
 }

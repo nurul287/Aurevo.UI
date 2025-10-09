@@ -3,6 +3,7 @@ import AdminCategoriesPage from "@/pages/admin/admin-categories-page";
 import AdminDashboardPage from "@/pages/admin/admin-dashboard-page";
 import AdminImagesPage from "@/pages/admin/admin-images-page";
 import AdminInventoryPage from "@/pages/admin/admin-inventory-page";
+import AdminOrderDetailPage from "@/pages/admin/admin-order-detail-page";
 import AdminOrdersPage from "@/pages/admin/admin-orders-page";
 import AdminProductsPage from "@/pages/admin/admin-products-page";
 import AdminVariantsPage from "@/pages/admin/admin-variants-page";
@@ -27,6 +28,7 @@ export const adminRoutes = [
           { path: "categories", element: <AdminCategoriesPage /> },
           { path: "brands", element: <AdminBrandsPage /> },
           { path: "orders", element: <AdminOrdersPage /> },
+          { path: "orders/:orderId", element: <AdminOrderDetailPage /> },
           { path: "inventory", element: <AdminInventoryPage /> },
           { path: "inventory/products", element: <AdminProductsPage /> },
           // Add more admin routes here as needed
