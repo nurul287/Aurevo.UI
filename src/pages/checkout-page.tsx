@@ -14,8 +14,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useGuestCart } from "@/contexts/guest-cart-context";
 import { useCart } from "@/hooks/use-cart";
-import { useCreateGuestOrder } from "@/services/order/use-order-mutation";
 import { useToast } from "@/hooks/use-toast";
+import { useCreateGuestOrder } from "@/services/order/use-order-mutation";
 import {
   CheckCircleIcon,
   CreditCardIcon,
@@ -29,7 +29,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 const CheckoutPage = () => {
-  const { cartItems, cartTotal, loading } = useCart();
+  const { cartItems, cartTotal, loading, clearCart } = useCart();
   const { sessionId } = useGuestCart();
   const navigate = useNavigate();
   const createGuestOrderMutation = useCreateGuestOrder();
@@ -66,7 +66,10 @@ const CheckoutPage = () => {
     try {
       // Validate required fields
       if (!formData.firstName || !formData.phone || !formData.email) {
-        showWarning("Required fields missing", "First name, phone number, and email are required");
+        showWarning(
+          "Required fields missing",
+          "First name, phone number, and email are required"
+        );
         setIsSubmitting(false);
         return;
       }
@@ -79,18 +82,52 @@ const CheckoutPage = () => {
         phone: formData.phone,
         firstName: formData.firstName,
         lastName: formData.lastName,
-        district: formData.district,
-        thana: formData.thana,
-        address: formData.address,
-        orderNote: formData.orderNote,
-        sessionId: sessionId!,
-        paymentMethod: paymentMethod,
+        billingAddress: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          district: formData.district,
+          thana: formData.thana,
+          address: formData.address,
+          phone: formData.phone,
+        },
+        shippingAddress: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          district: formData.district,
+          thana: formData.thana,
+          address: formData.address,
+          phone: formData.phone,
+        },
+        items: cartItems.map((item) => ({
+          product_id: item.product?.id || "",
+          variant_id: item.variant?.id,
+          quantity: item.quantity,
+          unit_price: item.variant?.price || 0,
+        })),
+        subtotal: cartTotal,
+        tax_amount: 0,
+        shipping_amount: 0,
+        discount_amount: 0,
+        total_amount: cartTotal,
+        payment_method: paymentMethod,
+        notes: formData.orderNote,
+        session_id: sessionId!,
       });
 
       console.log(
         "✅ Order created successfully:",
         orderResult.order.order_number
       );
+
+      // Clear the cart after successful order (fallback in case stored procedure doesn't work)
+      try {
+        console.log("🧹 Clearing cart after successful order...");
+        await clearCart();
+        console.log("✅ Cart cleared successfully from frontend");
+      } catch (cartError) {
+        console.warn("⚠️ Failed to clear cart from frontend:", cartError);
+        // Don't fail the order if cart clearing fails
+      }
 
       // Redirect to order confirmation with order details and guest token if available
       const params = new URLSearchParams({
@@ -105,7 +142,10 @@ const CheckoutPage = () => {
       navigate(`/order-confirmation?${params.toString()}`);
     } catch (error) {
       console.error("Checkout error:", error);
-      showError("Failed to process checkout", "Something went wrong. Please try again.");
+      showError(
+        "Failed to process checkout",
+        "Something went wrong. Please try again."
+      );
       setIsSubmitting(false);
     }
   };
@@ -127,7 +167,7 @@ const CheckoutPage = () => {
             Add some items to your cart before checkout.
           </p>
           <Link to="/products">
-            <Button variant="gradient" size="lg">
+            <Button variant="default" size="lg">
               Continue Shopping
             </Button>
           </Link>
@@ -343,7 +383,7 @@ const CheckoutPage = () => {
                         placeholder="Enter Coupon Code"
                         className="flex-1"
                       />
-                      <Button type="button" variant="success" size="default">
+                      <Button type="button" variant="secondary" size="default">
                         Apply
                       </Button>
                     </div>
@@ -493,8 +533,8 @@ const CheckoutPage = () => {
                 <Button
                   onClick={handleSubmit}
                   disabled={!acceptTerms || isSubmitting}
-                  variant="success"
-                  size="xl"
+                  variant="secondary"
+                  size="lg"
                   className="w-full mt-6"
                 >
                   {isSubmitting ? (
