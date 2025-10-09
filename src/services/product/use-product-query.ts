@@ -4,6 +4,8 @@ import {
   Category,
   PaginatedResponse,
   PaginationParams,
+  Product,
+  ProductImage,
   ProductVariant,
   ProductWithVariants,
 } from "@/services/types";
@@ -19,6 +21,11 @@ export const productQueryKeys = {
     ["products", "search", query, params] as const,
   productVariants: (productId: string) =>
     ["products", "variants", productId] as const,
+  productVariant: (variantId: string) =>
+    ["products", "variant", variantId] as const,
+  productImages: (productId: string) =>
+    ["products", "images", productId] as const,
+  productImage: (imageId: string) => ["products", "image", imageId] as const,
   categories: ["products", "categories"] as const,
   brands: ["products", "brands"] as const,
 } as const;
@@ -256,6 +263,57 @@ export function useProductVariants(productId: string) {
       return data || [];
     },
     enabled: !!productId,
+    staleTime: 15 * 60 * 1000, // 15 minutes
+  });
+}
+
+/**
+ * Hook to get all variants across all products
+ */
+export function useAllVariants() {
+  return useQuery({
+    queryKey: ["products", "variants", "all"],
+    queryFn: async (): Promise<(ProductVariant & { product?: Product })[]> => {
+      const { data, error } = await supabase
+        .from("product_variants")
+        .select(
+          `
+          *,
+          product:products(id, name, slug)
+        `
+        )
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 15 * 60 * 1000, // 15 minutes
+  });
+}
+
+/**
+ * Hook to get all images across all products
+ */
+export function useAllImages() {
+  return useQuery({
+    queryKey: ["products", "images", "all"],
+    queryFn: async (): Promise<
+      (ProductImage & { product?: Product; variant?: ProductVariant })[]
+    > => {
+      const { data, error } = await supabase
+        .from("product_images")
+        .select(
+          `
+          *,
+          product:products(id, name, slug),
+          variant:product_variants(id, name, size, color)
+        `
+        )
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
     staleTime: 15 * 60 * 1000, // 15 minutes
   });
 }

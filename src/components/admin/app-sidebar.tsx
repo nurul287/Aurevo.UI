@@ -36,23 +36,43 @@ const data = {
       isActive: true,
     },
     {
-      title: "Inventory",
-      url: "/admin/inventory",
+      title: "Product Setup",
+      url: "/admin/categories",
+      icon: Settings,
+      items: [
+        {
+          title: "1. Categories",
+          url: "/admin/categories",
+        },
+        {
+          title: "2. Brands",
+          url: "/admin/brands",
+        },
+      ],
+    },
+    {
+      title: "Product Management",
+      url: "/admin/products",
       icon: Package,
       items: [
         {
-          title: "Products",
-          url: "/admin/inventory/products",
+          title: "3. Products",
+          url: "/admin/products",
         },
         {
-          title: "Categories",
-          url: "/admin/inventory/categories",
+          title: "4. Variants",
+          url: "/admin/variants",
         },
         {
-          title: "Stock Management",
-          url: "/admin/inventory/stock",
+          title: "5. Images",
+          url: "/admin/images",
         },
       ],
+    },
+    {
+      title: "Inventory",
+      url: "/admin/inventory",
+      icon: Package,
     },
     {
       title: "Orders",
