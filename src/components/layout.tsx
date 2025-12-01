@@ -9,8 +9,10 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet } from "react-router-dom";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import AurevoBlack from "@/assets/icon/aurevo-black";
 
 const Layout = () => {
   const { user, isAdmin, signOut } = useAuth();
@@ -19,7 +21,6 @@ const Layout = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const location = useLocation();
 
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -48,8 +49,8 @@ const Layout = () => {
 
   const navigation = [
     { name: "Home", href: "/" },
-    { name: "Products", href: "/products" },
-    { name: "About", href: "/about" },
+    { name: "Category", href: "/products" },
+    { name: "About us", href: "/about" },
     { name: "Contact", href: "/contact" },
   ];
 
@@ -80,56 +81,47 @@ const Layout = () => {
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="container-custom">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <div className="flex items-center">
-              <Link to="/" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">F</span>
-                </div>
-                <span className="text-xl font-bold text-gray-900">
-                  Footwear
-                </span>
-              </Link>
+          <div className="flex items-center h-[100px] justify-between">
+            {/* Left side: Logo + Navigation */}
+            <div className="flex items-center gap-12">
+              {/* Logo */}
+              <div className="mr-2">
+                <Link to="/">
+                  <AurevoBlack />
+                </Link>
+              </div>
+
+              {/* Desktop Navigation */}
+              <nav className="hidden md:flex items-center space-x-6">
+                {navigation.map((item) => (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`text-base font-medium`}
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+              </nav>
             </div>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-8">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`text-sm font-medium transition-colors ${
-                    location.pathname === item.href
-                      ? "text-primary-600"
-                      : "text-gray-700 hover:text-primary-600"
-                  }`}
-                >
-                  {item.name}
-                </Link>
-              ))}
-            </nav>
-
-            {/* Search Bar */}
-            <div className="hidden md:flex flex-1 max-w-lg mx-8">
-              <form onSubmit={handleSearch} className="w-full">
+            {/* Right side: Search Bar + Icons + Sign In */}
+            <div className="flex items-center space-x-4">
+              {/* Search Bar */}
+              <form onSubmit={handleSearch}>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                  <div className="absolute inset-y-0 right-5 pl-3 flex items-center pointer-events-none">
+                    <MagnifyingGlassIcon className="h-[18px] w-[18px] text-gray-400" />
                   </div>
-                  <input
+                  <Input
                     type="text"
-                    placeholder="Search products..."
+                    placeholder="Search"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    className="w-[320px] h-[44px] rounded-full border-none bg-[#FAFAFA] placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-none focus-visible:bg-[#F3F3F3] focus-visible:shadow-[0px_4px_4px_0px_rgba(0,0,0,0.08)]"
                   />
                 </div>
               </form>
-            </div>
-
-            {/* Right side icons */}
-            <div className="flex items-center space-x-4">
               {/* Wishlist */}
               <button className="p-2 text-gray-400 hover:text-gray-500">
                 <HeartIcon className="h-6 w-6" />
@@ -142,7 +134,7 @@ const Layout = () => {
               >
                 <ShoppingBagIcon className="h-6 w-6" />
                 {cartItemCount > 0 && (
-                  <div className="bg-red-500 absolute -top-1 -right-1 h-5 w-5 bg-primary-600 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                  <div className="absolute -top-1 -right-1 h-5 w-5 bg-orange-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
                     {cartItemCount}
                   </div>
                 )}
@@ -185,8 +177,12 @@ const Layout = () => {
                   )}
                 </div>
               ) : (
-                <Button variant="destructive" asChild>
-                  <Link to="/login">Sign In</Link>
+                <Button
+                  variant="default"
+                  className="rounded-full px-8 py-5"
+                  asChild
+                >
+                  <Link to="/login">Sign in</Link>
                 </Button>
               )}
 
@@ -231,11 +227,7 @@ const Layout = () => {
                   key={item.name}
                   to={item.href}
                   onClick={closeMobileMenu}
-                  className={`block px-3 py-2 text-base font-medium rounded-md ${
-                    location.pathname === item.href
-                      ? "text-primary-600 bg-primary-50"
-                      : "text-gray-700 hover:text-primary-600 hover:bg-gray-50"
-                  }`}
+                  className={`block px-3 py-2 text-base font-medium`}
                 >
                   {item.name}
                 </Link>
