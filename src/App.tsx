@@ -3,6 +3,7 @@ import { Toaster } from "./components/ui/sonner";
 import { AuthProvider } from "./contexts/auth-context";
 import { GuestCartProvider } from "./contexts/guest-cart-context";
 import AppRoutes from "./routes";
+import "./App.css";
 
 function App() {
   return (
