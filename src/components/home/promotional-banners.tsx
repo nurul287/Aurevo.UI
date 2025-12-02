@@ -1,73 +1,70 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import promotionCard1 from "@/assets/image/promotion-card-1.png";
+import promotionCard2 from "@/assets/image/promotion-card-2.png";
 
 export const PromotionalBanners = () => {
   return (
-    <section className="py-16 bg-white">
+    <section className="py-10 bg-[#F3FAFF]">
       <div className="container-custom">
         <div className="grid md:grid-cols-2 gap-6">
           {/* Left Banner - Nike Air Max 97 */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-400 via-yellow-400 to-orange-500 p-8 md:p-12 min-h-[400px] flex flex-col justify-between">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
+          <div
+            className="relative overflow-hidden rounded-md min-h-[400px] bg-cover bg-center"
+            style={{ backgroundImage: `url(${promotionCard1})` }}
+          >
+            {/* Discount Badge - Top Right */}
+            <Badge className="absolute top-4 right-8 bg-[#F8F898] text-black font-bold text-sm rounded-full w-[60px] h-[60px] flex items-center justify-center hover:bg-[#F8F898] pointer-events-none">
+              -25%
+            </Badge>
 
-            <div className="relative z-10 space-y-4">
-              <Badge className="bg-white text-orange-600 px-4 py-1 font-bold text-lg">
-                -35%
-              </Badge>
-              <h3 className="text-3xl md:text-4xl font-bold text-white">
+            {/* Content Container - Left Half */}
+            <div className="w-1/2 h-full p-4 flex flex-col justify-center space-y-4">
+              <h3 className="text-xl md:text-2xl font-semibold text-gray-900 leading-tight">
                 Nike Air Max 97 Shoe
+                <br />
+                Color MRLN2019
               </h3>
-              <p className="text-white/90 text-lg max-w-md">
-                Experience ultimate comfort and style with the iconic Air Max
-                97 design.
+              <p className="text-gray-700 text-sm leading-relaxed">
+                Lace up and feel the love in the Nike Air Max 97. Rippled design
+                lines give this iconic sneaker fast-paced style. To ensure these
+                kicks really turn heads, we invest smooth leather with soft...
               </p>
-            </div>
-
-            <div className="relative z-10 mt-6">
-              <Button
-                size="lg"
-                className="bg-white text-orange-600 hover:bg-gray-100 px-8 py-6 text-lg font-semibold rounded-full shadow-xl"
-              >
-                Add Cart
-              </Button>
-            </div>
-
-            {/* Shoe Image Placeholder */}
-            <div className="absolute bottom-0 right-0 w-48 h-48 md:w-64 md:h-64 opacity-20">
-              <div className="w-full h-full bg-white/30 rounded-full"></div>
+              <div className="pt-2">
+                <Button className="bg-[#FF6600] hover:bg-[#E65C00] text-white px-6 h-10 text-sm font-medium rounded">
+                  Add Cart
+                </Button>
+              </div>
             </div>
           </div>
 
           {/* Right Banner - Nike Air Zoom */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-pink-400 via-rose-400 to-pink-500 p-8 md:p-12 min-h-[400px] flex flex-col justify-between">
-            <div className="absolute top-0 left-0 w-64 h-64 bg-white/10 rounded-full -ml-32 -mt-32"></div>
-            <div className="absolute bottom-0 right-0 w-48 h-48 bg-white/10 rounded-full -mr-24 -mb-24"></div>
+          <div
+            className="relative overflow-hidden rounded min-h-[400px] bg-cover bg-center"
+            style={{ backgroundImage: `url(${promotionCard2})` }}
+          >
+            {/* Discount Badge - Top Right */}
+            <Badge className="absolute top-4 right-8 bg-[#FDCAA3] text-black font-bold text-sm rounded-full w-[60px] h-[60px] flex items-center justify-center hover:bg-[#FDCAA3] pointer-events-none">
+              -25%
+            </Badge>
 
-            <div className="relative z-10 space-y-4">
-              <Badge className="bg-white text-pink-600 px-4 py-1 font-bold text-lg">
-                -25%
-              </Badge>
-              <h3 className="text-3xl md:text-4xl font-bold text-white">
+            {/* Content Container - Left Half */}
+            <div className="w-1/2 h-full p-4 flex flex-col justify-center space-y-4">
+              <h3 className="text-xl md:text-2xl font-semibold text-gray-900 leading-tight">
                 Nike Air Zoom Shoe
+                <br />
+                Color VN2023
               </h3>
-              <p className="text-white/90 text-lg max-w-md">
-                Lightweight and responsive, perfect for your active lifestyle.
+              <p className="text-gray-700 text-sm leading-relaxed">
+                Lace up and feel the love in the Nike Air Max 97. Rippled design
+                lines give this iconic sneaker fast-paced style. To ensure these
+                kicks really turn heads, we invest smooth leather with soft...
               </p>
-            </div>
-
-            <div className="relative z-10 mt-6">
-              <Button
-                size="lg"
-                className="bg-white text-pink-600 hover:bg-gray-100 px-8 py-6 text-lg font-semibold rounded-full shadow-xl"
-              >
-                Add Cart
-              </Button>
-            </div>
-
-            {/* Shoe Image Placeholder */}
-            <div className="absolute bottom-0 right-0 w-48 h-48 md:w-64 md:h-64 opacity-20">
-              <div className="w-full h-full bg-white/30 rounded-full"></div>
+              <div className="pt-2">
+                <Button className="bg-[#FF6600] hover:bg-[#E65C00] text-white px-6 h-10 text-sm font-medium rounded">
+                  Add Cart
+                </Button>
+              </div>
             </div>
           </div>
         </div>

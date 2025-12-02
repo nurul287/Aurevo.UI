@@ -40,7 +40,7 @@ export const ProductCategorySection = () => {
     displayCategories.length > 0 ? displayCategories : defaultCategories;
 
   return (
-    <section className="py-16 bg-white">
+    <section className="py-10 bg-[#F3FAFF]">
       <div className="container-custom">
         <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-900">
           OUR PRODUCT CATEGORY
@@ -57,7 +57,9 @@ export const ProductCategorySection = () => {
             {categoriesToShow.map((category, index) => (
               <Link
                 key={category.id || index}
-                to={`/products?category=${category.slug || category.name.toLowerCase()}`}
+                to={`/products?category=${
+                  category.slug || category.name.toLowerCase()
+                }`}
                 className="group"
               >
                 <Card className="hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-indigo-200 h-full">

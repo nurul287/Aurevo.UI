@@ -8,8 +8,17 @@ export const HeroSection = () => {
     <section className="relative overflow-hidden bg-[#F3FAFF]">
       <div className="container-custom">
         <div className="grid md:grid-cols-[50%_50%] gap-4 items-center min-h-[600px] pb-12">
-          {/* Left Content */}
-          <div className="space-y-4 max-w-[460px]">
+          {/* Right Image - Shown first on mobile */}
+          <div className="relative flex items-center justify-center order-1 md:order-2">
+            <img
+              src={bannerImage}
+              alt="FILA x Hyperice Hyperboot"
+              className="w-full h-full lg:mt-[-100px] object-contain"
+            />
+          </div>
+
+          {/* Left Content - Shown second on mobile */}
+          <div className="space-y-4 max-w-[460px] order-2 md:order-1">
             <h1 className="text-5xl md:text-[52px] font-bold leading-[1.1] text-gray-900">
               FILA x Hyperice
               <br />
@@ -32,15 +41,6 @@ export const HeroSection = () => {
                 </Link>
               </Button>
             </div>
-          </div>
-
-          {/* Right Image */}
-          <div className="relative flex items-center justify-center">
-            <img
-              src={bannerImage}
-              alt="FILA x Hyperice Hyperboot"
-              className="w-full h-full mt-[-100px] object-contain"
-            />
           </div>
         </div>
 
