@@ -81,7 +81,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
               <img
                 src={firstImage}
                 alt={product.name}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                className="w-full h-full object-cover group-hover:scale-120 transition-transform duration-300"
                 loading="lazy"
               />
             ) : (
@@ -119,8 +119,10 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           </Link>
 
           {/* Price */}
-          <div className="flex items-center gap-1 mb-3">
-            <span className="text-lg font-medium text-gray-900">৳</span>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-4 h-4 bg-[#414141] rounded-full flex items-center justify-center">
+              <span className="text-xs font-medium text-white">৳</span>
+            </div>
             <span className="text-lg font-semibold text-gray-900">
               {product.base_price}
             </span>

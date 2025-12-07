@@ -27,8 +27,8 @@ export const NewCollectionSection = () => {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {[...Array(4)].map((_, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => (
               <div key={i} className="overflow-hidden">
                 <Skeleton className="h-64 w-full rounded-t-2xl" />
                 <div className="p-4 space-y-2 bg-[#FDF7F3] rounded-b-2xl">
@@ -51,7 +51,7 @@ export const NewCollectionSection = () => {
               {products.map((product: any) => (
                 <CarouselItem
                   key={product.id}
-                  className="pl-4 md:basis-1/2 lg:basis-1/3 xl:basis-1/4"
+                  className="pl-4 md:basis-1/2 lg:basis-1/3"
                 >
                   <ProductCard product={product} />
                 </CarouselItem>

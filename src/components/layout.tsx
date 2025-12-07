@@ -2,7 +2,6 @@ import { useAuth } from "@/contexts/auth-context";
 import { useCart } from "@/hooks/use-cart";
 import {
   Bars3Icon,
-  HeartIcon,
   MagnifyingGlassIcon,
   ShoppingBagIcon,
   UserIcon,
@@ -13,6 +12,7 @@ import { Link, Outlet } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import AurevoBlack from "@/assets/icon/aurevo-black";
+import AurevoWhite from "@/assets/icon/aurevo-white";
 
 const Layout = () => {
   const { user, isAdmin, signOut } = useAuth();
@@ -81,23 +81,23 @@ const Layout = () => {
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="container-custom">
-          <div className="flex items-center h-[100px] justify-between">
+          <div className="flex items-center h-[80px] lg:h-[100px] justify-between">
             {/* Left side: Logo + Navigation */}
-            <div className="flex items-center gap-12">
+            <div className="flex items-center gap-4 lg:gap-12">
               {/* Logo */}
-              <div className="mr-2">
+              <div className="flex-shrink-0">
                 <Link to="/">
                   <AurevoBlack />
                 </Link>
               </div>
 
               {/* Desktop Navigation */}
-              <nav className="hidden md:flex items-center space-x-6">
+              <nav className="hidden lg:flex items-center space-x-4 xl:space-x-6">
                 {navigation.map((item) => (
                   <Link
                     key={item.name}
                     to={item.href}
-                    className={`text-base font-medium`}
+                    className={`text-sm xl:text-base font-medium whitespace-nowrap`}
                   >
                     {item.name}
                   </Link>
@@ -106,9 +106,9 @@ const Layout = () => {
             </div>
 
             {/* Right side: Search Bar + Icons + Sign In */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 lg:space-x-4">
               {/* Search Bar */}
-              <form onSubmit={handleSearch}>
+              <form onSubmit={handleSearch} className="hidden lg:block">
                 <div className="relative">
                   <div className="absolute inset-y-0 right-5 pl-3 flex items-center pointer-events-none">
                     <MagnifyingGlassIcon className="h-[18px] w-[18px] text-gray-400" />
@@ -118,14 +118,10 @@ const Layout = () => {
                     placeholder="Search"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-[320px] h-[44px] rounded-full border-none bg-[#FAFAFA] placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-none focus-visible:bg-[#F3F3F3] focus-visible:shadow-[0px_4px_4px_0px_rgba(0,0,0,0.08)]"
+                    className="w-[200px] xl:w-[320px] h-[44px] rounded-full border-none bg-[#FAFAFA] placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-none focus-visible:bg-[#F3F3F3] focus-visible:shadow-[0px_4px_4px_0px_rgba(0,0,0,0.08)]"
                   />
                 </div>
               </form>
-              {/* Wishlist */}
-              <button className="p-2 text-gray-400 hover:text-gray-500">
-                <HeartIcon className="h-6 w-6" />
-              </button>
 
               {/* Cart */}
               <Link
@@ -179,17 +175,17 @@ const Layout = () => {
               ) : (
                 <Button
                   variant="default"
-                  className="rounded-full px-8 py-5"
+                  className="hidden lg:flex rounded-full px-6 xl:px-8 py-5"
                   asChild
                 >
                   <Link to="/login">Sign in</Link>
                 </Button>
               )}
 
-              {/* Mobile menu button */}
+              {/* Mobile/Tablet menu button */}
               <button
                 onClick={toggleMobileMenu}
-                className="md:hidden p-2 text-gray-400 hover:text-gray-500"
+                className="lg:hidden p-2 text-gray-400 hover:text-gray-500"
               >
                 {mobileMenuOpen ? (
                   <XMarkIcon className="h-6 w-6" />
@@ -201,22 +197,22 @@ const Layout = () => {
           </div>
         </div>
 
-        {/* Mobile menu */}
+        {/* Mobile/Tablet menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 bg-white">
+          <div className="lg:hidden border-t border-gray-200 bg-white">
             <div className="px-4 py-2 space-y-1">
-              {/* Mobile Search */}
+              {/* Mobile/Tablet Search */}
               <form onSubmit={handleSearch} className="mb-4">
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                  <div className="absolute inset-y-0 right-5 pl-3 flex items-center pointer-events-none">
+                    <MagnifyingGlassIcon className="h-[18px] w-[18px] text-gray-400" />
                   </div>
-                  <input
+                  <Input
                     type="text"
-                    placeholder="Search products..."
+                    placeholder="Search"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    className="w-full h-[44px] rounded-full border-none bg-[#FAFAFA] placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-none focus-visible:bg-[#F3F3F3] focus-visible:shadow-[0px_4px_4px_0px_rgba(0,0,0,0.08)]"
                   />
                 </div>
               </form>
@@ -287,14 +283,13 @@ const Layout = () => {
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white">
-        <div className="container-custom py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="container-custom py-12 ">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pt-8">
             <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">F</span>
-                </div>
-                <span className="text-xl font-bold">Footwear</span>
+              <div className="mb-4">
+                <Link to="/">
+                  <AurevoWhite />
+                </Link>
               </div>
               <p className="text-gray-400 text-sm">
                 Premium footwear for every step of your journey.
@@ -410,7 +405,7 @@ const Layout = () => {
 
           <div className="mt-8 pt-8 border-t border-gray-800">
             <p className="text-center text-gray-400 text-sm">
-              © 2024 Footwear E-commerce. All rights reserved.
+              © {new Date().getFullYear()} Aurevo Fashion. All rights reserved.
             </p>
           </div>
         </div>

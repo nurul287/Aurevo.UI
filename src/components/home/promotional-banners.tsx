@@ -10,7 +10,7 @@ export const PromotionalBanners = () => {
         <div className="grid md:grid-cols-2 gap-6">
           {/* Left Banner - Nike Air Max 97 */}
           <div
-            className="relative overflow-hidden rounded-md min-h-[400px] bg-cover bg-center"
+            className="relative overflow-hidden rounded-2xl min-h-[537px] bg-cover bg-center"
             style={{ backgroundImage: `url(${promotionCard1})` }}
           >
             {/* Discount Badge - Top Right */}
@@ -19,16 +19,16 @@ export const PromotionalBanners = () => {
             </Badge>
 
             {/* Content Container - Left Half */}
-            <div className="w-1/2 h-full p-4 flex flex-col justify-center space-y-4">
-              <h3 className="text-xl md:text-2xl font-semibold text-gray-900 leading-tight">
+            <div className="w-[60%] h-full p-4 flex flex-col justify-start space-y-6">
+              <h3 className="text-xl md:text-2xl font-semibold text-gray-900 leading-tight mt-4">
                 Nike Air Max 97 Shoe
                 <br />
                 Color MRLN2019
               </h3>
-              <p className="text-gray-700 text-sm leading-relaxed">
+              <p className="text-gray-700 text-base leading-[1.8]">
                 Lace up and feel the love in the Nike Air Max 97. Rippled design
                 lines give this iconic sneaker fast-paced style. To ensure these
-                kicks really turn heads, we invest smooth leather with soft...
+                kicks really turn heads, we mixed smooth leather with soft.
               </p>
               <div className="pt-2">
                 <Button className="bg-[#FF6600] hover:bg-[#E65C00] text-white px-6 h-10 text-sm font-medium rounded">
@@ -40,7 +40,7 @@ export const PromotionalBanners = () => {
 
           {/* Right Banner - Nike Air Zoom */}
           <div
-            className="relative overflow-hidden rounded min-h-[400px] bg-cover bg-center"
+            className="relative overflow-hidden rounded-2xl min-h-[400px] bg-cover bg-center"
             style={{ backgroundImage: `url(${promotionCard2})` }}
           >
             {/* Discount Badge - Top Right */}
@@ -49,13 +49,13 @@ export const PromotionalBanners = () => {
             </Badge>
 
             {/* Content Container - Left Half */}
-            <div className="w-1/2 h-full p-4 flex flex-col justify-center space-y-4">
-              <h3 className="text-xl md:text-2xl font-semibold text-gray-900 leading-tight">
+            <div className="w-[60%] h-full p-4 flex flex-col justify-start space-y-6">
+              <h3 className="text-xl md:text-2xl font-semibold text-gray-900 leading-tight mt-4">
                 Nike Air Zoom Shoe
                 <br />
                 Color VN2023
               </h3>
-              <p className="text-gray-700 text-sm leading-relaxed">
+              <p className="text-gray-700 text-base leading-[1.8]">
                 Lace up and feel the love in the Nike Air Max 97. Rippled design
                 lines give this iconic sneaker fast-paced style. To ensure these
                 kicks really turn heads, we invest smooth leather with soft...
