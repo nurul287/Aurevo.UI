@@ -7,6 +7,8 @@ export const APP_PATHS = {
   cart: "/cart",
   login: "/login",
   register: "/register",
+  forgotPassword: "/forgot-password",
+  resetPassword: "/reset-password",
   emailConfirmation: "/email-confirmation",
   checkout: "/checkout",
   orderConfirmation: "/order-confirmation",

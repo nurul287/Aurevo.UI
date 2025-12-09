@@ -14,15 +14,14 @@ const AppRoutes = () => {
         // Public routes (no guards needed)
         ...publicRoutes,
 
-        // Guest routes (redirect if authenticated)
-        ...guestRoutes,
-
         // Protected routes (require authentication)
         ...protectedRoutes,
       ],
     },
     // Admin routes with their own layout (no main site navigation)
     ...adminRoutes,
+    // Guest routes (redirect if authenticated)
+    ...guestRoutes,
   ]);
   return routes;
 };

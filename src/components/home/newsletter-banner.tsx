@@ -26,7 +26,7 @@ export const NewsletterBanner = () => {
           {/* Content */}
           <div className="relative z-10 px-4 sm:px-8 py-6 sm:py-8 md:py-12">
             {/* Left Content */}
-            <div className="text-center w-full md:w-[70%]">
+            <div className="text-center w-full ">
               <h2 className="text-base sm:text-2xl md:text-3xl font-bold text-white mb-2 sm:mb-3">
                 EXPLORE <span className="text-[#FF0000]">AUREVO</span> FASHION
                 BRAND
@@ -66,7 +66,7 @@ export const NewsletterBanner = () => {
             <img
               src={subscribeIcon}
               alt="Subscribe"
-              className="w-[60px] h-[60px] sm:w-[80px] sm:h-[80px] md:w-auto md:h-auto"
+              className="w-[50px] h-[50px] sm:w-[70px] sm:h-[70px] md:w-[90px] md:h-[90px] lg:w-[120px] lg:h-[105px]"
             />
           </a>
         </div>
