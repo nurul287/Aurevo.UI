@@ -14,6 +14,25 @@ import { Input } from "./ui/input";
 import AurevoBlack from "@/assets/icon/aurevo-black";
 import AurevoWhite from "@/assets/icon/aurevo-white";
 
+// Social Icons
+import FacebookSquareIcon from "@/assets/icon/facebook-square-icon";
+import InstagramIcon from "@/assets/icon/instagram-icon";
+import TikTokIcon from "@/assets/icon/tiktok-icon";
+import LinkedinIcon from "@/assets/icon/linkedin-icon";
+import YoutubeIcon from "@/assets/icon/youtube-icon";
+
+// Contact Icons
+import LocationIcon from "@/assets/icon/location-icon";
+import EmailIcon from "@/assets/icon/email-icon";
+import PhoneIcon from "@/assets/icon/phone-icon";
+import WhatsAppIcon from "@/assets/icon/whatsapp-icon";
+
+// Payment Images
+import bkashImg from "@/assets/image/bkash.png";
+import nagadImg from "@/assets/image/nagad.png";
+import visaImg from "@/assets/image/visa.png";
+import masterCardImg from "@/assets/image/master-card.png";
+
 const Layout = () => {
   const { user, isAdmin, signOut } = useAuth();
   const { itemCount: cartItemCount } = useCart();
@@ -282,129 +301,297 @@ const Layout = () => {
       <Outlet />
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white">
-        <div className="container-custom py-12 ">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pt-8">
-            <div>
-              <div className="mb-4">
-                <Link to="/">
-                  <AurevoWhite />
-                </Link>
-              </div>
-              <p className="text-gray-400 text-sm">
-                Premium footwear for every step of your journey.
-              </p>
+      <footer className="bg-[#1A1A1A] text-white">
+        <div className="container-custom !py-10">
+          {/* Footer Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
+            {/* Contact Information */}
+            <div className="lg:col-span-1">
+              {/* Logo */}
+              <Link to="/" className="inline-block mb-4">
+                <AurevoWhite />
+              </Link>
+              <ul className="space-y-2 text-sm text-gray-400">
+                <li className="flex items-start gap-2">
+                  <LocationIcon
+                    width={16}
+                    height={16}
+                    className="mt-0.5 flex-shrink-0"
+                    fill="#9CA3AF"
+                  />
+                  <span>Chowmohani DB Road, Noakhali, Bangladesh</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <EmailIcon
+                    width={16}
+                    height={16}
+                    className="flex-shrink-0"
+                    fill="#9CA3AF"
+                  />
+                  <a
+                    href="mailto:aurevofashion88@gmail.com"
+                    className="hover:text-white transition-colors"
+                  >
+                    aurevofashion88@gmail.com
+                  </a>
+                </li>
+                <li className="flex items-center gap-2">
+                  <PhoneIcon
+                    width={16}
+                    height={16}
+                    className="flex-shrink-0"
+                    fill="#9CA3AF"
+                  />
+                  <a
+                    href="tel:+8801887375148"
+                    className="hover:text-white transition-colors"
+                  >
+                    01887-375148
+                  </a>
+                </li>
+                <li className="flex items-center gap-2">
+                  <WhatsAppIcon
+                    width={16}
+                    height={16}
+                    className="flex-shrink-0"
+                    fill="#9CA3AF"
+                  />
+                  <a
+                    href="https://wa.me/+8801897919363"
+                    className="hover:text-white transition-colors"
+                  >
+                    01897-919363
+                  </a>
+                </li>
+              </ul>
             </div>
 
+            {/* Category */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
-              <ul className="space-y-2 text-sm">
+              <h3 className="text-base font-semibold mb-3 text-white">
+                Category
+              </h3>
+              <ul className="space-y-1.5 text-sm">
+                <li>
+                  <Link
+                    to="/products?category=men"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    Man
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/products?category=women"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    Women
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/products?category=kids"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    Kids
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/products?category=boots"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    Boots
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/products?category=slider"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    SLIDER
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* About Shop */}
+            <div>
+              <h3 className="text-base font-semibold mb-3 text-white">
+                About Shop
+              </h3>
+              <ul className="space-y-1.5 text-sm">
+                <li>
+                  <Link
+                    to="/"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    Home
+                  </Link>
+                </li>
                 <li>
                   <Link
                     to="/products"
-                    className="text-gray-400 hover:text-white"
+                    className="text-gray-400 hover:text-white transition-colors"
                   >
-                    All Products
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/about" className="text-gray-400 hover:text-white">
-                    About Us
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/contact"
-                    className="text-gray-400 hover:text-white"
-                  >
-                    Contact
+                    Category
                   </Link>
                 </li>
                 <li>
                   <Link
                     to="/support"
-                    className="text-gray-400 hover:text-white"
+                    className="text-gray-400 hover:text-white transition-colors"
                   >
-                    Support
+                    24/7 Support
                   </Link>
                 </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Customer Service</h3>
-              <ul className="space-y-2 text-sm">
                 <li>
                   <Link
                     to="/shipping"
-                    className="text-gray-400 hover:text-white"
+                    className="text-gray-400 hover:text-white transition-colors"
                   >
-                    Shipping Info
+                    Fast Delivery
                   </Link>
                 </li>
                 <li>
                   <Link
-                    to="/returns"
-                    className="text-gray-400 hover:text-white"
+                    to="/payment"
+                    className="text-gray-400 hover:text-white transition-colors"
                   >
-                    Returns
+                    Online Payment
                   </Link>
                 </li>
                 <li>
                   <Link
-                    to="/size-guide"
-                    className="text-gray-400 hover:text-white"
+                    to="/tracking"
+                    className="text-gray-400 hover:text-white transition-colors"
                   >
-                    Size Guide
+                    Tracking
                   </Link>
                 </li>
                 <li>
-                  <Link to="/faq" className="text-gray-400 hover:text-white">
-                    FAQ
+                  <Link
+                    to="/contact"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    Contact Us
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/about"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    About Us
                   </Link>
                 </li>
               </ul>
             </div>
 
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Connect</h3>
-              <div className="flex space-x-4">
-                <a href="#" className="text-gray-400 hover:text-white">
-                  <span className="sr-only">Facebook</span>
-                  <svg
-                    className="h-6 w-6"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
+            {/* Follow Us & Payment Method */}
+            <div className="lg:col-span-2">
+              {/* Follow Us */}
+              <div className="mb-5">
+                <h3 className="text-base font-semibold mb-3 text-white">
+                  Follow Us :
+                </h3>
+                <div className="flex items-center gap-3">
+                  <a
+                    href="https://web.facebook.com/aurevo.fashion"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:opacity-80 transition-opacity"
                   >
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                  </svg>
-                </a>
-                <a href="#" className="text-gray-400 hover:text-white">
-                  <span className="sr-only">Instagram</span>
-                  <svg
-                    className="h-6 w-6"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
+                    <FacebookSquareIcon width={22} height={22} />
+                  </a>
+                  <a
+                    href="https://instagram.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:opacity-80 transition-opacity"
                   >
-                    <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 6.62 5.367 11.987 11.988 11.987 6.62 0 11.987-5.367 11.987-11.987C24.014 5.367 18.637.001 12.017.001zM8.449 16.988c-1.297 0-2.448-.49-3.323-1.297C4.198 14.895 3.708 13.744 3.708 12.447s.49-2.448 1.297-3.323c.875-.807 2.026-1.297 3.323-1.297s2.448.49 3.323 1.297c.807.875 1.297 2.026 1.297 3.323s-.49 2.448-1.297 3.323c-.875.807-2.026 1.297-3.323 1.297zm7.83-9.281H7.83v9.281h8.449V7.707z" />
-                  </svg>
-                </a>
-                <a href="#" className="text-gray-400 hover:text-white">
-                  <span className="sr-only">Twitter</span>
-                  <svg
-                    className="h-6 w-6"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
+                    <InstagramIcon
+                      width={22}
+                      height={22}
+                      fill="url(#instagram-gradient)"
+                    />
+                    <svg width="0" height="0">
+                      <defs>
+                        <linearGradient
+                          id="instagram-gradient"
+                          x1="0%"
+                          y1="100%"
+                          x2="100%"
+                          y2="0%"
+                        >
+                          <stop offset="0%" stopColor="#FFDC80" />
+                          <stop offset="50%" stopColor="#F77737" />
+                          <stop offset="100%" stopColor="#C13584" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </a>
+                  <a
+                    href="https://tiktok.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:opacity-80 transition-opacity"
                   >
-                    <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" />
-                  </svg>
-                </a>
+                    <TikTokIcon width={22} height={22} fill="#FFFFFF" />
+                  </a>
+                  <a
+                    href="https://linkedin.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:opacity-80 transition-opacity"
+                  >
+                    <LinkedinIcon width={22} height={22} />
+                  </a>
+                  <a
+                    href="https://youtube.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:opacity-80 transition-opacity"
+                  >
+                    <YoutubeIcon width={28} height={20} />
+                  </a>
+                </div>
+              </div>
+
+              {/* Payment Method */}
+              <div>
+                <h3 className="text-base font-semibold mb-3 text-white">
+                  Payment Method:
+                </h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <img
+                    src={bkashImg}
+                    alt="bKash"
+                    className="h-7 w-auto object-contain bg-white rounded px-1.5 py-0.5 hover:cursor-pointer"
+                  />
+                  <img
+                    src={nagadImg}
+                    alt="Nagad"
+                    className="h-7 w-auto object-contain bg-white rounded px-1.5 py-0.5 hover:cursor-pointer"
+                  />
+                  <img
+                    src={visaImg}
+                    alt="Visa"
+                    className="h-7 w-auto object-contain bg-white rounded px-1.5 py-0.5 hover:cursor-pointer"
+                  />
+                  <img
+                    src={masterCardImg}
+                    alt="MasterCard"
+                    className="h-7 w-auto object-contain bg-white rounded px-1.5 py-0.5 hover:cursor-pointer"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="mt-8 pt-8 border-t border-gray-800">
-            <p className="text-center text-gray-400 text-sm">
+          {/* Copyright */}
+          <div className="mt-10 pt-6 border-t border-gray-800">
+            <p className="text-center text-gray-500 text-xs">
               © {new Date().getFullYear()} Aurevo Fashion. All rights reserved.
             </p>
           </div>
