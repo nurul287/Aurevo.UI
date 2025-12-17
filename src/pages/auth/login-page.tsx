@@ -82,7 +82,7 @@ const LoginPage = () => {
                 AUREVO
               </span>
             </Link>
-          </div>
+              </div>
 
           {/* Form Card */}
           <div className="bg-inherit rounded-2xl shadow-[0px_4px_20px_rgba(0,0,0,0.08)] p-8">
@@ -119,16 +119,16 @@ const LoginPage = () => {
                 >
                   Email
                 </Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
                   className="h-12 border-gray-200 focus:border-[#FF6600] focus:ring-[#FF6600] rounded-lg"
-                />
+                  />
               </div>
 
               {/* Password Field */}
@@ -139,16 +139,16 @@ const LoginPage = () => {
                 >
                   Password
                 </Label>
-                <Input
-                  id="password"
-                  name="password"
+                  <Input
+                    id="password"
+                    name="password"
                   type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
                   className="h-12 border-gray-200 focus:border-[#FF6600] focus:ring-[#FF6600] rounded-lg"
-                />
+                  />
               </div>
 
               {/* Remember Me & Forgot Password */}

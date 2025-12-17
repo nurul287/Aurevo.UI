@@ -18,7 +18,6 @@ import AurevoWhite from "@/assets/icon/aurevo-white";
 import FacebookSquareIcon from "@/assets/icon/facebook-square-icon";
 import InstagramIcon from "@/assets/icon/instagram-icon";
 import TikTokIcon from "@/assets/icon/tiktok-icon";
-import LinkedinIcon from "@/assets/icon/linkedin-icon";
 import YoutubeIcon from "@/assets/icon/youtube-icon";
 
 // Contact Icons
@@ -302,16 +301,16 @@ const Layout = () => {
 
       {/* Footer */}
       <footer className="bg-[#1A1A1A] text-white">
-        <div className="container-custom !py-10">
+        <div className="container-custom">
           {/* Footer Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-8 pt-[80px] pb-10">
             {/* Contact Information */}
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-2">
               {/* Logo */}
-              <Link to="/" className="inline-block mb-4">
+              <Link to="/" className="inline-block mb-3">
                 <AurevoWhite />
               </Link>
-              <ul className="space-y-2 text-sm text-gray-400">
+              <ul className="space-y-3 text-sm text-white">
                 <li className="flex items-start gap-2">
                   <LocationIcon
                     width={16}
@@ -330,7 +329,7 @@ const Layout = () => {
                   />
                   <a
                     href="mailto:aurevofashion88@gmail.com"
-                    className="hover:text-white transition-colors"
+                    className="hover:text-gray-400 transition-colors"
                   >
                     aurevofashion88@gmail.com
                   </a>
@@ -344,7 +343,7 @@ const Layout = () => {
                   />
                   <a
                     href="tel:+8801887375148"
-                    className="hover:text-white transition-colors"
+                    className="hover:text-gray-400 transition-colors"
                   >
                     01887-375148
                   </a>
@@ -358,7 +357,7 @@ const Layout = () => {
                   />
                   <a
                     href="https://wa.me/+8801897919363"
-                    className="hover:text-white transition-colors"
+                    className="hover:text-gray-400 transition-colors"
                   >
                     01897-919363
                   </a>
@@ -368,14 +367,14 @@ const Layout = () => {
 
             {/* Category */}
             <div>
-              <h3 className="text-base font-semibold mb-3 text-white">
+              <h3 className="text-base font-semibold mb-3 text-white min-h-[25px]">
                 Category
               </h3>
-              <ul className="space-y-1.5 text-sm">
+              <ul className="space-y-3 text-sm">
                 <li>
                   <Link
                     to="/products?category=men"
-                    className="text-gray-400 hover:text-white transition-colors"
+                    className="text-white hover:text-gray-400 transition-colors"
                   >
                     Man
                   </Link>
@@ -383,7 +382,7 @@ const Layout = () => {
                 <li>
                   <Link
                     to="/products?category=women"
-                    className="text-gray-400 hover:text-white transition-colors"
+                    className="text-white hover:text-gray-400 transition-colors"
                   >
                     Women
                   </Link>
@@ -391,7 +390,7 @@ const Layout = () => {
                 <li>
                   <Link
                     to="/products?category=kids"
-                    className="text-gray-400 hover:text-white transition-colors"
+                    className="text-white hover:text-gray-400 transition-colors"
                   >
                     Kids
                   </Link>
@@ -399,7 +398,7 @@ const Layout = () => {
                 <li>
                   <Link
                     to="/products?category=boots"
-                    className="text-gray-400 hover:text-white transition-colors"
+                    className="text-white hover:text-gray-400 transition-colors"
                   >
                     Boots
                   </Link>
@@ -407,7 +406,7 @@ const Layout = () => {
                 <li>
                   <Link
                     to="/products?category=slider"
-                    className="text-gray-400 hover:text-white transition-colors"
+                    className="text-white hover:text-gray-400 transition-colors"
                   >
                     SLIDER
                   </Link>
@@ -417,14 +416,14 @@ const Layout = () => {
 
             {/* About Shop */}
             <div>
-              <h3 className="text-base font-semibold mb-3 text-white">
+              <h3 className="text-base font-semibold mb-3 text-white min-h-[25px]">
                 About Shop
               </h3>
-              <ul className="space-y-1.5 text-sm">
+              <ul className="space-y-3 text-sm">
                 <li>
                   <Link
                     to="/"
-                    className="text-gray-400 hover:text-white transition-colors"
+                    className="text-white hover:text-gray-400 transition-colors"
                   >
                     Home
                   </Link>
@@ -432,7 +431,7 @@ const Layout = () => {
                 <li>
                   <Link
                     to="/products"
-                    className="text-gray-400 hover:text-white transition-colors"
+                    className="text-white hover:text-gray-400 transition-colors"
                   >
                     Category
                   </Link>
@@ -440,7 +439,7 @@ const Layout = () => {
                 <li>
                   <Link
                     to="/support"
-                    className="text-gray-400 hover:text-white transition-colors"
+                    className="text-white hover:text-gray-400 transition-colors"
                   >
                     24/7 Support
                   </Link>
@@ -448,7 +447,7 @@ const Layout = () => {
                 <li>
                   <Link
                     to="/shipping"
-                    className="text-gray-400 hover:text-white transition-colors"
+                    className="text-white hover:text-gray-400 transition-colors"
                   >
                     Fast Delivery
                   </Link>
@@ -456,7 +455,7 @@ const Layout = () => {
                 <li>
                   <Link
                     to="/payment"
-                    className="text-gray-400 hover:text-white transition-colors"
+                    className="text-white hover:text-gray-400 transition-colors"
                   >
                     Online Payment
                   </Link>
@@ -464,7 +463,7 @@ const Layout = () => {
                 <li>
                   <Link
                     to="/tracking"
-                    className="text-gray-400 hover:text-white transition-colors"
+                    className="text-white hover:text-gray-400 transition-colors"
                   >
                     Tracking
                   </Link>
@@ -472,7 +471,7 @@ const Layout = () => {
                 <li>
                   <Link
                     to="/contact"
-                    className="text-gray-400 hover:text-white transition-colors"
+                    className="text-white hover:text-gray-400 transition-colors"
                   >
                     Contact Us
                   </Link>
@@ -480,7 +479,7 @@ const Layout = () => {
                 <li>
                   <Link
                     to="/about"
-                    className="text-gray-400 hover:text-white transition-colors"
+                    className="text-white hover:text-gray-400 transition-colors"
                   >
                     About Us
                   </Link>
@@ -492,7 +491,7 @@ const Layout = () => {
             <div className="lg:col-span-2">
               {/* Follow Us */}
               <div className="mb-5">
-                <h3 className="text-base font-semibold mb-3 text-white">
+                <h3 className="text-base font-semibold mb-3 text-white min-h-[25px]">
                   Follow Us :
                 </h3>
                 <div className="flex items-center gap-3">
@@ -505,7 +504,7 @@ const Layout = () => {
                     <FacebookSquareIcon width={22} height={22} />
                   </a>
                   <a
-                    href="https://instagram.com"
+                    href="https://instagram.com/aurevofashion88"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hover:opacity-80 transition-opacity"
@@ -538,14 +537,6 @@ const Layout = () => {
                     className="hover:opacity-80 transition-opacity"
                   >
                     <TikTokIcon width={22} height={22} fill="#FFFFFF" />
-                  </a>
-                  <a
-                    href="https://linkedin.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:opacity-80 transition-opacity"
-                  >
-                    <LinkedinIcon width={22} height={22} />
                   </a>
                   <a
                     href="https://youtube.com"
@@ -590,8 +581,8 @@ const Layout = () => {
           </div>
 
           {/* Copyright */}
-          <div className="mt-10 pt-6 border-t border-gray-800">
-            <p className="text-center text-gray-500 text-xs">
+          <div className="py-6 border-t border-white">
+            <p className="text-center text-gray-400 text-xs">
               © {new Date().getFullYear()} Aurevo Fashion. All rights reserved.
             </p>
           </div>
