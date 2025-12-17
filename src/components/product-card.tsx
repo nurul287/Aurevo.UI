@@ -144,7 +144,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
                       className={`px-2.5 py-1 text-sm font-medium transition-all border cursor-pointer ${
                         selectedSize === size
                           ? "bg-gray-900 text-white border-gray-900"
-                          : "bg-white text-gray-900 border-gray-300 hover:border-gray-900"
+                          : "border-gray-300 hover:border-gray-900"
                       }`}
                     >
                       {size}
