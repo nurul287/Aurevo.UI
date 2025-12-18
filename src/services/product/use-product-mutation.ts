@@ -24,7 +24,6 @@ export interface CreateProductParams {
   };
   base_price: number;
   compare_at_price?: number;
-  cost_price?: number;
   is_featured?: boolean;
   requires_shipping?: boolean;
   track_inventory?: boolean;
@@ -48,7 +47,6 @@ export interface CreateProductVariantParams {
   weight?: number;
   price?: number;
   compare_at_price?: number;
-  cost_price?: number;
   barcode?: string;
   sort_order?: number;
   initial_stock?: number;
@@ -81,7 +79,6 @@ export interface UpdateProductParams {
   };
   base_price?: number;
   compare_at_price?: number;
-  cost_price?: number;
   is_active?: boolean;
   is_featured?: boolean;
   requires_shipping?: boolean;
@@ -105,7 +102,6 @@ export interface CreateProductVariantParams {
   weight?: number;
   price?: number;
   compare_at_price?: number;
-  cost_price?: number;
   barcode?: string;
   is_active?: boolean;
   sort_order?: number;
@@ -122,7 +118,6 @@ export interface UpdateProductVariantParams {
   weight?: number;
   price?: number;
   compare_at_price?: number;
-  cost_price?: number;
   barcode?: string;
   is_active?: boolean;
   sort_order?: number;
@@ -174,7 +169,6 @@ export function useCreateProduct() {
           dimensions: params.dimensions,
           base_price: params.base_price,
           compare_at_price: params.compare_at_price,
-          cost_price: params.cost_price,
           is_featured: params.is_featured || false,
           requires_shipping: params.requires_shipping ?? true,
           track_inventory: params.track_inventory ?? true,
@@ -208,7 +202,6 @@ export function useCreateProduct() {
           weight: variant.weight,
           price: variant.price || params.base_price,
           compare_at_price: variant.compare_at_price,
-          cost_price: variant.cost_price,
           barcode: variant.barcode,
           sort_order: variant.sort_order || 0,
         }));
@@ -324,7 +317,6 @@ export function useUpdateProduct() {
           dimensions: params.dimensions,
           base_price: params.base_price,
           compare_at_price: params.compare_at_price,
-          cost_price: params.cost_price,
           is_active: params.is_active,
           is_featured: params.is_featured,
           requires_shipping: params.requires_shipping,
@@ -426,7 +418,6 @@ export function useUpdateProductVariant() {
           weight: params.weight,
           price: params.price,
           compare_at_price: params.compare_at_price,
-          cost_price: params.cost_price,
           barcode: params.barcode,
           is_active: params.is_active,
           sort_order: params.sort_order,
@@ -485,7 +476,6 @@ export function useCreateProductVariant() {
           weight: params.weight,
           price: params.price,
           compare_at_price: params.compare_at_price,
-          cost_price: params.cost_price,
           barcode: params.barcode,
           is_active: params.is_active ?? true,
           sort_order: params.sort_order || 0,

@@ -84,7 +84,6 @@ interface ProductFormData {
   weight: string;
   base_price: string;
   compare_at_price: string;
-  cost_price: string;
   is_featured: boolean;
   requires_shipping: boolean;
   track_inventory: boolean;
@@ -131,7 +130,6 @@ export default function AdminProductsPage() {
     weight: "",
     base_price: "",
     compare_at_price: "",
-    cost_price: "",
     is_featured: false,
     requires_shipping: true,
     track_inventory: true,
@@ -257,7 +255,6 @@ export default function AdminProductsPage() {
       weight: product.weight?.toString() || "",
       base_price: product.base_price.toString(),
       compare_at_price: product.compare_at_price?.toString() || "",
-      cost_price: product.cost_price?.toString() || "",
       is_featured: product.is_featured || false,
       requires_shipping: product.requires_shipping ?? true,
       track_inventory: product.track_inventory ?? true,
@@ -321,9 +318,6 @@ export default function AdminProductsPage() {
         compare_at_price: formData.compare_at_price
           ? parseFloat(formData.compare_at_price)
           : undefined,
-        cost_price: formData.cost_price
-          ? parseFloat(formData.cost_price)
-          : undefined,
         is_featured: formData.is_featured,
         requires_shipping: formData.requires_shipping,
         track_inventory: formData.track_inventory,
@@ -365,9 +359,6 @@ export default function AdminProductsPage() {
         compare_at_price: formData.compare_at_price
           ? parseFloat(formData.compare_at_price)
           : undefined,
-        cost_price: formData.cost_price
-          ? parseFloat(formData.cost_price)
-          : undefined,
         is_featured: formData.is_featured,
         requires_shipping: formData.requires_shipping,
         track_inventory: formData.track_inventory,
@@ -407,7 +398,6 @@ export default function AdminProductsPage() {
       weight: "",
       base_price: "",
       compare_at_price: "",
-      cost_price: "",
       is_featured: false,
       requires_shipping: true,
       track_inventory: true,

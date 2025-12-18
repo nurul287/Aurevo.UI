@@ -126,7 +126,7 @@ const NumberStepper = ({
   return (
     <div
       className={clsx(
-        "flex items-center justify-between border border-[#111111] min-h-[50px] max-w-[140px]",
+        "flex items-center justify-between border border-[#111111] min-h-[40px] max-w-[140px]",
         isFocused && !disabled && "ring",
         other.className
       )}
@@ -136,7 +136,7 @@ const NumberStepper = ({
         type="button"
         onClick={handleDecrease}
         disabled={disableDecrease || disabled}
-        className={`flex items-center justify-center min-h-[50px] px-2 py-1 bg-transparent border-0 cursor-pointer text-[#111111] ${
+        className={`flex items-center justify-center px-2 py-1 bg-transparent border-0 cursor-pointer text-[#111111] h-full${
           disableDecrease || disabled
             ? "cursor-not-allowed text-gray-400"
             : "hover:text-[#111111]/80"
@@ -163,7 +163,7 @@ const NumberStepper = ({
         aria-valuenow={localValue}
         disabled={disabled}
         className={clsx(
-          `w-[60%] min-h-[50px] text-center font-normal border-0 bg-transparent outline-none ${
+          `w-[60%] h-full text-center font-normal border-0 bg-transparent outline-none ${
             disabled ? "text-gray-400 cursor-not-allowed" : "text-black"
           }`
         )}
@@ -173,7 +173,7 @@ const NumberStepper = ({
         onClick={handleIncrease}
         disabled={localValue >= maxValue || disabled}
         className={clsx(
-          `flex items-center justify-center min-h-[50px] px-2 py-1 bg-transparent border-0 cursor-pointer text-[#111111] ${
+          `flex items-center justify-center px-2 py-1 bg-transparent border-0 cursor-pointer text-[#111111] h-full${
             localValue >= maxValue || disabled
               ? "text-gray-400 cursor-not-allowed"
               : "hover:text-[#111111]/80"

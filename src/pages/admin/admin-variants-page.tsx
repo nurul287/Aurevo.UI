@@ -74,7 +74,6 @@ interface VariantFormData {
   weight: string;
   price: string;
   compare_at_price: string;
-  cost_price: string;
   barcode: string;
   sort_order: string;
   is_active: boolean;
@@ -112,7 +111,6 @@ export default function AdminVariantsPage() {
     weight: "",
     price: "",
     compare_at_price: "",
-    cost_price: "",
     barcode: "",
     sort_order: "0",
     is_active: true,
@@ -196,7 +194,6 @@ export default function AdminVariantsPage() {
       weight: variant.weight?.toString() || "",
       price: variant.price?.toString() || "",
       compare_at_price: variant.compare_at_price?.toString() || "",
-      cost_price: variant.cost_price?.toString() || "",
       barcode: variant.barcode || "",
       sort_order: variant.sort_order?.toString() || "0",
       is_active: variant.is_active ?? true,
@@ -247,7 +244,6 @@ export default function AdminVariantsPage() {
         weight: parseFloat(formData.weight) || undefined,
         price: parseFloat(formData.price) || undefined,
         compare_at_price: parseFloat(formData.compare_at_price) || undefined,
-        cost_price: parseFloat(formData.cost_price) || undefined,
         barcode: formData.barcode,
         sort_order: parseInt(formData.sort_order),
         is_active: formData.is_active,
@@ -272,7 +268,6 @@ export default function AdminVariantsPage() {
         weight: parseFloat(formData.weight) || undefined,
         price: parseFloat(formData.price) || undefined,
         compare_at_price: parseFloat(formData.compare_at_price) || undefined,
-        cost_price: parseFloat(formData.cost_price) || undefined,
         barcode: formData.barcode,
         sort_order: parseInt(formData.sort_order),
         is_active: formData.is_active,
@@ -292,7 +287,6 @@ export default function AdminVariantsPage() {
       weight: "",
       price: "",
       compare_at_price: "",
-      cost_price: "",
       barcode: "",
       sort_order: "0",
       is_active: true,

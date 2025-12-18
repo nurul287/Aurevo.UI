@@ -18,7 +18,6 @@ export interface AddProductParams {
   dimensions?: Record<string, any>;
   base_price: number;
   compare_at_price?: number;
-  cost_price?: number;
   is_featured?: boolean;
   requires_shipping?: boolean;
   track_inventory?: boolean;
@@ -39,7 +38,6 @@ export interface AddProductParams {
     weight?: number;
     price?: number;
     compare_at_price?: number;
-    cost_price?: number;
     barcode?: string;
     sort_order?: number;
   }>;
@@ -62,7 +60,6 @@ export interface UpdateProductParams {
   dimensions?: Record<string, any>;
   base_price?: number;
   compare_at_price?: number;
-  cost_price?: number;
   is_featured?: boolean;
   requires_shipping?: boolean;
   track_inventory?: boolean;
@@ -138,7 +135,6 @@ export function useAddProduct() {
         p_weight: params.weight,
         p_dimensions: params.dimensions,
         p_compare_at_price: params.compare_at_price,
-        p_cost_price: params.cost_price,
         p_is_featured: params.is_featured,
         p_requires_shipping: params.requires_shipping,
         p_track_inventory: params.track_inventory,
@@ -198,7 +194,6 @@ export function useUpdateProduct() {
         p_dimensions: params.dimensions,
         p_base_price: params.base_price,
         p_compare_at_price: params.compare_at_price,
-        p_cost_price: params.cost_price,
         p_is_featured: params.is_featured,
         p_requires_shipping: params.requires_shipping,
         p_track_inventory: params.track_inventory,

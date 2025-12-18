@@ -1,5 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { useProduct } from "@/services";
@@ -232,13 +240,26 @@ const ProductDetailPage = () => {
   return (
     <div className="min-h-screen py-8 bg-white">
       <div className="container-custom">
-        {/* Header */}
-        <Link
-          to="/products"
-          className="inline-flex items-center text-gray-700 hover:text-gray-900 mb-8 text-lg font-medium"
-        >
-          « Product Details
-        </Link>
+        {/* Breadcrumb */}
+        <Breadcrumb className="mb-8">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to={APP_PATHS.home}>Home</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to={APP_PATHS.products}>Products</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{product.name}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Left Column - Product Images */}
@@ -304,7 +325,7 @@ const ProductDetailPage = () => {
                       key={`thumbnail-${index}`}
                       onClick={(e) => handleThumbnailClick(index, e)}
                       type="button"
-                      className={`flex-shrink-0 w-20 h-20 rounded-lg border-2 transition-all ${
+                      className={`flex-shrink-0 w-22 h-22 rounded-lg border-2 transition-all ${
                         isDragging ? "cursor-grabbing" : "cursor-pointer"
                       } ${
                         selectedImageIndex === index
@@ -342,30 +363,69 @@ const ProductDetailPage = () => {
                   "Premium quality product from our collection."}
               </p>
             </div>
-            {/* Product Code */}
-            <div className="text-lg font-medium flex items-center gap-2">
-              <span>Code:</span>
-              <span className="">{productCode}</span>
+            {/* Price */}
+            <div className="text-base font-medium">
+              {product.compare_at_price &&
+              product.compare_at_price > product.base_price ? (
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <span className="line-through text-gray-500">
+                      Tk{" "}
+                      {product.compare_at_price.toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                    <span className="text-gray-900">
+                      Tk{" "}
+                      {product.base_price.toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+                  <span className="bg-black text-white px-3 py-1 rounded text-sm font-semibold">
+                    SAVE{" "}
+                    {Math.round(
+                      ((product.compare_at_price - product.base_price) /
+                        product.compare_at_price) *
+                        100
+                    )}
+                    %
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span>Price:</span>
+                  <span className="">
+                    Tk{" "}
+                    {product.base_price.toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                  </span>
+                </div>
+              )}
             </div>
 
-            {/* Price */}
-            <div className="text-lg font-medium flex items-center gap-2">
-              <span>Price:</span>
-              <span className="">Tk {product.base_price.toLocaleString()}</span>
+            {/* Product Code */}
+            <div className="text-base font-medium flex items-center gap-2">
+              <span>Code:</span>
+              <span className="font-normal">{productCode}</span>
             </div>
 
             {/* Size Selection */}
             {availableSizes.length > 0 && (
               <div>
-                <label className="block text-base font-semibold mb-1">
+                {/* <label className="block text-base font-semibold mb-1">
                   Size
-                </label>
+                </label> */}
                 <div className="flex flex-wrap gap-2">
                   {availableSizes.map((size) => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size || "")}
-                      className={`w-12.5 h-12 flex items-center justify-center px-4 py-2 text-sm lg:text-base font-medium rounded transition-all cursor-pointer ${
+                      className={`w-11 h-10.5 flex items-center justify-center px-4 py-2 text-sm font-medium rounded transition-all cursor-pointer ${
                         selectedSize === size
                           ? "border-2 border-[#333333] bg-[#333333] text-white"
                           : "border border-[#ddd] hover:border-[#333333]"
@@ -380,9 +440,9 @@ const ProductDetailPage = () => {
 
             {/* Quantity Selector */}
             <div>
-              <label className="block text-gray-900 font-semibold mb-1">
+              {/* <label className="block text-gray-900 font-semibold mb-1">
                 Quantity
-              </label>
+              </label> */}
               <NumberStepper
                 value={quantity}
                 onChange={(_e, newValue) => {
@@ -393,11 +453,11 @@ const ProductDetailPage = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-4 pt-4">
+            <div className="flex gap-4 pt-2">
               <Button
                 onClick={handleCheckout}
                 disabled={!selectedSize || isAddingToCart}
-                className="flex-1 bg-gray-900 hover:bg-gray-800 text-white h-12 font-medium rounded-md flex items-center justify-center gap-2"
+                className="flex-1 bg-gray-900 hover:bg-gray-800 text-white h-11 font-medium rounded-md flex items-center justify-center gap-2"
               >
                 <ShoppingBagIcon className="w-5 h-5 text-white" />
                 <span className="text-white">Check Out</span>
@@ -406,7 +466,7 @@ const ProductDetailPage = () => {
               <Button
                 onClick={handleAddToCart}
                 disabled={!selectedSize || isAddingToCart}
-                className="flex-1 bg-white border-2 border-gray-900 text-gray-900 hover:bg-gray-50 h-12 font-medium rounded-md flex items-center justify-center gap-2"
+                className="flex-1 bg-white border-2 border-gray-900 text-gray-900 hover:bg-gray-50 h-11 font-medium rounded-md flex items-center justify-center gap-2"
               >
                 <ShoppingCart className="w-5 h-5" />
                 Add Cart
@@ -414,7 +474,7 @@ const ProductDetailPage = () => {
             </div>
 
             {/* Product Video */}
-            <div className="mt-8">
+            <div className="mt-2">
               <ProductVideoPlayer
                 videoUrl={(product as any)?.video_url || defaultVideoUrl}
                 posterImage={productImages[0]?.url}
