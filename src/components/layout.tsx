@@ -1,5 +1,7 @@
 import { useAuth } from "@/contexts/auth-context";
 import { useCart } from "@/hooks/use-cart";
+import { useGuestCart } from "@/contexts/guest-cart-context";
+import CartSidePanel from "@/components/cart-side-panel";
 import {
   Bars3Icon,
   MagnifyingGlassIcon,
@@ -35,6 +37,7 @@ import masterCardImg from "@/assets/image/master-card.png";
 const Layout = () => {
   const { user, isAdmin, signOut } = useAuth();
   const { itemCount: cartItemCount } = useCart();
+  const { openCartPanel } = useGuestCart();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -142,9 +145,10 @@ const Layout = () => {
               </form>
 
               {/* Cart */}
-              <Link
-                to="/cart"
-                className="relative p-2 text-gray-400 hover:text-gray-500"
+              <button
+                onClick={openCartPanel}
+                className="relative p-2 text-gray-400 hover:text-gray-500 cursor-pointer"
+                aria-label="Open cart"
               >
                 <ShoppingBagIcon className="h-6 w-6" />
                 {cartItemCount > 0 && (
@@ -152,14 +156,14 @@ const Layout = () => {
                     {cartItemCount}
                   </div>
                 )}
-              </Link>
+              </button>
 
               {/* User Menu */}
               {user ? (
                 <div className="relative" ref={userMenuRef}>
                   <button
                     onClick={toggleUserMenu}
-                    className="p-2 text-gray-400 hover:text-gray-500"
+                    className="p-2 text-gray-400 hover:text-gray-500 cursor-pointer"
                   >
                     <UserIcon className="h-6 w-6" />
                   </button>
@@ -588,6 +592,9 @@ const Layout = () => {
           </div>
         </div>
       </footer>
+
+      {/* Cart Side Panel */}
+      <CartSidePanel />
     </div>
   );
 };

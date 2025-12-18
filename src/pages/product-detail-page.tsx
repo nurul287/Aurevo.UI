@@ -97,12 +97,35 @@ const ProductDetailPage = () => {
     }
   };
 
-  const handleCheckout = async () => {
-    // First add to cart, then navigate to checkout
-    await handleAddToCart();
-    if (selectedSize) {
-      navigate(APP_PATHS.checkout);
+  const handleCheckout = () => {
+    if (!product) {
+      showError("Product not loaded", "Please refresh the page and try again");
+      return;
     }
+
+    if (!selectedSize) {
+      showWarning("Size required", "Please select a size before checkout");
+      return;
+    }
+
+    // Find the variant that matches the selected size and color
+    const variant = product.variants?.find(
+      (v) => v.size === selectedSize && v.color === selectedColor
+    );
+
+    if (!variant) {
+      showWarning("Variant not available", "Selected variant is not available");
+      return;
+    }
+
+    // Navigate to checkout with product info as URL params for direct checkout
+    // This will checkout with just this product without adding to cart
+    const params = new URLSearchParams({
+      productId: product.id,
+      variantId: variant.id,
+      quantity: quantity.toString(),
+    });
+    navigate(`${APP_PATHS.checkout}?${params.toString()}`);
   };
 
   if (isLoading) {
@@ -357,7 +380,16 @@ const ProductDetailPage = () => {
               <h1 className="text-xl font-bold text-gray-900 mb-2">
                 {product.name}:
               </h1>
-              <p className="text-gray-600 text-sm leading-relaxed">
+              <p
+                className="text-gray-600 text-sm leading-relaxed overflow-hidden"
+                style={{
+                  height: "45px",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  textOverflow: "ellipsis",
+                }}
+              >
                 {product.description ||
                   product.short_description ||
                   "Premium quality product from our collection."}

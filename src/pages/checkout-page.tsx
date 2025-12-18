@@ -25,15 +25,66 @@ import {
   TruckIcon,
   UserIcon,
 } from "lucide-react";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useProduct } from "@/services";
 
 const CheckoutPage = () => {
+  const [searchParams] = useSearchParams();
   const { cartItems, cartTotal, loading, clearCart } = useCart();
   const { sessionId } = useGuestCart();
   const navigate = useNavigate();
   const createGuestOrderMutation = useCreateGuestOrder();
   const { showError, showWarning } = useToast();
+
+  // Check if this is a direct checkout (from product detail page)
+  const directCheckoutProductId = searchParams.get("productId");
+  const directCheckoutVariantId = searchParams.get("variantId");
+  const directCheckoutQuantity = searchParams.get("quantity");
+
+  // Fetch product data if direct checkout
+  const { data: directCheckoutProduct, isLoading: isLoadingDirectProduct } =
+    useProduct(directCheckoutProductId || "");
+
+  // Create direct checkout item if params are present
+  const directCheckoutItem = useMemo(() => {
+    if (
+      directCheckoutProductId &&
+      directCheckoutVariantId &&
+      directCheckoutQuantity &&
+      directCheckoutProduct
+    ) {
+      const variant = directCheckoutProduct.variants?.find(
+        (v) => v.id === directCheckoutVariantId
+      );
+      if (variant) {
+        return {
+          product: directCheckoutProduct,
+          variant: variant,
+          quantity: parseInt(directCheckoutQuantity, 10),
+        };
+      }
+    }
+    return null;
+  }, [
+    directCheckoutProductId,
+    directCheckoutVariantId,
+    directCheckoutQuantity,
+    directCheckoutProduct,
+  ]);
+
+  // Use direct checkout item if available, otherwise use cart items
+  const checkoutItems = directCheckoutItem ? [directCheckoutItem] : cartItems;
+  const checkoutTotal = useMemo(() => {
+    if (directCheckoutItem) {
+      const price =
+        directCheckoutItem.variant?.price ||
+        directCheckoutItem.product?.base_price ||
+        0;
+      return price * directCheckoutItem.quantity;
+    }
+    return cartTotal;
+  }, [directCheckoutItem, cartTotal]);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -98,17 +149,17 @@ const CheckoutPage = () => {
           address: formData.address,
           phone: formData.phone,
         },
-        items: cartItems.map((item) => ({
+        items: checkoutItems.map((item) => ({
           product_id: item.product?.id || "",
           variant_id: item.variant?.id,
           quantity: item.quantity,
-          unit_price: item.variant?.price || 0,
+          unit_price: item.variant?.price || item.product?.base_price || 0,
         })),
-        subtotal: cartTotal,
+        subtotal: checkoutTotal,
         tax_amount: 0,
         shipping_amount: 0,
         discount_amount: 0,
-        total_amount: cartTotal,
+        total_amount: checkoutTotal,
         payment_method: paymentMethod,
         notes: formData.orderNote,
         session_id: sessionId!,
@@ -119,14 +170,17 @@ const CheckoutPage = () => {
         orderResult.order.order_number
       );
 
-      // Clear the cart after successful order (fallback in case stored procedure doesn't work)
-      try {
-        console.log("🧹 Clearing cart after successful order...");
-        await clearCart();
-        console.log("✅ Cart cleared successfully from frontend");
-      } catch (cartError) {
-        console.warn("⚠️ Failed to clear cart from frontend:", cartError);
-        // Don't fail the order if cart clearing fails
+      // Clear the cart after successful order (only if not direct checkout)
+      // For direct checkout, we don't need to clear cart since item wasn't added
+      if (!directCheckoutItem) {
+        try {
+          console.log("🧹 Clearing cart after successful order...");
+          await clearCart();
+          console.log("✅ Cart cleared successfully from frontend");
+        } catch (cartError) {
+          console.warn("⚠️ Failed to clear cart from frontend:", cartError);
+          // Don't fail the order if cart clearing fails
+        }
       }
 
       // Redirect to order confirmation with order details and guest token if available
@@ -150,7 +204,8 @@ const CheckoutPage = () => {
     }
   };
 
-  if (loading) {
+  // Show loading if cart is loading or direct checkout product is loading
+  if (loading || (directCheckoutProductId && isLoadingDirectProduct)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="loading-spinner"></div>
@@ -158,7 +213,30 @@ const CheckoutPage = () => {
     );
   }
 
-  if (!cartItems || cartItems.length === 0) {
+  // Show error if direct checkout product failed to load (after loading is complete)
+  if (
+    directCheckoutProductId &&
+    !isLoadingDirectProduct &&
+    !directCheckoutProduct
+  ) {
+    return (
+      <div className="min-h-screen py-8">
+        <div className="container-custom text-center">
+          <h1 className="text-3xl font-bold mb-4">Product Not Found</h1>
+          <p className="text-gray-600 mb-8">
+            The product you're trying to checkout is not available.
+          </p>
+          <Link to="/products">
+            <Button variant="default" size="lg">
+              Continue Shopping
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!checkoutItems || checkoutItems.length === 0) {
     return (
       <div className="min-h-screen py-8">
         <div className="container-custom text-center">
@@ -402,9 +480,9 @@ const CheckoutPage = () => {
               <CardContent className="space-y-4">
                 {/* Cart Items */}
                 <div className="space-y-3">
-                  {cartItems.map((item) => (
+                  {checkoutItems.map((item, index) => (
                     <div
-                      key={item.id}
+                      key={item.id || `direct-checkout-${index}`}
                       className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
                     >
                       <img
@@ -443,7 +521,7 @@ const CheckoutPage = () => {
                 <div className="space-y-2 pt-4 border-t">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span>${cartTotal?.toFixed(2) || "0.00"}</span>
+                    <span>${checkoutTotal?.toFixed(2) || "0.00"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Shipping</span>
@@ -455,7 +533,7 @@ const CheckoutPage = () => {
                   </div>
                   <div className="flex justify-between text-lg font-bold pt-2 border-t">
                     <span>Total</span>
-                    <span>${cartTotal?.toFixed(2) || "0.00"}</span>
+                    <span>${checkoutTotal?.toFixed(2) || "0.00"}</span>
                   </div>
                 </div>
 

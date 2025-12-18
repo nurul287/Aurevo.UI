@@ -16,6 +16,8 @@ interface NumberStepperProps
   onChange: (e: SyntheticEvent, value: number) => void;
   disabled?: boolean;
   maxValue?: number;
+  width?: string | number;
+  height?: string | number;
 }
 
 const NumberStepper = ({
@@ -23,6 +25,8 @@ const NumberStepper = ({
   onChange,
   disabled = false,
   maxValue = 99,
+  width = "140px",
+  height = "40px",
   ...other
 }: NumberStepperProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -123,13 +127,21 @@ const NumberStepper = ({
     },
     [handleIncrease, handleDecrease]
   );
+  // Convert width and height to CSS values
+  const widthValue = typeof width === "number" ? `${width}px` : width;
+  const heightValue = typeof height === "number" ? `${height}px` : height;
+
   return (
     <div
       className={clsx(
-        "flex items-center justify-between border border-[#111111] min-h-[40px] max-w-[140px]",
+        "flex items-center justify-between border border-[#111111]",
         isFocused && !disabled && "ring",
         other.className
       )}
+      style={{
+        minHeight: heightValue,
+        maxWidth: widthValue,
+      }}
       {...omit(other, "className")}
     >
       <button

@@ -4,7 +4,6 @@ export const APP_PATHS = {
   home: "/",
   products: "/products",
   productDetail: (id: string) => `/products/${id}`,
-  cart: "/cart",
   login: "/login",
   register: "/register",
   forgotPassword: "/forgot-password",

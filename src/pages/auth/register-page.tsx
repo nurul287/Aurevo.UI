@@ -93,14 +93,14 @@ const RegisterPage = () => {
 
         {/* Centered Image with Back to Website button */}
         <div className="flex-1 flex items-center justify-end">
-          <div className="relative">
+                  <div className="relative">
             <img
               src={registerImage}
               alt="Register illustration"
               className="max-w-[700px] w-full h-auto object-contain"
-            />
-          </div>
-        </div>
+                    />
+                  </div>
+                </div>
       </div>
 
       {/* Right Side - Register Form */}
@@ -147,23 +147,23 @@ const RegisterPage = () => {
             {/* Register Form */}
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Full Name Field */}
-              <div className="space-y-2">
+                <div className="space-y-2">
                 <Label
                   htmlFor="fullName"
                   className="text-sm font-medium text-gray-700 inline-block"
                 >
                   Full Name
-                </Label>
-                <Input
+                  </Label>
+                    <Input
                   id="fullName"
                   name="fullName"
-                  type="text"
-                  required
+                      type="text"
+                      required
                   value={formData.fullName}
-                  onChange={handleChange}
+                      onChange={handleChange}
                   placeholder="Enter Your Name"
                   className="h-12 border-gray-200 focus:border-[#FF6600] focus:ring-[#FF6600] rounded-lg"
-                />
+                    />
               </div>
 
               {/* Email Field */}
@@ -174,16 +174,16 @@ const RegisterPage = () => {
                 >
                   E-mail
                 </Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={handleChange}
                   placeholder="Your E-mail"
                   className="h-12 border-gray-200 focus:border-[#FF6600] focus:ring-[#FF6600] rounded-lg"
-                />
+                  />
               </div>
 
               {/* Password Field */}
@@ -194,13 +194,13 @@ const RegisterPage = () => {
                 >
                   Password
                 </Label>
-                <Input
-                  id="password"
-                  name="password"
+                  <Input
+                    id="password"
+                    name="password"
                   type="password"
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
+                    required
+                    value={formData.password}
+                    onChange={handleChange}
                   placeholder="6 - Digit Password"
                   className="h-12 border-gray-200 focus:border-[#FF6600] focus:ring-[#FF6600] rounded-lg"
                 />
@@ -275,7 +275,7 @@ const RegisterPage = () => {
               </Button>
             </div>
           </div>
-        </div>
+            </div>
       </div>
     </div>
   );

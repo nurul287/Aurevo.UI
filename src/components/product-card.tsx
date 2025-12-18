@@ -5,7 +5,7 @@ import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { HeartIcon, ShoppingCart } from "lucide-react";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 interface ProductCardProps {
   product: any;
@@ -13,9 +13,8 @@ interface ProductCardProps {
 
 export const ProductCard = ({ product }: ProductCardProps) => {
   const [selectedSize, setSelectedSize] = useState<string>("");
-  const navigate = useNavigate();
   const { addItem } = useCart();
-  const { showSuccess, showWarning } = useToast();
+  const { showWarning } = useToast();
 
   const firstImage = product.images?.[0]?.url;
   const availableSizes = product.variants?.map((v: any) => v.size) || [
@@ -39,8 +38,8 @@ export const ProductCard = ({ product }: ProductCardProps) => {
       const firstVariant = product.variants?.[0];
       if (firstVariant) {
         await addItem(product.id, firstVariant.id, 1);
-        showSuccess("Added to cart", `${product.name} added to cart`);
-        navigate("/cart");
+        // Success toast is handled by the cart mutation hook
+        // Side panel will open automatically via useCart hook
       } else {
         showWarning(
           "Product unavailable",
@@ -63,11 +62,8 @@ export const ProductCard = ({ product }: ProductCardProps) => {
 
     if (variant) {
       await addItem(product.id, variant.id, 1);
-      showSuccess(
-        "Added to cart",
-        `${product.name} (Size ${selectedSize}) added to cart`
-      );
-      navigate("/cart");
+      // Success toast is handled by the cart mutation hook
+      // Side panel will open automatically via useCart hook
     }
   };
 

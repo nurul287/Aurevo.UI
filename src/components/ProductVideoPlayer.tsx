@@ -22,7 +22,7 @@ const ProductVideoPlayer = ({
   if (!videoUrl) {
     return (
       <div
-        className={`relative w-full h-64 bg-gray-100 rounded-lg overflow-hidden group ${className}`}
+        className={`relative w-full h-70 bg-gray-100 rounded-lg overflow-hidden group ${className}`}
       >
         {posterImage ? (
           <>
@@ -94,7 +94,7 @@ const ProductVideoPlayer = ({
 
   return (
     <div
-      className={`relative w-full h-64 bg-gray-100 rounded-lg overflow-hidden group ${className}`}
+      className={`relative w-full h-70 bg-gray-100 rounded-lg overflow-hidden group ${className}`}
     >
       <video
         ref={videoRef}

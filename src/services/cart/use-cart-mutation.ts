@@ -17,12 +17,14 @@ export function useAddToCart() {
       productId,
       variantId,
       quantity = 1,
+      suppressToast = false,
     }: {
       userId?: string;
       sessionId?: string;
       productId: string;
       variantId: string;
       quantity?: number;
+      suppressToast?: boolean;
     }) => {
       console.log("🛒 Adding to cart:", {
         userId,
@@ -155,12 +157,14 @@ export function useAddToCart() {
         ),
       });
 
-      // Show success toast
-      const productName = data?.product?.name || "Product";
-      showSuccess(
-        "Added to cart!",
-        `${productName} has been added to your cart`
-      );
+      // Show success toast only if not suppressed
+      if (!variables.suppressToast) {
+        const productName = data?.product?.name || "Product";
+        showSuccess(
+          "Added to cart!",
+          `${productName} has been added to your cart`
+        );
+      }
     },
     onError: (error) => {
       console.error("Add to cart error:", error);
@@ -177,7 +181,7 @@ export function useAddToCart() {
  */
 export function useUpdateCartItemQuantity() {
   const queryClient = useQueryClient();
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
 
   return useMutation({
     mutationFn: async ({
@@ -261,6 +265,16 @@ export function useUpdateCartItemQuantity() {
 
       // Return a context object with the snapshotted value
       return { previousCartData };
+    },
+    onSuccess: (data, variables) => {
+      // Show success toast for quantity update
+      if (data) {
+        const productName = data?.product?.name || "Item";
+        showSuccess(
+          "Quantity updated",
+          `${productName} quantity has been updated`
+        );
+      }
     },
     onError: (err, variables, context) => {
       // If the mutation fails, use the context returned from onMutate to roll back
