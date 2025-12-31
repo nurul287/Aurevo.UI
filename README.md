@@ -168,9 +168,6 @@ Update `.env.local` with your Supabase credentials:
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-# App Configuration
-VITE_APP_NAME=Aurevo Fashion
-VITE_APP_URL=http://localhost:5173
 ```
 
 ### **4. Database Setup**
