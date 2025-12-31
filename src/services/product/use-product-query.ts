@@ -10,7 +10,7 @@ import {
   ProductWithVariants,
   PublicProductWithVariants,
 } from "@/services/types";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 
 // Query keys for consistent cache management
 export const productQueryKeys = {
@@ -90,6 +90,56 @@ export function useProducts(params: PaginationParams = {}) {
 }
 
 /**
+ * Hook to get all products with infinite scroll pagination
+ */
+export function useInfiniteProducts(limit: number = 12) {
+  return useInfiniteQuery({
+    queryKey: ["products", "infinite", limit],
+    queryFn: async ({ pageParam = 1 }) => {
+      const offset = (pageParam - 1) * limit;
+
+      const { data, error, count } = await supabase
+        .from("products")
+        .select(
+          `
+          *,
+          category:categories!category_id(*),
+          brand:brands!brand_id(*),
+          variants:product_variants(*),
+          images:product_images(*)
+        `,
+          { count: "exact" }
+        )
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (error) {
+        console.error("❌ Error fetching products:", error);
+        throw error;
+      }
+
+      const totalPages = Math.ceil((count || 0) / limit);
+
+      return {
+        data: data || [],
+        count: count || 0,
+        page: pageParam,
+        limit,
+        totalPages,
+      };
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.page < lastPage.totalPages) {
+        return lastPage.page + 1;
+      }
+      return undefined;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+/**
  * Hook to get a single product by ID
  */
 export function useProduct(id: string) {
@@ -142,7 +192,8 @@ export function useProduct(id: string) {
         throw error;
       }
 
-      return data;
+      // Supabase returns foreign key relations as arrays, normalize to single objects
+      return data as unknown as PublicProductWithVariants;
     },
     enabled: !!id,
     staleTime: 10 * 60 * 1000, // 10 minutes
@@ -232,7 +283,7 @@ export function useProductsByCategory(
       });
 
       return {
-        data: data || [],
+        data: (data || []) as unknown as PublicProductWithVariants[],
         count: count || 0,
         page,
         limit,
@@ -322,7 +373,7 @@ export function useSearchProducts(
       });
 
       return {
-        data: data || [],
+        data: (data || []) as unknown as PublicProductWithVariants[],
         count: count || 0,
         page,
         limit,

@@ -11,7 +11,7 @@ function App() {
       <AuthProvider>
         <GuestCartProvider>
           <AppRoutes />
-          <Toaster richColors />
+          <Toaster richColors position="top-right" />
         </GuestCartProvider>
       </AuthProvider>
     </Router>
