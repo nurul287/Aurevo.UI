@@ -159,11 +159,11 @@ export function useAddToCart() {
 
       // Show success toast only if not suppressed
       if (!variables.suppressToast) {
-        const productName = data?.product?.name || "Product";
-        showSuccess(
-          "Added to cart!",
-          `${productName} has been added to your cart`
-        );
+      const productName = data?.product?.name || "Product";
+      showSuccess(
+        "Added to cart!",
+        `${productName} has been added to your cart`
+      );
       }
     },
     onError: (error) => {
