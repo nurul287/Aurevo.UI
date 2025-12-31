@@ -341,16 +341,16 @@ export default function AdminCategoriesPage() {
                     Parent Category
                   </Label>
                   <Select
-                    value={formData.parent_id}
+                    value={formData.parent_id || "none"}
                     onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, parent_id: value }))
+                      setFormData((prev) => ({ ...prev, parent_id: value === "none" ? "" : value }))
                     }
                   >
                     <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="Select parent category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None (Root Category)</SelectItem>
+                      <SelectItem value="none">None (Root Category)</SelectItem>
                       {categories
                         ?.filter((cat) => cat.id !== editingCategory?.id)
                         .map((category) => (

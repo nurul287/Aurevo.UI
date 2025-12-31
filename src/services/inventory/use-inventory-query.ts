@@ -282,15 +282,15 @@ export function useInventoryStats() {
   return useQuery({
     queryKey: ["inventory-stats"],
     queryFn: async () => {
-      // Get total stock value
+      // Get total stock value (using base_price instead of cost_price)
       const { data: stockValue, error: stockError } = await supabase.from(
         "inventory"
       ).select(`
           quantity,
           product_variants!inner(
-            cost_price,
+            price,
             products!inner(
-              cost_price
+              base_price
             )
           )
         `);
@@ -311,17 +311,17 @@ export function useInventoryStats() {
 
       if (variantsError) throw variantsError;
 
-      // Calculate total stock value
+      // Calculate total stock value (using variant price or product base_price)
       const totalValue =
         stockValue?.reduce((sum, item) => {
           const variant = Array.isArray(item.product_variants)
             ? item.product_variants[0]
             : item.product_variants;
-          const costPrice =
-            (variant as any)?.cost_price ||
-            (variant as any)?.products?.cost_price ||
+          const price =
+            (variant as any)?.price ||
+            (variant as any)?.products?.base_price ||
             0;
-          return sum + item.quantity * costPrice;
+          return sum + item.quantity * price;
         }, 0) || 0;
 
       return {

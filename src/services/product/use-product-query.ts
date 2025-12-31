@@ -8,8 +8,9 @@ import {
   ProductImage,
   ProductVariant,
   ProductWithVariants,
+  PublicProductWithVariants,
 } from "@/services/types";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 
 // Query keys for consistent cache management
 export const productQueryKeys = {
@@ -89,13 +90,15 @@ export function useProducts(params: PaginationParams = {}) {
 }
 
 /**
- * Hook to get a single product by ID
+ * Hook to get all products with infinite scroll pagination
  */
-export function useProduct(id: string) {
-  return useQuery({
-    queryKey: productQueryKeys.product(id),
-    queryFn: async (): Promise<ProductWithVariants | null> => {
-      const { data, error } = await supabase
+export function useInfiniteProducts(limit: number = 12) {
+  return useInfiniteQuery({
+    queryKey: ["products", "infinite", limit],
+    queryFn: async ({ pageParam = 1 }) => {
+      const offset = (pageParam - 1) * limit;
+
+      const { data, error, count } = await supabase
         .from("products")
         .select(
           `
@@ -103,6 +106,81 @@ export function useProduct(id: string) {
           category:categories!category_id(*),
           brand:brands!brand_id(*),
           variants:product_variants(*),
+          images:product_images(*)
+        `,
+          { count: "exact" }
+        )
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (error) {
+        console.error("❌ Error fetching products:", error);
+        throw error;
+      }
+
+      const totalPages = Math.ceil((count || 0) / limit);
+
+      return {
+        data: data || [],
+        count: count || 0,
+        page: pageParam,
+        limit,
+        totalPages,
+      };
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.page < lastPage.totalPages) {
+        return lastPage.page + 1;
+      }
+      return undefined;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+/**
+ * Hook to get a single product by ID
+ */
+export function useProduct(id: string) {
+  return useQuery({
+    queryKey: productQueryKeys.product(id),
+    queryFn: async (): Promise<PublicProductWithVariants | null> => {
+      const { data, error } = await supabase
+        .from("products")
+        .select(
+          `
+          id,
+          name,
+          slug,
+          description,
+          short_description,
+          sku,
+          category_id,
+          brand_id,
+          gender,
+          material,
+          care_instructions,
+          weight,
+          dimensions,
+          base_price,
+          compare_at_price,
+          is_active,
+          is_featured,
+          is_digital,
+          requires_shipping,
+          track_inventory,
+          allow_backorder,
+          min_order_quantity,
+          max_order_quantity,
+          meta_title,
+          meta_description,
+          tags,
+          created_at,
+          updated_at,
+          category:categories!category_id(*),
+          brand:brands!brand_id(*),
+          variants:product_variants(id, product_id, sku, name, size, color, color_code, material, weight, price, compare_at_price, barcode, is_active, sort_order, created_at, updated_at),
           images:product_images(*)
         `
         )
@@ -114,7 +192,8 @@ export function useProduct(id: string) {
         throw error;
       }
 
-      return data;
+      // Supabase returns foreign key relations as arrays, normalize to single objects
+      return data as unknown as PublicProductWithVariants;
     },
     enabled: !!id,
     staleTime: 10 * 60 * 1000, // 10 minutes
@@ -130,7 +209,9 @@ export function useProductsByCategory(
 ) {
   return useQuery({
     queryKey: productQueryKeys.productsByCategory(categoryId, params),
-    queryFn: async (): Promise<PaginatedResponse<ProductWithVariants>> => {
+    queryFn: async (): Promise<
+      PaginatedResponse<PublicProductWithVariants>
+    > => {
       const { page = 1, limit = 10 } = params;
       const offset = (page - 1) * limit;
 
@@ -142,14 +223,42 @@ export function useProductsByCategory(
       });
 
       // Single optimized query that gets both count and data
+      // Excluding cost_price from products and variants for security
       const { data, error, count } = await supabase
         .from("products")
         .select(
           `
-          *,
+          id,
+          name,
+          slug,
+          description,
+          short_description,
+          sku,
+          category_id,
+          brand_id,
+          gender,
+          material,
+          care_instructions,
+          weight,
+          dimensions,
+          base_price,
+          compare_at_price,
+          is_active,
+          is_featured,
+          is_digital,
+          requires_shipping,
+          track_inventory,
+          allow_backorder,
+          min_order_quantity,
+          max_order_quantity,
+          meta_title,
+          meta_description,
+          tags,
+          created_at,
+          updated_at,
           category:categories!category_id(*),
           brand:brands!brand_id(*),
-          variants:product_variants(*),
+          variants:product_variants(id, product_id, sku, name, size, color, color_code, material, weight, price, compare_at_price, barcode, is_active, sort_order, created_at, updated_at),
           images:product_images(*)
         `,
           { count: "exact" }
@@ -174,7 +283,7 @@ export function useProductsByCategory(
       });
 
       return {
-        data: data || [],
+        data: (data || []) as unknown as PublicProductWithVariants[],
         count: count || 0,
         page,
         limit,
@@ -195,21 +304,51 @@ export function useSearchProducts(
 ) {
   return useQuery({
     queryKey: productQueryKeys.searchProducts(query, params),
-    queryFn: async (): Promise<PaginatedResponse<ProductWithVariants>> => {
+    queryFn: async (): Promise<
+      PaginatedResponse<PublicProductWithVariants>
+    > => {
       const { page = 1, limit = 10 } = params;
       const offset = (page - 1) * limit;
 
       console.log("🔍 Searching products:", { query, page, limit, offset });
 
       // Single optimized query that gets both count and data
+      // Excluding cost_price from products and variants for security
       const { data, error, count } = await supabase
         .from("products")
         .select(
           `
-          *,
+          id,
+          name,
+          slug,
+          description,
+          short_description,
+          sku,
+          category_id,
+          brand_id,
+          gender,
+          material,
+          care_instructions,
+          weight,
+          dimensions,
+          base_price,
+          compare_at_price,
+          is_active,
+          is_featured,
+          is_digital,
+          requires_shipping,
+          track_inventory,
+          allow_backorder,
+          min_order_quantity,
+          max_order_quantity,
+          meta_title,
+          meta_description,
+          tags,
+          created_at,
+          updated_at,
           category:categories!category_id(*),
           brand:brands!brand_id(*),
-          variants:product_variants(*),
+          variants:product_variants(id, product_id, sku, name, size, color, color_code, material, weight, price, compare_at_price, barcode, is_active, sort_order, created_at, updated_at),
           images:product_images(*)
         `,
           { count: "exact" }
@@ -234,7 +373,7 @@ export function useSearchProducts(
       });
 
       return {
-        data: data || [],
+        data: (data || []) as unknown as PublicProductWithVariants[],
         count: count || 0,
         page,
         limit,

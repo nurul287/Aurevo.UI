@@ -114,7 +114,6 @@ export interface Product {
   };
   base_price: number; // DECIMAL
   compare_at_price?: number; // DECIMAL
-  cost_price?: number; // DECIMAL
   is_active?: boolean;
   is_featured?: boolean;
   is_digital?: boolean;
@@ -143,13 +142,18 @@ export interface ProductVariant {
   weight?: number; // DECIMAL
   price?: number; // DECIMAL
   compare_at_price?: number; // DECIMAL
-  cost_price?: number; // DECIMAL
   barcode?: string;
   is_active?: boolean;
   sort_order?: number;
   created_at?: string;
   updated_at?: string;
 }
+
+// Public Product type (same as Product since cost_price is removed)
+export type PublicProduct = Product;
+
+// Public Product Variant type (same as ProductVariant since cost_price is removed)
+export type PublicProductVariant = ProductVariant;
 
 // Product Image types
 export interface ProductImage {
@@ -181,6 +185,14 @@ export interface Inventory {
 // Product with relations
 export interface ProductWithVariants extends Product {
   variants?: ProductVariant[];
+  category?: Category;
+  brand?: Brand;
+  images?: ProductImage[];
+}
+
+// Public Product with relations (same as ProductWithVariants since cost_price is removed)
+export interface PublicProductWithVariants extends PublicProduct {
+  variants?: PublicProductVariant[];
   category?: Category;
   brand?: Brand;
   images?: ProductImage[];

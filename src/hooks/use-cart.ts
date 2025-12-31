@@ -14,7 +14,7 @@ import { useMemo } from "react";
  */
 export function useCart() {
   const { user } = useAuth();
-  const { sessionId } = useGuestCart();
+  const { sessionId, openCartPanel } = useGuestCart();
 
   // Memoize query parameters to prevent unnecessary re-renders
   const queryParams = useMemo(
@@ -46,15 +46,20 @@ export function useCart() {
   const addItem = async (
     productId: string,
     variantId: string,
-    quantity: number = 1
+    quantity: number = 1,
+    suppressToast: boolean = false
   ) => {
-    return addToCartMutation.mutateAsync({
+    const result = await addToCartMutation.mutateAsync({
       userId: user?.id,
       sessionId: user?.id ? undefined : sessionId,
       productId,
       variantId,
       quantity,
+      suppressToast,
     });
+    // Open the cart side panel after adding item
+    openCartPanel();
+    return result;
   };
 
   const updateItemQuantity = async (itemId: string, quantity: number) => {

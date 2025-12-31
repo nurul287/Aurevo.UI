@@ -1,80 +1,63 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/contexts/auth-context";
-import { useToast } from "@/hooks/use-toast";
-import { useAddToCart, useProducts } from "@/services";
-import React, { useState } from "react";
+import { ProductCard } from "@/components/product-card";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { APP_PATHS } from "@/constants/app-paths";
+import { useInfiniteProducts } from "@/services";
+import { useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 
 const ProductsPage = () => {
-  const { user } = useAuth();
-  const [currentPage, setCurrentPage] = useState(1);
-  const [allProducts, setAllProducts] = useState<any[]>([]);
-  const { showError, showWarning } = useToast();
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const {
-    data: productsData,
+    data,
     isLoading,
     error,
-    isFetching,
-  } = useProducts({ page: currentPage, limit: 12 });
-  const addToCartMutation = useAddToCart();
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteProducts(12);
 
-  // Update allProducts when new data is fetched
-  React.useEffect(() => {
-    if (productsData?.data) {
-      if (currentPage === 1) {
-        // First page - replace all products
-        setAllProducts(productsData.data);
-      } else {
-        // Subsequent pages - append to existing products
-        setAllProducts((prev) => [...prev, ...productsData.data]);
+  // Flatten all pages into a single array
+  const allProducts = data?.pages.flatMap((page) => page.data) || [];
+  const totalCount = data?.pages[0]?.count || 0;
+
+  // Intersection Observer for infinite scroll
+  const handleObserver = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      const target = entries[0];
+      if (target.isIntersecting && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
       }
+    },
+    [hasNextPage, isFetchingNextPage, fetchNextPage]
+  );
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(handleObserver, {
+      root: null,
+      rootMargin: "100px",
+      threshold: 0.1,
+    });
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
     }
-  }, [productsData, currentPage]);
 
-  const handleLoadMore = () => {
-    setCurrentPage((prev) => prev + 1);
-  };
+    return () => observer.disconnect();
+  }, [handleObserver]);
 
-  const handleAddToCart = async (product: any) => {
-    try {
-      // For now, use the first variant if available
-      const variant = product.variants?.[0];
-      if (!variant) {
-        showWarning(
-          "No variants available",
-          "This product has no available variants"
-        );
-        return;
-      }
-
-      // Use TanStack Query mutation (works for both logged-in and guest users)
-      await addToCartMutation.mutateAsync({
-        userId: user?.id,
-        sessionId: user?.id
-          ? undefined
-          : localStorage.getItem("guest_session_id") || undefined,
-        productId: product.id,
-        variantId: variant.id,
-        quantity: 1,
-      });
-
-      // Success toast is handled by the mutation's onSuccess callback
-    } catch (error) {
-      console.error("Add to cart error:", error);
-      showError(
-        "Failed to add item to cart",
-        "Something went wrong. Please try again."
-      );
-    }
-  };
-
-  // Show loading spinner only for initial load (page 1)
-  if (isLoading && currentPage === 1) {
+  // Show loading spinner only for initial load
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="loading-spinner"></div>
+        <div className="w-8 h-8 border-4 border-gray-300 border-t-gray-900 rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -88,7 +71,6 @@ const ProductsPage = () => {
             {error.message ||
               "Failed to load products. Please try again later."}
           </p>
-          <Button>Try Again</Button>
         </div>
       </div>
     );
@@ -103,103 +85,65 @@ const ProductsPage = () => {
           <p className="text-gray-600 mb-8">
             We're having trouble loading our products. Please try again later.
           </p>
-          <Button>Try Again</Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen py-8">
+    <div className="min-h-screen py-8 bg-gray-50">
       <div className="container-custom">
+        {/* Breadcrumb */}
+        <Breadcrumb className="mb-6">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to={APP_PATHS.home}>Home</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Products</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
+        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-4">All Products</h1>
+          <h1 className="text-3xl font-bold mb-2">All Products</h1>
           <p className="text-gray-600">
             Discover our complete collection of premium footwear
           </p>
         </div>
 
+        {/* Product Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {allProducts.map((product) => (
-            <Card
-              key={product.id}
-              className="overflow-hidden hover:shadow-lg transition-shadow"
-            >
-              <Link to={`/products/${product.id}`}>
-                <img
-                  src={
-                    product.images?.[0]?.url ||
-                    "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400"
-                  }
-                  alt={product.name}
-                  className="w-full h-64 object-cover"
-                />
-              </Link>
-              <CardContent className="p-4">
-                <CardTitle className="text-lg mb-2">{product.name}</CardTitle>
-                <p className="text-gray-600 text-sm mb-2">
-                  {product.brand?.name}
-                </p>
-                <div className="flex items-center justify-between">
-                  <p className="text-primary-600 font-bold text-xl">
-                    ${product.base_price}
-                  </p>
-                  <Button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleAddToCart(product);
-                    }}
-                    variant="addToCart"
-                    size="sm"
-                    disabled={!product.variants?.length}
-                  >
-                    Add to Cart
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <ProductCard key={product.id} product={product} />
           ))}
         </div>
 
-        {/* Load More Button */}
-        {productsData && allProducts.length < productsData.count && (
-          <div className="mt-12 text-center">
-            <Button
-              onClick={handleLoadMore}
-              disabled={isFetching}
-              variant="loadMore"
-              size="xl"
-              className="px-12 py-4"
-            >
-              {isFetching ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-slate-600 border-t-transparent rounded-full animate-spin mr-3" />
-                  Loading More...
-                </>
-              ) : (
-                <>
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                  Load More Products
-                </>
-              )}
-            </Button>
-          </div>
-        )}
-        <p className="text-sm text-gray-500 mt-4 font-medium text-center">
-          Showing {allProducts.length} of {productsData?.count} products
-        </p>
+        {/* Infinite Scroll Trigger */}
+        <div ref={loadMoreRef} className="mt-8 flex justify-center">
+          {isFetchingNextPage && (
+            <div className="flex items-center gap-3 py-4">
+              <div className="w-6 h-6 border-3 border-gray-300 border-t-gray-900 rounded-full animate-spin"></div>
+              <span className="text-sm text-gray-500">
+                Loading more products...
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Product Count */}
+        <div className="mt-8 text-center">
+          <p className="text-sm text-gray-500 font-medium">
+            Showing {allProducts.length} of {totalCount} products
+          </p>
+          {!hasNextPage && allProducts.length > 0 && (
+            <p className="text-sm text-gray-400 mt-2">Showing all products.</p>
+          )}
+        </div>
       </div>
     </div>
   );

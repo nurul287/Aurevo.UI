@@ -1,22 +1,46 @@
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAuth } from "@/contexts/auth-context";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { useProduct } from "@/services";
-import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { ShoppingBagIcon } from "@heroicons/react/24/outline";
+import { ShoppingCart } from "lucide-react";
+import { useState, useRef } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { APP_PATHS } from "@/constants/app-paths";
+import NumberStepper from "@/components/NumberStepper";
+import ProductVideoPlayer from "@/components/ProductVideoPlayer";
+
+const defaultVideoUrl =
+  "https://assets.adidas.com/videos/ar_1,w_480,c_fill,q_auto,f_auto/41a0e81b8f4d463caf6036b59517f1a2_d98c/Handball_Spezial_Shoes_Black_IE5897_video.mp4";
 
 const ProductDetailPage = () => {
   const { id } = useParams();
-  const { user } = useAuth();
+  const navigate = useNavigate();
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const { showError, showWarning } = useToast();
+
+  // Drag-to-scroll refs and state
+  const thumbnailContainerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
+  // Image zoom state
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
+  const imageContainerRef = useRef<HTMLDivElement>(null);
 
   const { data: product, isLoading, error } = useProduct(id || "");
   const { addItem, isAddingToCart } = useCart();
@@ -63,7 +87,6 @@ const ProductDetailPage = () => {
 
       // Use the unified cart hook (works for both logged-in and guest users)
       await addItem(product.id, variant.id, quantity);
-
       // Success toast is handled by the cart hook
     } catch (error) {
       console.error("Add to cart error:", error);
@@ -74,63 +97,57 @@ const ProductDetailPage = () => {
     }
   };
 
+  const handleCheckout = () => {
+    if (!product) {
+      showError("Product not loaded", "Please refresh the page and try again");
+      return;
+    }
+
+    if (!selectedSize) {
+      showWarning("Size required", "Please select a size before checkout");
+      return;
+    }
+
+    // Find the variant that matches the selected size and color
+    const variant = product.variants?.find(
+      (v) => v.size === selectedSize && v.color === selectedColor
+    );
+
+    if (!variant) {
+      showWarning("Variant not available", "Selected variant is not available");
+      return;
+    }
+
+    // Navigate to checkout with product info as URL params for direct checkout
+    // This will checkout with just this product without adding to cart
+    const params = new URLSearchParams({
+      productId: product.id,
+      variantId: variant.id,
+      quantity: quantity.toString(),
+    });
+    navigate(`${APP_PATHS.checkout}?${params.toString()}`);
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen py-8">
+      <div className="min-h-screen py-8 bg-white">
         <div className="container-custom">
+          <Skeleton className="h-6 w-40 mb-8" />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Product Images Skeleton */}
             <div>
               <Skeleton className="w-full h-96 rounded-lg mb-4" />
-              <div className="grid grid-cols-2 gap-2">
-                <Skeleton className="w-full h-24 rounded-lg" />
-                <Skeleton className="w-full h-24 rounded-lg" />
+              <div className="flex gap-2">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="w-20 h-20 rounded-lg" />
+                ))}
               </div>
             </div>
-
             {/* Product Info Skeleton */}
             <div>
               <Skeleton className="h-8 w-3/4 mb-4" />
-              <Skeleton className="h-4 w-1/4 mb-6" />
-              <div className="flex items-center gap-4 mb-6">
-                <Skeleton className="h-8 w-24" />
-                <Skeleton className="h-6 w-20" />
-              </div>
-              <Skeleton className="h-20 w-full mb-8" />
-
-              {/* Size Selection Skeleton */}
-              <div className="mb-6">
-                <Skeleton className="h-6 w-12 mb-3" />
-                <div className="grid grid-cols-6 gap-2">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
-                  ))}
-                </div>
-              </div>
-
-              {/* Color Selection Skeleton */}
-              <div className="mb-6">
-                <Skeleton className="h-6 w-16 mb-3" />
-                <div className="flex gap-3">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-10 w-20" />
-                  ))}
-                </div>
-              </div>
-
-              {/* Quantity Skeleton */}
-              <div className="mb-8">
-                <Skeleton className="h-6 w-20 mb-3" />
-                <div className="flex items-center gap-4">
-                  <Skeleton className="h-10 w-10" />
-                  <Skeleton className="h-6 w-8" />
-                  <Skeleton className="h-10 w-10" />
-                </div>
-              </div>
-
-              {/* Buttons Skeleton */}
-              <Skeleton className="h-12 w-full mb-4" />
-              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-4 w-full mb-6" />
+              <Skeleton className="h-6 w-32 mb-8" />
             </div>
           </div>
         </div>
@@ -140,194 +157,363 @@ const ProductDetailPage = () => {
 
   if (error || !product) {
     return (
-      <div className="min-h-screen py-8">
+      <div className="min-h-screen py-8 bg-white">
         <div className="container-custom">
-          <Card className="max-w-md mx-auto">
-            <CardContent className="pt-6 text-center">
-              <h1 className="text-3xl font-bold mb-4">Product Not Found</h1>
-              <p className="text-muted-foreground mb-6">
-                {error?.message ||
-                  "The product you're looking for doesn't exist."}
-              </p>
-              <Button asChild>
-                <a href="/products">Browse Products</a>
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="text-center py-12">
+            <h1 className="text-3xl font-bold mb-4">Product Not Found</h1>
+            <p className="text-gray-600 mb-6">
+              {error?.message ||
+                "The product you're looking for doesn't exist."}
+            </p>
+            <Button asChild>
+              <Link to="/products">Browse Products</Link>
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Get unique sizes and colors from variants
+  // Get unique sizes from variants
   const availableSizes = [
     ...new Set(product.variants?.map((v) => v.size).filter(Boolean) || []),
   ];
-  const availableColors = [
-    ...new Set(product.variants?.map((v) => v.color).filter(Boolean) || []),
-  ];
+
+  const productImages = product.images || [];
+  const mainImage =
+    productImages[selectedImageIndex]?.url ||
+    productImages[0]?.url ||
+    "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=600";
+  const productCode = product.sku || product.id.slice(0, 6).toUpperCase();
+
+  // Drag-to-scroll handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!thumbnailContainerRef.current) return;
+    setIsDragging(true);
+    setStartX(e.pageX - thumbnailContainerRef.current.offsetLeft);
+    setScrollLeft(thumbnailContainerRef.current.scrollLeft);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !thumbnailContainerRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - thumbnailContainerRef.current.offsetLeft;
+    const walk = (x - startX) * 2; // Scroll speed multiplier
+    thumbnailContainerRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+  };
+
+  // Touch handlers for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!thumbnailContainerRef.current) return;
+    setIsDragging(true);
+    setStartX(e.touches[0].pageX - thumbnailContainerRef.current.offsetLeft);
+    setScrollLeft(thumbnailContainerRef.current.scrollLeft);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || !thumbnailContainerRef.current) return;
+    const x = e.touches[0].pageX - thumbnailContainerRef.current.offsetLeft;
+    const walk = (x - startX) * 2;
+    thumbnailContainerRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
+  // Prevent click when dragging
+  const handleThumbnailClick = (index: number, e: React.MouseEvent) => {
+    if (isDragging) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    setSelectedImageIndex(index);
+  };
+
+  // Image zoom handlers
+  const handleImageMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!imageContainerRef.current) return;
+    const rect = imageContainerRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setZoomPosition({ x, y });
+  };
+
+  const handleImageMouseEnter = () => {
+    setIsZoomed(true);
+  };
+
+  const handleImageMouseLeave = () => {
+    setIsZoomed(false);
+  };
+
+  const handleImageClick = () => {
+    setIsZoomed(!isZoomed);
+  };
 
   return (
-    <div className="min-h-screen py-8">
+    <div className="min-h-screen py-8 bg-white">
       <div className="container-custom">
+        {/* Breadcrumb */}
+        <Breadcrumb className="mb-8">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to={APP_PATHS.home}>Home</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to={APP_PATHS.products}>Products</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{product.name}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Product Images */}
-          <Card>
-            <CardContent className="p-6">
-              <img
-                src={
-                  product.images?.[0]?.url ||
-                  "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=600"
-                }
-                alt={product.name}
-                className="w-full h-96 object-cover rounded-lg mb-4"
-              />
-              <div className="grid grid-cols-2 gap-2">
-                {product.images?.slice(0, 4).map((image, index) => (
-                  <img
-                    key={index}
-                    src={image.url}
-                    alt={`${product.name} ${index + 1}`}
-                    className="w-full h-24 object-cover rounded-lg"
-                  />
-                ))}
+          {/* Left Column - Product Images */}
+          <div>
+            {/* Main Product Image */}
+            <div
+              ref={imageContainerRef}
+              className="mb-4 relative overflow-hidden rounded-lg border border-gray-200 bg-white cursor-zoom-in group"
+              onMouseMove={handleImageMouseMove}
+              onMouseEnter={handleImageMouseEnter}
+              onMouseLeave={handleImageMouseLeave}
+              onClick={handleImageClick}
+            >
+              <div className="relative w-full h-[500px] flex items-center justify-center">
+                <img
+                  key={selectedImageIndex}
+                  src={mainImage}
+                  alt={product.name}
+                  className={`w-full h-full object-cover transition-transform duration-200 ease-out ${
+                    isZoomed ? "scale-[2.5]" : "scale-100"
+                  }`}
+                  style={{
+                    transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%`,
+                  }}
+                />
               </div>
-            </CardContent>
-          </Card>
+              {/* Zoom indicator */}
+              {!isZoomed && (
+                <div className="absolute top-4 right-4 bg-black bg-opacity-70 text-white text-xs px-3 py-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  Hover to zoom
+                </div>
+              )}
+            </div>
 
-          {/* Product Info */}
-          <Card>
-            <CardContent className="p-6">
-              <div className="space-y-6">
-                <div>
-                  <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Badge variant="secondary">{product.brand?.name}</Badge>
-                    {product.category && (
-                      <Badge variant="outline">{product.category.name}</Badge>
+            {/* Thumbnail Images */}
+            {productImages.length > 0 && (
+              <div className="relative">
+                <div
+                  ref={thumbnailContainerRef}
+                  className={`flex gap-2 overflow-x-auto select-none px-2 py-3 ${
+                    isDragging ? "cursor-grabbing" : "cursor-grab"
+                  }`}
+                  style={{
+                    scrollbarWidth: "none",
+                    msOverflowStyle: "none",
+                    WebkitOverflowScrolling: "touch",
+                  }}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseLeave}
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                >
+                  <style>{`
+                    div::-webkit-scrollbar {
+                      display: none;
+                    }
+                  `}</style>
+                  {productImages.map((image, index) => (
+                    <button
+                      key={`thumbnail-${index}`}
+                      onClick={(e) => handleThumbnailClick(index, e)}
+                      type="button"
+                      className={`flex-shrink-0 w-22 h-22 rounded-lg border-2 transition-all ${
+                        isDragging ? "cursor-grabbing" : "cursor-pointer"
+                      } ${
+                        selectedImageIndex === index
+                          ? "border-[#FF6600] ring-2 ring-[#FF6600] ring-offset-2"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                      aria-label={`View image ${index + 1} of ${
+                        productImages.length
+                      }`}
+                    >
+                      <div className="w-full h-full overflow-hidden rounded-lg">
+                        <img
+                          src={image.url}
+                          alt={`${product.name} ${index + 1}`}
+                          className="w-full h-full object-cover pointer-events-none"
+                        />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column - Product Info */}
+          <div className="space-y-3">
+            {/* Product Title */}
+            <div>
+              <h1 className="text-xl font-bold text-gray-900 mb-2">
+                {product.name}:
+              </h1>
+              <p
+                className="text-gray-600 text-sm leading-relaxed overflow-hidden"
+                style={{
+                  height: "45px",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {product.description ||
+                  product.short_description ||
+                  "Premium quality product from our collection."}
+              </p>
+            </div>
+            {/* Price */}
+            <div className="text-base font-medium">
+              {product.compare_at_price &&
+              product.compare_at_price > product.base_price ? (
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <span className="line-through text-gray-500">
+                      Tk{" "}
+                      {product.compare_at_price.toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                    <span className="text-gray-900">
+                      Tk{" "}
+                      {product.base_price.toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+                  <span className="bg-black text-white px-3 py-1 rounded text-sm font-semibold">
+                    SAVE{" "}
+                    {Math.round(
+                      ((product.compare_at_price - product.base_price) /
+                        product.compare_at_price) *
+                        100
                     )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <span className="text-3xl font-bold text-primary">
-                    ${product.base_price}
+                    %
                   </span>
-                  {product.compare_at_price && (
-                    <span className="text-xl text-muted-foreground line-through">
-                      ${product.compare_at_price}
-                    </span>
-                  )}
                 </div>
-
-                <Separator />
-
-                <p className="text-muted-foreground">{product.description}</p>
-
-                {/* Size Selection */}
-                {availableSizes.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">Size</h3>
-                    <div className="grid grid-cols-6 gap-2">
-                      {availableSizes.map((size) => (
-                        <Button
-                          key={size}
-                          variant={
-                            selectedSize === size ? "default" : "outline"
-                          }
-                          size="sm"
-                          onClick={() => setSelectedSize(size || "")}
-                          className="h-12"
-                        >
-                          {size}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Color Selection */}
-                {availableColors.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">Color</h3>
-                    <div className="flex gap-3">
-                      {availableColors.map((color) => (
-                        <Button
-                          key={color}
-                          variant={
-                            selectedColor === color ? "default" : "outline"
-                          }
-                          onClick={() => setSelectedColor(color || "")}
-                        >
-                          {color}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Quantity */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">Quantity</h3>
-                  <div className="flex items-center gap-4">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    >
-                      -
-                    </Button>
-                    <span className="text-lg font-semibold w-8 text-center">
-                      {quantity}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setQuantity(quantity + 1)}
-                    >
-                      +
-                    </Button>
-                  </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span>Price:</span>
+                  <span className="">
+                    Tk{" "}
+                    {product.base_price.toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                  </span>
                 </div>
+              )}
+            </div>
 
-                <Separator />
+            {/* Product Code */}
+            <div className="text-base font-medium flex items-center gap-2">
+              <span>Code:</span>
+              <span className="font-normal">{productCode}</span>
+            </div>
 
-                {/* Action Buttons */}
-                <div className="space-y-4">
-                  <Button
-                    onClick={handleAddToCart}
-                    variant="addToCart"
-                    size="lg"
-                    className="w-full"
-                    disabled={!selectedSize || !user || isAddingToCart}
-                  >
-                    {!user
-                      ? "Please log in to add to cart"
-                      : isAddingToCart
-                      ? "Adding to Cart..."
-                      : "Add to Cart"}
-                  </Button>
-
-                  <Button variant="gradient" size="lg" className="w-full">
-                    <svg
-                      className="w-4 h-4 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+            {/* Size Selection */}
+            {availableSizes.length > 0 && (
+              <div>
+                {/* <label className="block text-base font-semibold mb-1">
+                  Size
+                </label> */}
+                <div className="flex flex-wrap gap-2">
+                  {availableSizes.map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setSelectedSize(size || "")}
+                      className={`w-11 h-10.5 flex items-center justify-center px-4 py-2 text-sm font-medium rounded transition-all cursor-pointer ${
+                        selectedSize === size
+                          ? "border-2 border-[#333333] bg-[#333333] text-white"
+                          : "border border-[#ddd] hover:border-[#333333]"
+                      }`}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                      />
-                    </svg>
-                    Add to Wishlist
-                  </Button>
+                      {size}
+                    </button>
+                  ))}
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            )}
+
+            {/* Quantity Selector */}
+            <div>
+              {/* <label className="block text-gray-900 font-semibold mb-1">
+                Quantity
+              </label> */}
+              <NumberStepper
+                value={quantity}
+                onChange={(_e, newValue) => {
+                  setQuantity(newValue);
+                }}
+                maxValue={99}
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-4 pt-2">
+              <Button
+                onClick={handleCheckout}
+                disabled={!selectedSize || isAddingToCart}
+                className="flex-1 bg-gray-900 hover:bg-gray-800 text-white h-11 font-medium rounded-md flex items-center justify-center gap-2"
+              >
+                <ShoppingBagIcon className="w-5 h-5 text-white" />
+                <span className="text-white">Check Out</span>
+              </Button>
+
+              <Button
+                onClick={handleAddToCart}
+                disabled={!selectedSize || isAddingToCart}
+                className="flex-1 bg-white border-2 border-gray-900 text-gray-900 hover:bg-gray-50 h-11 font-medium rounded-md flex items-center justify-center gap-2"
+              >
+                <ShoppingCart className="w-5 h-5" />
+                Add Cart
+              </Button>
+            </div>
+
+            {/* Product Video */}
+            <div className="mt-2">
+              <ProductVideoPlayer
+                videoUrl={(product as any)?.video_url || defaultVideoUrl}
+                posterImage={productImages[0]?.url}
+                alt={`${product.name} video`}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

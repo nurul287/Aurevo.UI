@@ -3,6 +3,7 @@ import { Toaster } from "./components/ui/sonner";
 import { AuthProvider } from "./contexts/auth-context";
 import { GuestCartProvider } from "./contexts/guest-cart-context";
 import AppRoutes from "./routes";
+import "./App.css";
 
 function App() {
   return (
@@ -10,7 +11,7 @@ function App() {
       <AuthProvider>
         <GuestCartProvider>
           <AppRoutes />
-          <Toaster richColors />
+          <Toaster richColors position="top-right" />
         </GuestCartProvider>
       </AuthProvider>
     </Router>

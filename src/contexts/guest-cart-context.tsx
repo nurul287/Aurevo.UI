@@ -10,6 +10,10 @@ import {
 interface GuestCartContextType {
   sessionId: string;
   generateSessionId: () => string;
+  // Cart side panel state
+  isCartPanelOpen: boolean;
+  openCartPanel: () => void;
+  closeCartPanel: () => void;
 }
 
 const GuestCartContext = createContext<GuestCartContextType | undefined>(
@@ -37,6 +41,12 @@ export const GuestCartProvider = ({ children }: GuestCartProviderProps) => {
 
   const [sessionId, setSessionId] = useState<string>(getInitialSessionId);
 
+  // Cart side panel state
+  const [isCartPanelOpen, setIsCartPanelOpen] = useState(false);
+
+  const openCartPanel = () => setIsCartPanelOpen(true);
+  const closeCartPanel = () => setIsCartPanelOpen(false);
+
   const generateSessionId = useMemo(() => {
     return () => {
       // Generate a unique session ID for guest users
@@ -58,8 +68,11 @@ export const GuestCartProvider = ({ children }: GuestCartProviderProps) => {
     () => ({
       sessionId,
       generateSessionId,
+      isCartPanelOpen,
+      openCartPanel,
+      closeCartPanel,
     }),
-    [sessionId, generateSessionId]
+    [sessionId, generateSessionId, isCartPanelOpen]
   );
 
   return (

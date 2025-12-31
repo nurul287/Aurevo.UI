@@ -1,25 +1,47 @@
 import { useAuth } from "@/contexts/auth-context";
 import { useCart } from "@/hooks/use-cart";
+import { useGuestCart } from "@/contexts/guest-cart-context";
+import CartSidePanel from "@/components/cart-side-panel";
 import {
   Bars3Icon,
-  HeartIcon,
   MagnifyingGlassIcon,
   ShoppingBagIcon,
   UserIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet } from "react-router-dom";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import AurevoBlack from "@/assets/icon/aurevo-black";
+import AurevoWhite from "@/assets/icon/aurevo-white";
+
+// Social Icons
+import FacebookSquareIcon from "@/assets/icon/facebook-square-icon";
+import InstagramIcon from "@/assets/icon/instagram-icon";
+import TikTokIcon from "@/assets/icon/tiktok-icon";
+import YoutubeIcon from "@/assets/icon/youtube-icon";
+
+// Contact Icons
+import LocationIcon from "@/assets/icon/location-icon";
+import EmailIcon from "@/assets/icon/email-icon";
+import PhoneIcon from "@/assets/icon/phone-icon";
+import WhatsAppIcon from "@/assets/icon/whatsapp-icon";
+
+// Payment Images
+import bkashImg from "@/assets/image/bkash.png";
+import nagadImg from "@/assets/image/nagad.png";
+import visaImg from "@/assets/image/visa.png";
+import masterCardImg from "@/assets/image/master-card.png";
 
 const Layout = () => {
   const { user, isAdmin, signOut } = useAuth();
   const { itemCount: cartItemCount } = useCart();
+  const { openCartPanel } = useGuestCart();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const location = useLocation();
 
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -48,8 +70,8 @@ const Layout = () => {
 
   const navigation = [
     { name: "Home", href: "/" },
-    { name: "Products", href: "/products" },
-    { name: "About", href: "/about" },
+    { name: "Category", href: "/products" },
+    { name: "About us", href: "/about" },
     { name: "Contact", href: "/contact" },
   ];
 
@@ -80,80 +102,68 @@ const Layout = () => {
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="container-custom">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <div className="flex items-center">
-              <Link to="/" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">F</span>
-                </div>
-                <span className="text-xl font-bold text-gray-900">
-                  Footwear
-                </span>
-              </Link>
+          <div className="flex items-center h-[80px] lg:h-[100px] justify-between">
+            {/* Left side: Logo + Navigation */}
+            <div className="flex items-center gap-4 lg:gap-12">
+              {/* Logo */}
+              <div className="flex-shrink-0">
+                <Link to="/">
+                  <AurevoBlack />
+                </Link>
+              </div>
+
+              {/* Desktop Navigation */}
+              <nav className="hidden lg:flex items-center space-x-4 xl:space-x-6">
+                {navigation.map((item) => (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`text-sm xl:text-base font-medium whitespace-nowrap`}
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+              </nav>
             </div>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-8">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`text-sm font-medium transition-colors ${
-                    location.pathname === item.href
-                      ? "text-primary-600"
-                      : "text-gray-700 hover:text-primary-600"
-                  }`}
-                >
-                  {item.name}
-                </Link>
-              ))}
-            </nav>
-
-            {/* Search Bar */}
-            <div className="hidden md:flex flex-1 max-w-lg mx-8">
-              <form onSubmit={handleSearch} className="w-full">
+            {/* Right side: Search Bar + Icons + Sign In */}
+            <div className="flex items-center space-x-2 lg:space-x-4">
+              {/* Search Bar */}
+              <form onSubmit={handleSearch} className="hidden lg:block">
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                  <div className="absolute inset-y-0 right-5 pl-3 flex items-center pointer-events-none">
+                    <MagnifyingGlassIcon className="h-[18px] w-[18px] text-gray-400" />
                   </div>
-                  <input
+                  <Input
                     type="text"
-                    placeholder="Search products..."
+                    placeholder="Search"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    className="w-[200px] xl:w-[320px] h-[44px] rounded-full border-none bg-[#FAFAFA] placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-none focus-visible:bg-[#F3F3F3] focus-visible:shadow-[0px_4px_4px_0px_rgba(0,0,0,0.08)]"
                   />
                 </div>
               </form>
-            </div>
-
-            {/* Right side icons */}
-            <div className="flex items-center space-x-4">
-              {/* Wishlist */}
-              <button className="p-2 text-gray-400 hover:text-gray-500">
-                <HeartIcon className="h-6 w-6" />
-              </button>
 
               {/* Cart */}
-              <Link
-                to="/cart"
-                className="relative p-2 text-gray-400 hover:text-gray-500"
+              <button
+                onClick={openCartPanel}
+                className="relative p-2 text-gray-400 hover:text-gray-500 cursor-pointer"
+                aria-label="Open cart"
               >
                 <ShoppingBagIcon className="h-6 w-6" />
                 {cartItemCount > 0 && (
-                  <div className="bg-red-500 absolute -top-1 -right-1 h-5 w-5 bg-primary-600 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                  <div className="absolute -top-1 -right-1 h-5 w-5 bg-orange-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
                     {cartItemCount}
                   </div>
                 )}
-              </Link>
+              </button>
 
               {/* User Menu */}
               {user ? (
                 <div className="relative" ref={userMenuRef}>
                   <button
                     onClick={toggleUserMenu}
-                    className="p-2 text-gray-400 hover:text-gray-500"
+                    className="p-2 text-gray-400 hover:text-gray-500 cursor-pointer"
                   >
                     <UserIcon className="h-6 w-6" />
                   </button>
@@ -185,15 +195,19 @@ const Layout = () => {
                   )}
                 </div>
               ) : (
-                <Button variant="destructive" asChild>
-                  <Link to="/login">Sign In</Link>
+                <Button
+                  variant="default"
+                  className="hidden lg:flex rounded-full px-6 xl:px-8 py-5"
+                  asChild
+                >
+                  <Link to="/login">Sign in</Link>
                 </Button>
               )}
 
-              {/* Mobile menu button */}
+              {/* Mobile/Tablet menu button */}
               <button
                 onClick={toggleMobileMenu}
-                className="md:hidden p-2 text-gray-400 hover:text-gray-500"
+                className="lg:hidden p-2 text-gray-400 hover:text-gray-500"
               >
                 {mobileMenuOpen ? (
                   <XMarkIcon className="h-6 w-6" />
@@ -205,22 +219,22 @@ const Layout = () => {
           </div>
         </div>
 
-        {/* Mobile menu */}
+        {/* Mobile/Tablet menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 bg-white">
+          <div className="lg:hidden border-t border-gray-200 bg-white">
             <div className="px-4 py-2 space-y-1">
-              {/* Mobile Search */}
+              {/* Mobile/Tablet Search */}
               <form onSubmit={handleSearch} className="mb-4">
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                  <div className="absolute inset-y-0 right-5 pl-3 flex items-center pointer-events-none">
+                    <MagnifyingGlassIcon className="h-[18px] w-[18px] text-gray-400" />
                   </div>
-                  <input
+                  <Input
                     type="text"
-                    placeholder="Search products..."
+                    placeholder="Search"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    className="w-full h-[44px] rounded-full border-none bg-[#FAFAFA] placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-none focus-visible:bg-[#F3F3F3] focus-visible:shadow-[0px_4px_4px_0px_rgba(0,0,0,0.08)]"
                   />
                 </div>
               </form>
@@ -231,11 +245,7 @@ const Layout = () => {
                   key={item.name}
                   to={item.href}
                   onClick={closeMobileMenu}
-                  className={`block px-3 py-2 text-base font-medium rounded-md ${
-                    location.pathname === item.href
-                      ? "text-primary-600 bg-primary-50"
-                      : "text-gray-700 hover:text-primary-600 hover:bg-gray-50"
-                  }`}
+                  className={`block px-3 py-2 text-base font-medium`}
                 >
                   {item.name}
                 </Link>
@@ -294,135 +304,297 @@ const Layout = () => {
       <Outlet />
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white">
-        <div className="container-custom py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">F</span>
-                </div>
-                <span className="text-xl font-bold">Footwear</span>
-              </div>
-              <p className="text-gray-400 text-sm">
-                Premium footwear for every step of your journey.
-              </p>
+      <footer className="bg-[#1A1A1A] text-white">
+        <div className="container-custom">
+          {/* Footer Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-8 pt-[80px] pb-10">
+            {/* Contact Information */}
+            <div className="lg:col-span-2">
+              {/* Logo */}
+              <Link to="/" className="inline-block mb-3">
+                <AurevoWhite />
+              </Link>
+              <ul className="space-y-3 text-sm text-white">
+                <li className="flex items-start gap-2">
+                  <LocationIcon
+                    width={16}
+                    height={16}
+                    className="mt-0.5 flex-shrink-0"
+                    fill="#9CA3AF"
+                  />
+                  <span>Chowmohani DB Road, Noakhali, Bangladesh</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <EmailIcon
+                    width={16}
+                    height={16}
+                    className="flex-shrink-0"
+                    fill="#9CA3AF"
+                  />
+                  <a
+                    href="mailto:aurevofashion88@gmail.com"
+                    className="hover:text-gray-400 transition-colors"
+                  >
+                    aurevofashion88@gmail.com
+                  </a>
+                </li>
+                <li className="flex items-center gap-2">
+                  <PhoneIcon
+                    width={16}
+                    height={16}
+                    className="flex-shrink-0"
+                    fill="#9CA3AF"
+                  />
+                  <a
+                    href="tel:+8801887375148"
+                    className="hover:text-gray-400 transition-colors"
+                  >
+                    01887-375148
+                  </a>
+                </li>
+                <li className="flex items-center gap-2">
+                  <WhatsAppIcon
+                    width={16}
+                    height={16}
+                    className="flex-shrink-0"
+                    fill="#9CA3AF"
+                  />
+                  <a
+                    href="https://wa.me/+8801897919363"
+                    className="hover:text-gray-400 transition-colors"
+                  >
+                    01897-919363
+                  </a>
+                </li>
+              </ul>
             </div>
 
+            {/* Category */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
-              <ul className="space-y-2 text-sm">
+              <h3 className="text-base font-semibold mb-3 text-white min-h-[25px]">
+                Category
+              </h3>
+              <ul className="space-y-3 text-sm">
+                <li>
+                  <Link
+                    to="/products?category=men"
+                    className="text-white hover:text-gray-400 transition-colors"
+                  >
+                    Man
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/products?category=women"
+                    className="text-white hover:text-gray-400 transition-colors"
+                  >
+                    Women
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/products?category=kids"
+                    className="text-white hover:text-gray-400 transition-colors"
+                  >
+                    Kids
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/products?category=boots"
+                    className="text-white hover:text-gray-400 transition-colors"
+                  >
+                    Boots
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/products?category=slider"
+                    className="text-white hover:text-gray-400 transition-colors"
+                  >
+                    SLIDER
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* About Shop */}
+            <div>
+              <h3 className="text-base font-semibold mb-3 text-white min-h-[25px]">
+                About Shop
+              </h3>
+              <ul className="space-y-3 text-sm">
+                <li>
+                  <Link
+                    to="/"
+                    className="text-white hover:text-gray-400 transition-colors"
+                  >
+                    Home
+                  </Link>
+                </li>
                 <li>
                   <Link
                     to="/products"
-                    className="text-gray-400 hover:text-white"
+                    className="text-white hover:text-gray-400 transition-colors"
                   >
-                    All Products
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/about" className="text-gray-400 hover:text-white">
-                    About Us
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/contact"
-                    className="text-gray-400 hover:text-white"
-                  >
-                    Contact
+                    Category
                   </Link>
                 </li>
                 <li>
                   <Link
                     to="/support"
-                    className="text-gray-400 hover:text-white"
+                    className="text-white hover:text-gray-400 transition-colors"
                   >
-                    Support
+                    24/7 Support
                   </Link>
                 </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Customer Service</h3>
-              <ul className="space-y-2 text-sm">
                 <li>
                   <Link
                     to="/shipping"
-                    className="text-gray-400 hover:text-white"
+                    className="text-white hover:text-gray-400 transition-colors"
                   >
-                    Shipping Info
+                    Fast Delivery
                   </Link>
                 </li>
                 <li>
                   <Link
-                    to="/returns"
-                    className="text-gray-400 hover:text-white"
+                    to="/payment"
+                    className="text-white hover:text-gray-400 transition-colors"
                   >
-                    Returns
+                    Online Payment
                   </Link>
                 </li>
                 <li>
                   <Link
-                    to="/size-guide"
-                    className="text-gray-400 hover:text-white"
+                    to="/tracking"
+                    className="text-white hover:text-gray-400 transition-colors"
                   >
-                    Size Guide
+                    Tracking
                   </Link>
                 </li>
                 <li>
-                  <Link to="/faq" className="text-gray-400 hover:text-white">
-                    FAQ
+                  <Link
+                    to="/contact"
+                    className="text-white hover:text-gray-400 transition-colors"
+                  >
+                    Contact Us
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/about"
+                    className="text-white hover:text-gray-400 transition-colors"
+                  >
+                    About Us
                   </Link>
                 </li>
               </ul>
             </div>
 
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Connect</h3>
-              <div className="flex space-x-4">
-                <a href="#" className="text-gray-400 hover:text-white">
-                  <span className="sr-only">Facebook</span>
-                  <svg
-                    className="h-6 w-6"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
+            {/* Follow Us & Payment Method */}
+            <div className="lg:col-span-2">
+              {/* Follow Us */}
+              <div className="mb-5">
+                <h3 className="text-base font-semibold mb-3 text-white min-h-[25px]">
+                  Follow Us :
+                </h3>
+                <div className="flex items-center gap-3">
+                  <a
+                    href="https://web.facebook.com/aurevo.fashion"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:opacity-80 transition-opacity"
                   >
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                  </svg>
-                </a>
-                <a href="#" className="text-gray-400 hover:text-white">
-                  <span className="sr-only">Instagram</span>
-                  <svg
-                    className="h-6 w-6"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
+                    <FacebookSquareIcon width={22} height={22} />
+                  </a>
+                  <a
+                    href="https://instagram.com/aurevofashion88"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:opacity-80 transition-opacity"
                   >
-                    <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 6.62 5.367 11.987 11.988 11.987 6.62 0 11.987-5.367 11.987-11.987C24.014 5.367 18.637.001 12.017.001zM8.449 16.988c-1.297 0-2.448-.49-3.323-1.297C4.198 14.895 3.708 13.744 3.708 12.447s.49-2.448 1.297-3.323c.875-.807 2.026-1.297 3.323-1.297s2.448.49 3.323 1.297c.807.875 1.297 2.026 1.297 3.323s-.49 2.448-1.297 3.323c-.875.807-2.026 1.297-3.323 1.297zm7.83-9.281H7.83v9.281h8.449V7.707z" />
-                  </svg>
-                </a>
-                <a href="#" className="text-gray-400 hover:text-white">
-                  <span className="sr-only">Twitter</span>
-                  <svg
-                    className="h-6 w-6"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
+                    <InstagramIcon
+                      width={22}
+                      height={22}
+                      fill="url(#instagram-gradient)"
+                    />
+                    <svg width="0" height="0">
+                      <defs>
+                        <linearGradient
+                          id="instagram-gradient"
+                          x1="0%"
+                          y1="100%"
+                          x2="100%"
+                          y2="0%"
+                        >
+                          <stop offset="0%" stopColor="#FFDC80" />
+                          <stop offset="50%" stopColor="#F77737" />
+                          <stop offset="100%" stopColor="#C13584" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </a>
+                  <a
+                    href="https://tiktok.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:opacity-80 transition-opacity"
                   >
-                    <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" />
-                  </svg>
-                </a>
+                    <TikTokIcon width={22} height={22} fill="#FFFFFF" />
+                  </a>
+                  <a
+                    href="https://youtube.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:opacity-80 transition-opacity"
+                  >
+                    <YoutubeIcon width={28} height={20} />
+                  </a>
+                </div>
+              </div>
+
+              {/* Payment Method */}
+              <div>
+                <h3 className="text-base font-semibold mb-3 text-white">
+                  Payment Method:
+                </h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <img
+                    src={bkashImg}
+                    alt="bKash"
+                    className="h-7 w-auto object-contain bg-white rounded px-1.5 py-0.5 hover:cursor-pointer"
+                  />
+                  <img
+                    src={nagadImg}
+                    alt="Nagad"
+                    className="h-7 w-auto object-contain bg-white rounded px-1.5 py-0.5 hover:cursor-pointer"
+                  />
+                  <img
+                    src={visaImg}
+                    alt="Visa"
+                    className="h-7 w-auto object-contain bg-white rounded px-1.5 py-0.5 hover:cursor-pointer"
+                  />
+                  <img
+                    src={masterCardImg}
+                    alt="MasterCard"
+                    className="h-7 w-auto object-contain bg-white rounded px-1.5 py-0.5 hover:cursor-pointer"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="mt-8 pt-8 border-t border-gray-800">
-            <p className="text-center text-gray-400 text-sm">
-              © 2024 Footwear E-commerce. All rights reserved.
+          {/* Copyright */}
+          <div className="py-6 border-t border-white">
+            <p className="text-center text-gray-400 text-xs">
+              © {new Date().getFullYear()} Aurevo Fashion. All rights reserved.
             </p>
           </div>
         </div>
       </footer>
+
+      {/* Cart Side Panel */}
+      <CartSidePanel />
     </div>
   );
 };

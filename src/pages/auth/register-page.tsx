@@ -1,33 +1,24 @@
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/auth-context";
-import { Eye, EyeOff, Lock, Mail, User, UserPlus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import registerImage from "@/assets/image/register.png";
+import GoogleIcon from "@/assets/icon/google-icon";
+import FacebookIcon from "@/assets/icon/facebook-icon";
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+    fullName: "",
     email: "",
     password: "",
-    confirmPassword: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
@@ -43,16 +34,21 @@ const RegisterPage = () => {
     setLoading(true);
     setError("");
 
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
+    if (!agreeTerms) {
+      setError("Please agree to the Terms & Conditions");
       setLoading(false);
       return;
     }
 
+    // Split full name into first and last name
+    const nameParts = formData.fullName.trim().split(" ");
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.slice(1).join(" ") || "";
+
     try {
       const result = await signUp(formData.email, formData.password, {
-        first_name: formData.firstName,
-        last_name: formData.lastName,
+        first_name: firstName,
+        last_name: lastName,
       });
 
       if (result.error) {
@@ -72,77 +68,112 @@ const RegisterPage = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md">
-        <Card className="shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
-          <CardHeader className="space-y-1 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="p-3 bg-primary-100 rounded-full">
-                <UserPlus className="h-8 w-8 text-primary-600" />
-              </div>
-            </div>
-            <CardTitle className="text-2xl font-bold text-gray-900">
-              Create your account
-            </CardTitle>
-            <CardDescription className="text-gray-600">
-              Join us today and start your shopping journey
-            </CardDescription>
-          </CardHeader>
+  const handleGoogleLogin = () => {
+    // TODO: Implement Google login
+    console.log("Google login clicked");
+  };
 
-          <CardContent className="space-y-6">
+  const handleFacebookLogin = () => {
+    // TODO: Implement Facebook login
+    console.log("Facebook login clicked");
+  };
+
+  return (
+    <div className="flex min-h-screen bg-gradient-to-br from-[#DEF0F9] to-[#FDEBEC] gap-10">
+      {/* Left Side - Image Section */}
+      <div className="hidden lg:flex lg:w-1/2 flex-col p-8">
+        {/* Back Arrow + Logo */}
+        <Link
+          to="/"
+          className="flex items-center gap-2 text-gray-800 hover:text-gray-600 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span className="text-xl font-semibold tracking-wide">AUREVO</span>
+        </Link>
+
+        {/* Centered Image with Back to Website button */}
+        <div className="flex-1 flex items-center justify-end">
+                  <div className="relative">
+            <img
+              src={registerImage}
+              alt="Register illustration"
+              className="max-w-[700px] w-full h-auto object-contain"
+                    />
+                  </div>
+                </div>
+      </div>
+
+      {/* Right Side - Register Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-start p-8">
+        <div className="w-full max-w-[650px]">
+          {/* Mobile Logo */}
+          <div className="lg:hidden mb-8">
+            <Link
+              to="/"
+              className="flex items-center gap-2 text-gray-800 hover:text-gray-600 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="text-xl font-semibold tracking-wide">
+                AUREVO
+              </span>
+            </Link>
+          </div>
+
+          {/* Form Card */}
+          <div className="bg-inherit rounded-2xl shadow-[0px_4px_20px_rgba(0,0,0,0.08)] p-8 sm:p-10">
+            {/* Header */}
+            <div className="mb-5">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                Create Your Account
+              </h1>
+              <p className="text-gray-500 text-sm">
+                Already have an account?{" "}
+                <Link
+                  to="/login"
+                  className="text-[#FF6600] hover:text-[#E65C00] font-medium transition-colors"
+                >
+                  Log in
+                </Link>
+              </p>
+            </div>
+
+            {/* Error Alert */}
             {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
+              <div className="mb-5">
+                <span className="text-red-500 text-sm">{error}</span>
+              </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            {/* Register Form */}
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Full Name Field */}
                 <div className="space-y-2">
-                  <Label htmlFor="firstName" className="text-sm font-medium">
-                    First Name
+                <Label
+                  htmlFor="fullName"
+                  className="text-sm font-medium text-gray-700 inline-block"
+                >
+                  Full Name
                   </Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
-                      id="firstName"
-                      name="firstName"
+                  id="fullName"
+                  name="fullName"
                       type="text"
                       required
-                      value={formData.firstName}
+                  value={formData.fullName}
                       onChange={handleChange}
-                      placeholder="John"
-                      className="pl-10"
+                  placeholder="Enter Your Name"
+                  className="h-12 border-gray-200 focus:border-[#FF6600] focus:ring-[#FF6600] rounded-lg"
                     />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName" className="text-sm font-medium">
-                    Last Name
-                  </Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="lastName"
-                      name="lastName"
-                      type="text"
-                      required
-                      value={formData.lastName}
-                      onChange={handleChange}
-                      placeholder="Doe"
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
               </div>
 
+              {/* Email Field */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">
-                  Email Address
+                <Label
+                  htmlFor="email"
+                  className="text-sm font-medium text-gray-700 inline-block"
+                >
+                  E-mail
                 </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="email"
                     name="email"
@@ -150,97 +181,101 @@ const RegisterPage = () => {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="john@example.com"
-                    className="pl-10"
+                  placeholder="Your E-mail"
+                  className="h-12 border-gray-200 focus:border-[#FF6600] focus:ring-[#FF6600] rounded-lg"
                   />
-                </div>
               </div>
 
+              {/* Password Field */}
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium">
+                <Label
+                  htmlFor="password"
+                  className="text-sm font-medium text-gray-700 inline-block"
+                >
                   Password
                 </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="password"
                     name="password"
-                    type={showPassword ? "text" : "password"}
+                  type="password"
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    placeholder="Create a strong password"
-                    className="pl-10 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 h-4 w-4 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword ? <EyeOff /> : <Eye />}
-                  </button>
-                </div>
+                  placeholder="6 - Digit Password"
+                  className="h-12 border-gray-200 focus:border-[#FF6600] focus:ring-[#FF6600] rounded-lg"
+                />
               </div>
 
-              <div className="space-y-2">
+              {/* Terms & Conditions Checkbox */}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="terms"
+                  checked={agreeTerms}
+                  onCheckedChange={(checked) =>
+                    setAgreeTerms(checked as boolean)
+                  }
+                  className="border-gray-300 data-[state=checked]:bg-[#FF6600] data-[state=checked]:border-[#FF6600]"
+                />
                 <Label
-                  htmlFor="confirmPassword"
-                  className="text-sm font-medium"
+                  htmlFor="terms"
+                  className="text-sm text-gray-600 cursor-pointer"
                 >
-                  Confirm Password
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    required
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    placeholder="Confirm your password"
-                    className="pl-10 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-3 h-4 w-4 text-gray-400 hover:text-gray-600"
+                  I agree to the{" "}
+                  <Link
+                    to="/terms"
+                    className="text-[#FF6600] hover:text-[#E65C00] underline"
                   >
-                    {showConfirmPassword ? <EyeOff /> : <Eye />}
-                  </button>
-                </div>
+                    Terms & Condition
+                  </Link>
+                </Label>
               </div>
 
+              {/* Create Account Button */}
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5"
+                className="w-full h-12 bg-[#FF6600] hover:bg-[#E65C00] text-white font-medium rounded-lg text-base"
               >
-                {loading ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Creating account...</span>
-                  </div>
-                ) : (
-                  "Create Account"
-                )}
+                {loading ? "Creating account..." : "Create an Account"}
               </Button>
             </form>
-          </CardContent>
 
-          <CardFooter className="flex flex-col space-y-4">
-            <Separator />
-            <div className="text-center text-sm text-gray-600">
-              Already have an account?{" "}
-              <Link
-                to="/login"
-                className="font-medium text-primary-600 hover:text-primary-500 transition-colors"
-              >
-                Sign in here
-              </Link>
+            {/* Divider */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-400"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-[#FDEBEC] text-gray-600">
+                  Or register With
+                </span>
+              </div>
             </div>
-          </CardFooter>
-        </Card>
+
+            {/* Social Login Buttons */}
+            <div className="flex gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleGoogleLogin}
+                className="flex-1 h-12 border-gray-200 hover:bg-gray-50 rounded-lg font-medium"
+              >
+                <GoogleIcon className="w-5 h-5 mr-2" />
+                Google
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleFacebookLogin}
+                className="flex-1 h-12 border-gray-200 hover:bg-gray-50 rounded-lg font-medium"
+              >
+                <FacebookIcon className="w-5 h-5 mr-2" />
+                Facebook
+              </Button>
+            </div>
+          </div>
+            </div>
       </div>
     </div>
   );
