@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatPrice } from "@/lib/currency";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -191,12 +192,7 @@ export default function AdminProductsPage() {
     });
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
+  const formatCurrency = (amount: number) => formatPrice(amount);
 
   const getStockStatus = (product: ProductWithVariants) => {
     if (!product.variants || product.variants.length === 0) {

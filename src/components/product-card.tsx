@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
+import { formatPrice } from "@/lib/currency";
+import { getLeadImageUrl } from "@/lib/product-images";
 import { HeartIcon, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -16,14 +18,32 @@ export const ProductCard = ({ product }: ProductCardProps) => {
   const { addItem } = useCart();
   const { showWarning } = useToast();
 
-  const firstImage = product.images?.[0]?.url;
-  const availableSizes = product.variants?.map((v: any) => v.size) || [
-    "40",
-    "41",
-    "42",
-    "43",
-    "44",
-  ];
+  const firstImage = getLeadImageUrl(product.images);
+
+  // Discount calculation — shown only when there's a real markdown.
+  const basePrice = Number(product.base_price ?? 0);
+  const comparePrice = Number(product.compare_at_price ?? 0);
+  const hasDiscount = comparePrice > basePrice && basePrice > 0;
+  const discountPercent = hasDiscount
+    ? Math.round(((comparePrice - basePrice) / comparePrice) * 100)
+    : 0;
+
+  // Dedupe sizes (a product can have the same size across multiple colors)
+  // and sort numerically when possible so 9 < 10 < 41 instead of "10" < "41" < "9".
+  const rawSizes: string[] =
+    product.variants
+      ?.map((v: any) => v.size)
+      .filter((s: unknown): s is string => Boolean(s)) ?? [];
+  const uniqueSizes = Array.from(new Set(rawSizes));
+  const availableSizes =
+    uniqueSizes.length > 0
+      ? uniqueSizes.sort((a, b) => {
+          const na = Number(a);
+          const nb = Number(b);
+          if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
+          return a.localeCompare(b);
+        })
+      : ["40", "41", "42", "43", "44"];
 
   const handleSizeSelect = (size: string) => {
     setSelectedSize(size);
@@ -99,10 +119,12 @@ export const ProductCard = ({ product }: ProductCardProps) => {
               <HeartIcon className="h-7 w-7 text-[#E1680B] fill-none stroke-2" />
             </button>
 
-            {/* View Count Badge */}
-            <Badge className="absolute top-3 left-3 bg-blue-500 text-white px-2 py-1 text-xs font-semibold rounded">
-              360 ৳ 48
-            </Badge>
+            {/* Discount Badge (only when on sale) */}
+            {hasDiscount && (
+              <Badge className="absolute top-3 left-3 bg-[#FF3B30] text-white px-2 py-1 text-xs font-semibold rounded shadow-sm hover:bg-[#FF3B30]">
+                -{discountPercent}%
+              </Badge>
+            )}
           </div>
         </Link>
 
@@ -115,13 +137,27 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           </Link>
 
           {/* Price */}
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-4 h-4 bg-[#414141] rounded-full flex items-center justify-center">
-              <span className="text-xs font-medium text-white">৳</span>
+          <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-[#414141] rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-xs font-medium text-white">৳</span>
+              </div>
+              <span className="text-lg font-semibold text-gray-900">
+                {formatPrice(basePrice, {
+                  showSymbol: false,
+                  decimals: 0,
+                })}
+              </span>
             </div>
-            <span className="text-lg font-semibold text-gray-900">
-              {product.base_price}
-            </span>
+            {hasDiscount && (
+              <span className="text-sm text-gray-400 line-through">
+                ৳{" "}
+                {formatPrice(comparePrice, {
+                  showSymbol: false,
+                  decimals: 0,
+                })}
+              </span>
+            )}
           </div>
 
           {/* Sizes */}
@@ -155,7 +191,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
 
           {/* Add to Cart Button */}
           <Button
-            className="w-[120px] bg-[#FF6600] hover:bg-[#E65C00] text-white h-10 text-sm font-normal rounded"
+            className="w-[120px] bg-[#111111] hover:bg-[#2A2A2A] text-white h-10 text-sm font-normal rounded"
             onClick={handleAddToCart}
           >
             <ShoppingCart className="mr-2 h-4.5 w-4.5" strokeWidth={3} />

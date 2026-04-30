@@ -12,6 +12,7 @@ export const APP_PATHS = {
   checkout: "/checkout",
   orderConfirmation: "/order-confirmation",
   dashboard: "/dashboard",
+  terms: "/terms",
 
   // Admin paths
   admin: "/admin",

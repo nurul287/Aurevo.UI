@@ -322,7 +322,7 @@ const Layout = () => {
                     className="mt-0.5 flex-shrink-0"
                     fill="#9CA3AF"
                   />
-                  <span>Chowmohani DB Road, Noakhali, Bangladesh</span>
+                  <span>Mirpur-11.5, Housing, Dhaka, Bangladesh</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <EmailIcon
@@ -486,6 +486,14 @@ const Layout = () => {
                     className="text-white hover:text-gray-400 transition-colors"
                   >
                     About Us
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/terms"
+                    className="text-white hover:text-gray-400 transition-colors"
+                  >
+                    Terms &amp; Conditions
                   </Link>
                 </li>
               </ul>

@@ -17,6 +17,8 @@ import { APP_PATHS } from "@/constants/app-paths";
 import NumberStepper from "@/components/NumberStepper";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { formatPrice } from "@/lib/currency";
+import { getLeadImageUrl } from "@/lib/product-images";
 
 const CartSidePanel = () => {
   const { isCartPanelOpen, closeCartPanel } = useGuestCart();
@@ -81,12 +83,6 @@ const CartSidePanel = () => {
     navigate(APP_PATHS.checkout);
   };
 
-  const formatPrice = (price: number) => {
-    return price.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
 
   return (
     <Sheet open={isCartPanelOpen} onOpenChange={closeCartPanel}>
@@ -149,7 +145,7 @@ const CartSidePanel = () => {
                 const product = item.product;
                 const variant = item.variant;
                 const productImage =
-                  product?.images?.[0]?.url ||
+                  getLeadImageUrl(product?.images) ||
                   "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=100";
                 const productName = product?.name || "Product";
                 const size = variant?.size || "N/A";
@@ -210,16 +206,16 @@ const CartSidePanel = () => {
                             <div className="flex items-center gap-2 flex-wrap">
                               <div className="flex items-center gap-1">
                                 <span className="line-through text-gray-500 text-sm">
-                                  Tk {formatPrice(compareAtPrice!)}
+                                  {formatPrice(compareAtPrice!)}
                                 </span>
                                 <span className="text-gray-900 font-semibold text-sm">
-                                  Tk {formatPrice(variantPrice)}
+                                  {formatPrice(variantPrice)}
                                 </span>
                               </div>
                             </div>
                           ) : (
                             <span className="text-gray-900 font-semibold text-sm">
-                              Tk {formatPrice(variantPrice)}
+                              {formatPrice(variantPrice)}
                             </span>
                           )}
                         </div>
@@ -284,7 +280,7 @@ const CartSidePanel = () => {
                 Subtotal:
               </span>
               <span className="text-lg font-bold text-gray-900">
-                Tk {formatPrice(cartTotal)} BDT
+                {formatPrice(cartTotal)}
               </span>
             </div>
 

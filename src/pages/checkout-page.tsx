@@ -8,6 +8,8 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatPrice } from "@/lib/currency";
+import { getLeadImageUrl } from "@/lib/product-images";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -164,12 +166,6 @@ const CheckoutPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const formatPrice = (price: number) => {
-    return price.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -246,9 +242,9 @@ const CheckoutPage = () => {
 
       // Clear the cart after successful order (only if not direct checkout)
       if (!directCheckoutItem) {
-        try {
-          await clearCart();
-        } catch (cartError) {
+      try {
+        await clearCart();
+      } catch (cartError) {
           console.warn("⚠️ Failed to clear cart:", cartError);
         }
       }
@@ -352,7 +348,7 @@ const CheckoutPage = () => {
                   <div className="space-y-3 mb-6">
                     {checkoutItems.map((item, index) => {
                       const productImage =
-                        item.product?.images?.[0]?.url ||
+                        getLeadImageUrl(item.product?.images) ||
                         "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=100";
                       const productName = item.product?.name || "Product";
                       const size = item.variant?.size || "N/A";
@@ -384,13 +380,13 @@ const CheckoutPage = () => {
                               {size} / {color}
                             </p>
                             <p className="text-sm font-semibold text-gray-900 mt-1">
-                              ৳{formatPrice(itemTotal)}
+                              {formatPrice(itemTotal)}
                             </p>
                           </div>
                         </div>
                       );
                     })}
-                  </div>
+              </div>
 
                   {/* Totals */}
                   <div className="space-y-2 pt-4 border-t border-gray-200">
@@ -400,41 +396,40 @@ const CheckoutPage = () => {
                         {itemCount === 1 ? "item" : "items"})
                       </span>
                       <span className="text-sm font-semibold text-gray-900">
-                        ৳{formatPrice(checkoutSubtotal)}
-                      </span>
-                    </div>
+                        {formatPrice(checkoutSubtotal)}
+              </span>
+            </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">Shipping</span>
                       <span className="text-sm font-semibold text-gray-900">
-                        ৳{formatPrice(SHIPPING_COST)}
+                        {formatPrice(SHIPPING_COST)}
                       </span>
-                    </div>
+              </div>
                     {discountAmount > 0 && (
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600">Discount</span>
                         <span className="text-sm font-semibold text-green-600">
-                          -৳{formatPrice(discountAmount)}
-                        </span>
-                      </div>
+                          -{formatPrice(discountAmount)}
+              </span>
+            </div>
                     )}
                     <div className="flex justify-between items-center pt-3 border-t border-gray-200">
                       <span className="text-base font-bold text-gray-900">
                         Total
                       </span>
                       <span className="text-base font-bold text-gray-900">
-                        <span className="text-xs text-gray-600 mr-1">BDT</span>৳
                         {formatPrice(checkoutTotal)}
-                      </span>
-                    </div>
-                  </div>
+              </span>
+            </div>
+          </div>
                 </CardContent>
               </Card>
-            </div>
+        </div>
 
             {/* Right Column - Form Sections */}
             <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
               {/* Delivery Address Section */}
-              <Card>
+            <Card>
                 <CardContent className="pt-6">
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">
                     Your delivery address
@@ -500,16 +495,16 @@ const CheckoutPage = () => {
                         Address <span className="text-red-500">*</span>
                       </Label>
                       <Input
-                        id="address"
-                        name="address"
-                        value={formData.address}
-                        onChange={handleInputChange}
+                      id="address"
+                      name="address"
+                      value={formData.address}
+                      onChange={handleInputChange}
                         placeholder="Address"
-                        required
+                      required
                         className="mt-1 border-gray-300"
-                      />
-                    </div>
-                    <div>
+                    />
+                  </div>
+                  <div>
                       <Label
                         htmlFor="district"
                         className="text-sm font-medium text-gray-700"
@@ -529,10 +524,10 @@ const CheckoutPage = () => {
                         placeholder="Select District"
                         searchPlaceholder="Filter"
                         emptyMessage="No districts found"
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
                       <Label
                         htmlFor="upazila"
                         className="text-sm font-medium text-gray-700"
@@ -559,8 +554,8 @@ const CheckoutPage = () => {
                       </Select>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+              </CardContent>
+            </Card>
 
               {/* Shipping Section */}
               <Card>
@@ -576,8 +571,8 @@ const CheckoutPage = () => {
                       <span className="text-sm font-semibold text-gray-900">
                         ৳{formatPrice(SHIPPING_COST)}
                       </span>
-                    </div>
                   </div>
+                </div>
                 </CardContent>
               </Card>
 
@@ -594,13 +589,13 @@ const CheckoutPage = () => {
                   >
                     <div className="flex items-center justify-between p-4 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors">
                       <div className="flex items-center space-x-3">
-                        <RadioGroupItem value="cash" id="cash" />
-                        <Label
-                          htmlFor="cash"
+                      <RadioGroupItem value="cash" id="cash" />
+                      <Label
+                        htmlFor="cash"
                           className="text-sm font-medium text-gray-900 cursor-pointer"
-                        >
+                      >
                           Cash On Delivery
-                        </Label>
+                      </Label>
                       </div>
                       {paymentMethod === "cash" && (
                         <CheckCircle2 className="w-5 h-5 text-green-600" />
@@ -620,11 +615,11 @@ const CheckoutPage = () => {
                           01897918383
                         </span>
                         <img src={bkashLogo} alt="bKash" className="h-6" />
-                      </div>
-                    </div>
+                  </div>
+                </div>
                   )}
-                </CardContent>
-              </Card>
+              </CardContent>
+            </Card>
 
               {/* Order Now Button */}
               <Button
@@ -634,8 +629,8 @@ const CheckoutPage = () => {
               >
                 {isSubmitting ? "Processing..." : "Order Now"}
               </Button>
-            </div>
           </div>
+        </div>
         </form>
       </div>
     </div>

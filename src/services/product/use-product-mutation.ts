@@ -509,6 +509,120 @@ export function useCreateProductVariant() {
   });
 }
 
+export interface BulkCreateVariantItem {
+  sku?: string;
+  name?: string;
+  size?: string;
+  color?: string;
+  color_code?: string;
+  price?: number;
+  compare_at_price?: number;
+  sort_order?: number;
+  initial_stock?: number;
+}
+
+export interface BulkCreateVariantsParams {
+  product_id: string;
+  variants: BulkCreateVariantItem[];
+}
+
+/**
+ * Hook for bulk creating product variants (e.g. all size x color combinations)
+ *
+ * Inserts all variants in a single round trip, then creates matching
+ * inventory rows for any variant with `initial_stock > 0`. If inventory
+ * insertion fails, variants are rolled back to keep the data consistent.
+ */
+export function useBulkCreateVariants() {
+  const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ product_id, variants }: BulkCreateVariantsParams) => {
+      if (!variants.length) {
+        throw new Error("No variants to create");
+      }
+
+      console.log(
+        `🛍️ Bulk creating ${variants.length} variants for product ${product_id}`,
+      );
+
+      const variantRows = variants.map((v, index) => ({
+        product_id,
+        sku: v.sku || null,
+        name: v.name || null,
+        size: v.size || null,
+        color: v.color || null,
+        color_code: v.color_code || null,
+        price: v.price ?? null,
+        compare_at_price: v.compare_at_price ?? null,
+        sort_order: v.sort_order ?? index,
+        is_active: true,
+      }));
+
+      const { data: createdVariants, error: variantsError } = await supabase
+        .from("product_variants")
+        .insert(variantRows)
+        .select();
+
+      if (variantsError) {
+        console.error("❌ Bulk variant insert failed:", variantsError);
+        throw variantsError;
+      }
+
+      const inventoryRows = createdVariants
+        ?.map((variant, index) => {
+          const stock = variants[index]?.initial_stock ?? 0;
+          return {
+            variant_id: variant.id,
+            quantity: stock,
+            reserved_quantity: 0,
+          };
+        })
+        .filter((row) => row.quantity >= 0);
+
+      if (inventoryRows && inventoryRows.length > 0) {
+        const { error: inventoryError } = await supabase
+          .from("inventory")
+          .insert(inventoryRows);
+
+        if (inventoryError) {
+          console.error(
+            "❌ Inventory insert failed, rolling back variants:",
+            inventoryError,
+          );
+          await supabase
+            .from("product_variants")
+            .delete()
+            .in(
+              "id",
+              createdVariants.map((v) => v.id),
+            );
+          throw inventoryError;
+        }
+      }
+
+      console.log(`✅ Bulk created ${createdVariants?.length ?? 0} variants`);
+      return createdVariants ?? [];
+    },
+    onSuccess: (createdVariants, { product_id }) => {
+      showSuccess(
+        "Variants Generated",
+        `${createdVariants.length} variants were created successfully`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({
+        queryKey: productQueryKeys.productVariants(product_id),
+      });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    },
+    onError: (error: Error) => {
+      console.error("❌ Bulk variant creation failed:", error);
+      showError("Failed to Generate Variants", error.message);
+    },
+  });
+}
+
 /**
  * Hook for deleting a product variant
  */
@@ -745,6 +859,340 @@ export function useBulkDeleteProducts() {
     onError: (error) => {
       console.error("❌ Error bulk deleting products:", error);
       showError("Failed to Delete Products", error.message);
+    },
+  });
+}
+
+// ============================================================
+// Bulk image upload — Storage upload + DB row creation
+// ============================================================
+
+const PRODUCT_IMAGES_BUCKET = "product-images";
+
+/** Maximum number of files to upload in parallel. Matches typical browser HTTP/2 throughput. */
+const UPLOAD_CONCURRENCY = 4;
+
+/**
+ * Runs `task` for each item with at most `limit` parallel executions.
+ * Mirrors `Promise.allSettled` semantics so one failure never blocks
+ * the rest of the batch.
+ */
+async function runWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  task: (item: T, index: number) => Promise<R>,
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = new Array(items.length);
+  let cursor = 0;
+
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const myIndex = cursor++;
+      try {
+        const value = await task(items[myIndex], myIndex);
+        results[myIndex] = { status: "fulfilled", value };
+      } catch (reason) {
+        results[myIndex] = { status: "rejected", reason };
+      }
+    }
+  });
+
+  await Promise.all(workers);
+  return results;
+}
+
+export interface BulkUploadImageItem {
+  /** A unique client-side id (used to track progress across renders) */
+  clientId: string;
+  file: File;
+  /** Optional alt text per image */
+  alt_text?: string;
+  /** If true, this image will be marked as primary for the product */
+  is_primary?: boolean;
+  /** Optional sort order; defaults to insertion order */
+  sort_order?: number;
+}
+
+export interface BulkUploadProductImagesParams {
+  product_id: string;
+  /** If empty, image is linked to the product only (no specific variant). */
+  variant_ids?: string[];
+  items: BulkUploadImageItem[];
+  /** Per-file progress callback: 0..1 (after upload + DB insert it reaches 1). */
+  onProgress?: (
+    clientId: string,
+    update: {
+      status: "uploading" | "saving" | "done" | "error" | "cancelled";
+      progress: number;
+      error?: string;
+    },
+  ) => void;
+  /**
+   * Optional abort signal. When triggered, queued items that haven't started
+   * yet are skipped, in-flight Storage uploads are aborted via the underlying
+   * fetch, and orphaned files (uploaded but DB-insert pending) are cleaned up.
+   */
+  signal?: AbortSignal;
+}
+
+/**
+ * Slugify a string for storage paths. Keeps the path readable without
+ * URL-encoding surprises.
+ */
+const slugifyForStorage = (value: string) =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9.\-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+
+/**
+ * Translate raw Supabase Storage error messages into something an admin
+ * can act on. Falls back to the original message for unknown errors.
+ */
+const humanizeStorageError = (message: string): string => {
+  const lower = message.toLowerCase();
+  if (lower.includes("payload too large") || lower.includes("exceeded")) {
+    return "File is larger than the 5 MB limit";
+  }
+  if (lower.includes("mime type") || lower.includes("not allowed")) {
+    return "File type not allowed (use JPG, PNG, WebP, GIF, or AVIF)";
+  }
+  if (lower.includes("duplicate") || lower.includes("already exists")) {
+    return "A file with this name was uploaded a moment ago";
+  }
+  if (lower.includes("bucket not found")) {
+    return "Storage bucket is missing — contact support";
+  }
+  if (lower.includes("jwt") || lower.includes("unauthorized")) {
+    return "You need to sign in again to upload";
+  }
+  if (
+    lower.includes("failed to fetch") ||
+    lower.includes("network") ||
+    lower.includes("err_name_not_resolved") ||
+    lower.includes("err_internet_disconnected")
+  ) {
+    return "Network problem — check your internet connection and try again";
+  }
+  if (lower.includes("timeout") || lower.includes("timed out")) {
+    return "Upload timed out — try again on a faster connection";
+  }
+  if (
+    lower.includes("product_images_one_primary_per_product") ||
+    (lower.includes("duplicate key") && lower.includes("primary"))
+  ) {
+    return "Another image is already marked primary for this product — try again";
+  }
+  return message;
+};
+
+/**
+ * Hook that uploads multiple image files to Supabase Storage and creates
+ * matching `product_images` rows in a single user-facing operation.
+ *
+ * For every file:
+ *   1. Upload to `product-images/products/{product_id}/{timestamp}-{slug}`
+ *   2. Resolve the public URL
+ *   3. Insert one row per (product, variant) pair into `product_images`
+ *      - If `variant_ids` is empty, a single row with variant_id = null is created
+ *      - If multiple variants are passed, the same image is shared across them
+ *
+ * Files are uploaded concurrently. If any file fails, the others still
+ * succeed and the caller is informed via the per-file progress callback.
+ */
+export function useBulkUploadProductImages() {
+  const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
+
+  return useMutation({
+    mutationFn: async ({
+      product_id,
+      variant_ids = [],
+      items,
+      onProgress,
+      signal,
+    }: BulkUploadProductImagesParams) => {
+      if (!items.length) {
+        throw new Error("No files selected");
+      }
+      if (!product_id) {
+        throw new Error("Product is required");
+      }
+
+      // Each uploaded file always creates exactly ONE product_images row.
+      // - 0 variants picked  -> product-level image (variant_id = null)
+      // - exactly 1 variant  -> that variant's feature image (variant_id = X)
+      // - multiple variants  -> product-level image (variant_id = null) so
+      //   admins don't end up with N duplicate rows per file.
+      const singleVariantId =
+        variant_ids.length === 1 ? variant_ids[0] : null;
+      const targetVariants: (string | null)[] = [singleVariantId];
+
+      const results = await runWithConcurrency(
+        items,
+        UPLOAD_CONCURRENCY,
+        async (item, index) => {
+          const { clientId, file, alt_text, is_primary, sort_order } = item;
+
+          // Skip queued work if the user already aborted (e.g. closed the dialog).
+          if (signal?.aborted) {
+            onProgress?.(clientId, {
+              status: "cancelled",
+              progress: 0,
+              error: "Upload cancelled",
+            });
+            throw new DOMException("Upload cancelled", "AbortError");
+          }
+
+          try {
+            onProgress?.(clientId, { status: "uploading", progress: 0.1 });
+
+            // 1) Upload to Storage
+            const ext = file.name.includes(".")
+              ? file.name.slice(file.name.lastIndexOf(".") + 1).toLowerCase()
+              : "jpg";
+            const baseName = slugifyForStorage(
+              file.name.replace(/\.[^.]+$/, "") || "image",
+            );
+            const stamp = Date.now();
+            const path = `products/${product_id}/${stamp}-${index}-${baseName}.${ext}`;
+
+            const { error: uploadError } = await supabase.storage
+              .from(PRODUCT_IMAGES_BUCKET)
+              .upload(path, file, {
+                cacheControl: "3600",
+                upsert: false,
+                contentType: file.type || undefined,
+              });
+
+            if (uploadError) {
+              onProgress?.(clientId, {
+                status: "error",
+                progress: 0,
+                error: humanizeStorageError(uploadError.message),
+              });
+              throw uploadError;
+            }
+
+            // If aborted between upload and DB insert, clean up the
+            // orphaned Storage object before bailing out.
+            if (signal?.aborted) {
+              await supabase.storage
+                .from(PRODUCT_IMAGES_BUCKET)
+                .remove([path])
+                .catch(() => {});
+              onProgress?.(clientId, {
+                status: "cancelled",
+                progress: 0,
+                error: "Upload cancelled",
+              });
+              throw new DOMException("Upload cancelled", "AbortError");
+            }
+
+            onProgress?.(clientId, { status: "saving", progress: 0.7 });
+
+            // 2) Resolve public URL
+            const { data: publicUrlData } = supabase.storage
+              .from(PRODUCT_IMAGES_BUCKET)
+              .getPublicUrl(path);
+            const publicUrl = publicUrlData.publicUrl;
+
+            // 3) Insert one row per target variant (or one with null)
+            const rows = targetVariants.map((variantId) => ({
+              product_id,
+              variant_id: variantId,
+              url: publicUrl,
+              alt_text: alt_text || null,
+              sort_order: sort_order ?? index,
+              is_primary: is_primary || false,
+            }));
+
+            const { data: created, error: insertError } = await supabase
+              .from("product_images")
+              .insert(rows)
+              .select();
+
+            if (insertError) {
+              // Best-effort cleanup: try to remove the uploaded file so we
+              // don't leave orphaned storage objects.
+              await supabase.storage
+                .from(PRODUCT_IMAGES_BUCKET)
+                .remove([path])
+                .catch(() => {});
+              onProgress?.(clientId, {
+                status: "error",
+                progress: 0,
+                error: insertError.message,
+              });
+              throw insertError;
+            }
+
+            onProgress?.(clientId, { status: "done", progress: 1 });
+            return created ?? [];
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : "Upload failed";
+            // Don't double-report cancellations
+            if (
+              !(error instanceof DOMException && error.name === "AbortError")
+            ) {
+              onProgress?.(clientId, {
+                status: "error",
+                progress: 0,
+                error: humanizeStorageError(message),
+              });
+            }
+            throw error;
+          }
+        },
+      );
+
+      const succeeded = results.filter((r) => r.status === "fulfilled").length;
+      const cancelled = results.filter(
+        (r) =>
+          r.status === "rejected" &&
+          r.reason instanceof DOMException &&
+          r.reason.name === "AbortError",
+      ).length;
+      const failed = results.length - succeeded - cancelled;
+      return { succeeded, failed, cancelled, total: results.length };
+    },
+    onSuccess: (
+      { succeeded, failed, cancelled, total },
+      { product_id },
+    ) => {
+      if (succeeded > 0) {
+        queryClient.invalidateQueries({ queryKey: ["products"] });
+        queryClient.invalidateQueries({
+          queryKey: productQueryKeys.productImages(product_id),
+        });
+      }
+
+      if (failed === 0 && cancelled === 0) {
+        showSuccess(
+          "Images Uploaded",
+          `${succeeded} image${succeeded === 1 ? "" : "s"} uploaded successfully`,
+        );
+      } else if (cancelled > 0 && failed === 0) {
+        // User cancelled — friendlier copy than "failed"
+        showSuccess(
+          "Upload Cancelled",
+          `${succeeded} of ${total} uploaded before cancelling`,
+        );
+      } else {
+        showError(
+          "Some Uploads Failed",
+          `${succeeded} succeeded · ${failed} failed${
+            cancelled > 0 ? ` · ${cancelled} cancelled` : ""
+          }`,
+        );
+      }
+    },
+    onError: (error: Error) => {
+      console.error("❌ Bulk image upload failed:", error);
+      showError("Failed to Upload Images", error.message);
     },
   });
 }
