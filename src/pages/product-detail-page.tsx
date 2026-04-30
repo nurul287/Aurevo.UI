@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/breadcrumb";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
+import { formatPrice } from "@/lib/currency";
+import { sortProductImages } from "@/lib/product-images";
 import { useProduct } from "@/services";
 import { ShoppingBagIcon } from "@heroicons/react/24/outline";
 import { ShoppingCart } from "lucide-react";
@@ -179,7 +181,7 @@ const ProductDetailPage = () => {
     ...new Set(product.variants?.map((v) => v.size).filter(Boolean) || []),
   ];
 
-  const productImages = product.images || [];
+  const productImages = sortProductImages(product.images);
   const mainImage =
     productImages[selectedImageIndex]?.url ||
     productImages[0]?.url ||
@@ -402,18 +404,10 @@ const ProductDetailPage = () => {
                 <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-2">
                     <span className="line-through text-gray-500">
-                      Tk{" "}
-                      {product.compare_at_price.toLocaleString("en-US", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
+                      {formatPrice(product.compare_at_price)}
                     </span>
                     <span className="text-gray-900">
-                      Tk{" "}
-                      {product.base_price.toLocaleString("en-US", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
+                      {formatPrice(product.base_price)}
                     </span>
                   </div>
                   <span className="bg-black text-white px-3 py-1 rounded text-sm font-semibold">
@@ -429,13 +423,7 @@ const ProductDetailPage = () => {
               ) : (
                 <div className="flex items-center gap-2">
                   <span>Price:</span>
-                  <span className="">
-                    Tk{" "}
-                    {product.base_price.toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}{" "}
-                  </span>
+                  <span className="">{formatPrice(product.base_price)}</span>
                 </div>
               )}
             </div>

@@ -18,7 +18,7 @@ export const NewCollectionSection = () => {
   const products = productsData?.data || [];
 
   return (
-    <section className="py-10 bg-[#F3FAFF]">
+    <section className="py-10 bg-white">
       <div className="container-custom">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 uppercase">

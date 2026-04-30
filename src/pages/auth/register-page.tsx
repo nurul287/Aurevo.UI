@@ -58,7 +58,7 @@ const RegisterPage = () => {
         localStorage.setItem("pendingEmail", formData.email);
         // Redirect to email confirmation page
         navigate(
-          `/email-confirmation?email=${encodeURIComponent(formData.email)}`
+          `/email-confirmation?email=${encodeURIComponent(formData.email)}`,
         );
       }
     } catch (err) {
@@ -79,9 +79,9 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-[#DEF0F9] to-[#FDEBEC] gap-10">
+    <div className="flex min-h-screen bg-gradient-to-br from-[#DEF0F9] to-[#FDEBEC] lg:gap-14 p-8">
       {/* Left Side - Image Section */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col p-8">
+      <div className="hidden lg:flex lg:w-1/2 flex-col">
         {/* Back Arrow + Logo */}
         <Link
           to="/"
@@ -92,20 +92,20 @@ const RegisterPage = () => {
         </Link>
 
         {/* Centered Image with Back to Website button */}
-        <div className="flex-1 flex items-center justify-end">
-                  <div className="relative">
+        <div className="flex-1 flex items-center justify-end p-4">
+          <div className="relative">
             <img
               src={registerImage}
               alt="Register illustration"
               className="max-w-[700px] w-full h-auto object-contain"
-                    />
-                  </div>
-                </div>
+            />
+          </div>
+        </div>
       </div>
 
       {/* Right Side - Register Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-start p-8">
-        <div className="w-full max-w-[650px]">
+      <div className="w-full lg:w-1/2 flex items-center justify-center lg:justify-start">
+        <div className="w-full max-w-[650px] mx-auto lg:mx-0 p-4">
           {/* Mobile Logo */}
           <div className="lg:hidden mb-8">
             <Link
@@ -147,23 +147,23 @@ const RegisterPage = () => {
             {/* Register Form */}
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Full Name Field */}
-                <div className="space-y-2">
+              <div className="space-y-2">
                 <Label
                   htmlFor="fullName"
                   className="text-sm font-medium text-gray-700 inline-block"
                 >
                   Full Name
-                  </Label>
-                    <Input
+                </Label>
+                <Input
                   id="fullName"
                   name="fullName"
-                      type="text"
-                      required
+                  type="text"
+                  required
                   value={formData.fullName}
-                      onChange={handleChange}
+                  onChange={handleChange}
                   placeholder="Enter Your Name"
                   className="h-12 border-gray-200 focus:border-[#FF6600] focus:ring-[#FF6600] rounded-lg"
-                    />
+                />
               </div>
 
               {/* Email Field */}
@@ -174,16 +174,16 @@ const RegisterPage = () => {
                 >
                   E-mail
                 </Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
                   placeholder="Your E-mail"
                   className="h-12 border-gray-200 focus:border-[#FF6600] focus:ring-[#FF6600] rounded-lg"
-                  />
+                />
               </div>
 
               {/* Password Field */}
@@ -194,13 +194,13 @@ const RegisterPage = () => {
                 >
                   Password
                 </Label>
-                  <Input
-                    id="password"
-                    name="password"
+                <Input
+                  id="password"
+                  name="password"
                   type="password"
-                    required
-                    value={formData.password}
-                    onChange={handleChange}
+                  required
+                  value={formData.password}
+                  onChange={handleChange}
                   placeholder="6 - Digit Password"
                   className="h-12 border-gray-200 focus:border-[#FF6600] focus:ring-[#FF6600] rounded-lg"
                 />
@@ -234,7 +234,7 @@ const RegisterPage = () => {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 bg-[#FF6600] hover:bg-[#E65C00] text-white font-medium rounded-lg text-base"
+                className="w-full h-12 bg-[#111111] hover:bg-[#2A2A2A] text-white font-medium rounded-lg text-base"
               >
                 {loading ? "Creating account..." : "Create an Account"}
               </Button>
@@ -275,7 +275,7 @@ const RegisterPage = () => {
               </Button>
             </div>
           </div>
-            </div>
+        </div>
       </div>
     </div>
   );

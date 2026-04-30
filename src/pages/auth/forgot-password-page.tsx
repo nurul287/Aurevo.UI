@@ -36,7 +36,7 @@ const ForgotPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-[#DEF0F9] to-[#FDEBEC] gap-10">
+    <div className="min-h-screen flex bg-gradient-to-br from-[#DEF0F9] to-[#FDEBEC] lg:gap-10">
       {/* Left Side - Image Section */}
       <div className="hidden lg:flex lg:w-1/2 flex-col p-8">
         {/* Back Arrow + Logo */}
@@ -59,8 +59,8 @@ const ForgotPasswordPage = () => {
       </div>
 
       {/* Right Side - Forgot Password Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-start p-8">
-        <div className="w-full max-w-[650px]">
+      <div className="w-full lg:w-1/2 flex items-center justify-center lg:justify-start p-8">
+        <div className="w-full max-w-[650px] mx-auto lg:mx-0">
           {/* Mobile Logo */}
           <div className="lg:hidden mb-8">
             <Link
@@ -166,7 +166,7 @@ const ForgotPasswordPage = () => {
                   <Button
                     type="submit"
                     disabled={passwordResetMutation.isPending}
-                    className="w-full h-12 bg-[#FF6600] hover:bg-[#E65C00] text-white font-medium rounded-lg text-base"
+                    className="w-full h-12 bg-[#111111] hover:bg-[#2A2A2A] text-white font-medium rounded-lg text-base"
                   >
                     {passwordResetMutation.isPending ? "Sending..." : "Submit"}
                   </Button>

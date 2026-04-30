@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatPrice } from "@/lib/currency";
 import {
   Dialog,
   DialogContent,
@@ -216,12 +217,7 @@ export default function AdminOrderDetailPage() {
     });
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
+  const formatCurrency = (amount: number) => formatPrice(amount);
 
   const getCustomerName = (order: any) => {
     if (order.user) {

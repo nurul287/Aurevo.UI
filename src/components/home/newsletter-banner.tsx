@@ -13,7 +13,7 @@ export const NewsletterBanner = () => {
   };
 
   return (
-    <section className="py-10 bg-[#F3FAFF]">
+    <section className="py-10 bg-white">
       <div className="container-custom">
         <div className="relative max-w-[980px] h-[200px] sm:h-[240px] md:h-[280px] mx-auto rounded-3xl overflow-hidden">
           {/* Background Image */}

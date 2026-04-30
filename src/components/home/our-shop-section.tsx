@@ -11,7 +11,7 @@ export const OurShopSection = () => {
   const products = productsData?.data || [];
 
   return (
-    <section className="py-10 bg-[#F3FAFF]">
+    <section className="py-10 bg-white">
       <div className="container-custom">
         <h2 className="text-3xl md:text-4xl font-bold mb-8 text-gray-900">
           Our Shop

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatPrice } from "@/lib/currency";
 import {
   ArrowRight,
   DollarSign,
@@ -45,12 +46,7 @@ const AdminDashboardPage = () => {
     },
   ];
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
+  const formatCurrency = (amount: number) => formatPrice(amount);
 
   return (
     <div className="space-y-6">
