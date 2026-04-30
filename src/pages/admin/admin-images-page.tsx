@@ -47,6 +47,7 @@ import {
 import { Product, ProductImage, ProductVariant } from "@/services/types";
 import {
   AlertTriangle,
+  CloudUpload,
   Edit,
   Filter,
   Image as ImageIcon,
@@ -57,6 +58,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import BulkImageUploadDialog from "@/components/admin/bulk-image-upload-dialog";
 
 // Form data interfaces
 interface ImageFormData {
@@ -74,6 +76,7 @@ export default function AdminImagesPage() {
   const [productFilter, setProductFilter] = useState("all");
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isBulkUploadDialogOpen, setIsBulkUploadDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingImage, setEditingImage] = useState<ProductImage | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -283,9 +286,16 @@ export default function AdminImagesPage() {
               Bulk Actions ({selectedImages.length})
             </Button>
           )}
+          <Button
+            onClick={() => setIsBulkUploadDialogOpen(true)}
+            disabled={products.length === 0}
+          >
+            <CloudUpload className="mr-2 h-4 w-4" />
+            Bulk Upload
+          </Button>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button variant="outline">
                 <Plus className="mr-2 h-4 w-4" />
                 Add Image
               </Button>
@@ -796,6 +806,16 @@ export default function AdminImagesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Image Upload Dialog */}
+      <BulkImageUploadDialog
+        open={isBulkUploadDialogOpen}
+        onOpenChange={setIsBulkUploadDialogOpen}
+        products={products}
+        defaultProductId={
+          productFilter !== "all" ? productFilter : undefined
+        }
+      />
     </div>
   );
 }

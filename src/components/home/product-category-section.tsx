@@ -40,7 +40,7 @@ export const ProductCategorySection = () => {
     displayCategories.length > 0 ? displayCategories : defaultCategories;
 
   return (
-    <section className="py-10 bg-[#F3FAFF]">
+    <section className="py-10 bg-white">
       <div className="container-custom">
         <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-900">
           OUR PRODUCT CATEGORY

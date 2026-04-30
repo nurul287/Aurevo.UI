@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { formatPrice } from "@/lib/currency";
 import {
   useBulkUpdateOrderStatus,
   useCancelOrder,
@@ -303,12 +304,7 @@ export default function AdminOrdersPage() {
     });
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
+  const formatCurrency = (amount: number) => formatPrice(amount);
 
   const getCustomerName = (order: Order & { user?: any }) => {
     if (order.user) {

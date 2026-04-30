@@ -187,7 +187,7 @@ const ResetPasswordPage = () => {
                   <Button
                     type="submit"
                     disabled={updatePasswordMutation.isPending}
-                    className="w-full h-12 bg-[#FF6600] hover:bg-[#E65C00] text-white font-medium rounded-lg text-base"
+                    className="w-full h-12 bg-[#111111] hover:bg-[#2A2A2A] text-white font-medium rounded-lg text-base"
                   >
                     {updatePasswordMutation.isPending
                       ? "Setting Password..."

@@ -54,8 +54,11 @@ import {
   Plus,
   Search,
   Trash2,
+  Wand2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import GenerateVariantsDialog from "@/components/admin/generate-variants-dialog";
+import { formatPrice } from "@/lib/currency";
 
 const statusColors = {
   active: "bg-green-100 text-green-800",
@@ -86,6 +89,7 @@ export default function AdminVariantsPage() {
   const [productFilter, setProductFilter] = useState("all");
   const [selectedVariants, setSelectedVariants] = useState<string[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(
     null
@@ -325,6 +329,14 @@ export default function AdminVariantsPage() {
               Bulk Actions ({selectedVariants.length})
             </Button>
           )}
+          <Button
+            variant="outline"
+            onClick={() => setIsGenerateDialogOpen(true)}
+            disabled={products.length === 0}
+          >
+            <Wand2 className="mr-2 h-4 w-4" />
+            Generate Variants
+          </Button>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -438,24 +450,29 @@ export default function AdminVariantsPage() {
                     }
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="price" className="text-right">
-                    Price *
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label htmlFor="price" className="text-right pt-2">
+                    Price
                   </Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    step="0.01"
-                    className="col-span-3"
-                    placeholder="0.00"
-                    value={formData.price}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        price: e.target.value,
-                      }))
-                    }
-                  />
+                  <div className="col-span-3 space-y-1">
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      placeholder="Leave empty to use product base price"
+                      value={formData.price}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          price: e.target.value,
+                        }))
+                      }
+                    />
+                    <p className="text-xs text-gray-500">
+                      Optional. Only set this if this size/color costs more or
+                      less than the product&apos;s base price.
+                    </p>
+                  </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label className="text-right">Options</Label>
@@ -630,9 +647,25 @@ export default function AdminVariantsPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {variant.price
-                            ? `$${variant.price.toFixed(2)}`
-                            : "N/A"}
+                          {variant.price ? (
+                            <span>{formatPrice(variant.price)}</span>
+                          ) : (variant as ProductVariant & { product?: Product })
+                              .product?.base_price ? (
+                            <span className="text-gray-500">
+                              {formatPrice(
+                                (
+                                  variant as ProductVariant & {
+                                    product?: Product;
+                                  }
+                                ).product!.base_price,
+                              )}
+                              <span className="ml-1 text-xs text-gray-400">
+                                (base)
+                              </span>
+                            </span>
+                          ) : (
+                            "N/A"
+                          )}
                         </TableCell>
                         <TableCell>
                           <Badge
@@ -768,21 +801,26 @@ export default function AdminVariantsPage() {
                 }
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-price" className="text-right">
-                Price *
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label htmlFor="edit-price" className="text-right pt-2">
+                Price
               </Label>
-              <Input
-                id="edit-price"
-                type="number"
-                step="0.01"
-                className="col-span-3"
-                placeholder="0.00"
-                value={formData.price}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, price: e.target.value }))
-                }
-              />
+              <div className="col-span-3 space-y-1">
+                <Input
+                  id="edit-price"
+                  type="number"
+                  step="0.01"
+                  placeholder="Leave empty to use product base price"
+                  value={formData.price}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, price: e.target.value }))
+                  }
+                />
+                <p className="text-xs text-gray-500">
+                  Optional. Only set this if this size/color costs more or less
+                  than the product&apos;s base price.
+                </p>
+              </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Options</Label>
@@ -900,6 +938,16 @@ export default function AdminVariantsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Generate Variants Dialog */}
+      <GenerateVariantsDialog
+        open={isGenerateDialogOpen}
+        onOpenChange={setIsGenerateDialogOpen}
+        products={products}
+        defaultProductId={
+          productFilter !== "all" ? productFilter : undefined
+        }
+      />
     </div>
   );
 }

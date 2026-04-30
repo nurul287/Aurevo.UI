@@ -5,7 +5,7 @@ import promotionCard2 from "@/assets/image/promotion-card-2.png";
 
 export const PromotionalBanners = () => {
   return (
-    <section className="py-10 bg-[#F3FAFF]">
+    <section className="py-10 bg-white">
       <div className="container-custom">
         <div className="grid md:grid-cols-2 gap-6">
           {/* Left Banner - Nike Air Max 97 */}
@@ -31,7 +31,7 @@ export const PromotionalBanners = () => {
                 kicks really turn heads, we mixed smooth leather with soft.
               </p>
               <div className="pt-2">
-                <Button className="bg-[#FF6600] hover:bg-[#E65C00] text-white px-6 h-10 text-sm font-medium rounded">
+                <Button className="bg-[#111111] hover:bg-[#2A2A2A] text-white px-6 h-10 text-sm font-medium rounded">
                   Add Cart
                 </Button>
               </div>
@@ -61,7 +61,7 @@ export const PromotionalBanners = () => {
                 kicks really turn heads, we invest smooth leather with soft...
               </p>
               <div className="pt-2">
-                <Button className="bg-[#FF6600] hover:bg-[#E65C00] text-white px-6 h-10 text-sm font-medium rounded">
+                <Button className="bg-[#111111] hover:bg-[#2A2A2A] text-white px-6 h-10 text-sm font-medium rounded">
                   Add Cart
                 </Button>
               </div>

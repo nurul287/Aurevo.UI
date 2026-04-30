@@ -33,7 +33,7 @@ export const HeroSection = () => {
             <div className="pt-3">
               <Button
                 asChild
-                className="bg-[#FF6600] hover:bg-[#E65C00] text-white px-7 h-[42px] text-sm font-medium rounded-md"
+                className="bg-[#111111] hover:bg-[#2A2A2A] text-white px-7 h-[42px] text-sm font-medium rounded-md"
               >
                 <Link to="/products" className="inline-flex items-center">
                   <ShoppingCart className="mr-2 h-[18px] w-[18px]" />

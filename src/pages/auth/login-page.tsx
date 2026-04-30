@@ -46,9 +46,9 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-[#DEF0F9] to-[#FDEBEC] gap-10">
+    <div className="min-h-screen flex bg-gradient-to-br from-[#DEF0F9] to-[#FDEBEC] lg:gap-14 p-8">
       {/* Left Side - Image Section */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col p-8">
+      <div className="hidden lg:flex lg:w-1/2 flex-col">
         {/* Back Arrow + Logo */}
         <Link
           to="/"
@@ -63,14 +63,14 @@ const LoginPage = () => {
           <img
             src={loginImage}
             alt="Login illustration"
-            className="max-w-[700px] w-full h-auto object-contain"
+            className="max-w-[700px] max-h-[550px] w-full h-auto object-contain"
           />
         </div>
       </div>
 
       {/* Right Side - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-start p-8">
-        <div className="w-full max-w-[650px]">
+      <div className="w-full lg:w-1/2 flex items-center justify-center lg:justify-start">
+        <div className="w-full max-w-[650px] mx-auto lg:mx-0">
           {/* Mobile Logo */}
           <div className="lg:hidden mb-8">
             <Link
@@ -82,7 +82,7 @@ const LoginPage = () => {
                 AUREVO
               </span>
             </Link>
-              </div>
+          </div>
 
           {/* Form Card */}
           <div className="bg-inherit rounded-2xl shadow-[0px_4px_20px_rgba(0,0,0,0.08)] p-8">
@@ -119,16 +119,16 @@ const LoginPage = () => {
                 >
                   Email
                 </Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
                   className="h-12 border-gray-200 focus:border-[#FF6600] focus:ring-[#FF6600] rounded-lg"
-                  />
+                />
               </div>
 
               {/* Password Field */}
@@ -139,16 +139,16 @@ const LoginPage = () => {
                 >
                   Password
                 </Label>
-                  <Input
-                    id="password"
-                    name="password"
+                <Input
+                  id="password"
+                  name="password"
                   type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
                   className="h-12 border-gray-200 focus:border-[#FF6600] focus:ring-[#FF6600] rounded-lg"
-                  />
+                />
               </div>
 
               {/* Remember Me & Forgot Password */}
@@ -181,7 +181,7 @@ const LoginPage = () => {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 bg-[#FF6600] hover:bg-[#E65C00] text-white font-medium rounded-lg text-base"
+                className="w-full h-12 bg-[#111111] hover:bg-[#2A2A2A] text-white font-medium rounded-lg text-base"
               >
                 {loading ? "Logging in..." : "Log in"}
               </Button>

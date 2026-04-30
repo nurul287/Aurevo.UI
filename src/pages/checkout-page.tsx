@@ -8,6 +8,8 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatPrice } from "@/lib/currency";
+import { getLeadImageUrl } from "@/lib/product-images";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -164,12 +166,6 @@ const CheckoutPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const formatPrice = (price: number) => {
-    return price.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -352,7 +348,7 @@ const CheckoutPage = () => {
                   <div className="space-y-3 mb-6">
                     {checkoutItems.map((item, index) => {
                       const productImage =
-                        item.product?.images?.[0]?.url ||
+                        getLeadImageUrl(item.product?.images) ||
                         "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=100";
                       const productName = item.product?.name || "Product";
                       const size = item.variant?.size || "N/A";
@@ -384,7 +380,7 @@ const CheckoutPage = () => {
                               {size} / {color}
                             </p>
                             <p className="text-sm font-semibold text-gray-900 mt-1">
-                              ৳{formatPrice(itemTotal)}
+                              {formatPrice(itemTotal)}
                             </p>
                           </div>
                         </div>
@@ -400,20 +396,20 @@ const CheckoutPage = () => {
                         {itemCount === 1 ? "item" : "items"})
                       </span>
                       <span className="text-sm font-semibold text-gray-900">
-                        ৳{formatPrice(checkoutSubtotal)}
+                        {formatPrice(checkoutSubtotal)}
               </span>
             </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">Shipping</span>
                       <span className="text-sm font-semibold text-gray-900">
-                        ৳{formatPrice(SHIPPING_COST)}
+                        {formatPrice(SHIPPING_COST)}
                       </span>
               </div>
                     {discountAmount > 0 && (
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600">Discount</span>
                         <span className="text-sm font-semibold text-green-600">
-                          -৳{formatPrice(discountAmount)}
+                          -{formatPrice(discountAmount)}
               </span>
             </div>
                     )}
@@ -422,7 +418,6 @@ const CheckoutPage = () => {
                         Total
                       </span>
                       <span className="text-base font-bold text-gray-900">
-                        <span className="text-xs text-gray-600 mr-1">BDT</span>৳
                         {formatPrice(checkoutTotal)}
               </span>
             </div>

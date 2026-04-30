@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatPrice } from "@/lib/currency";
 import { useFetchOrderWithGuestToken } from "@/services/order/use-order-query";
 import { CheckCircleIcon, HomeIcon, PackageIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -122,7 +123,7 @@ const OrderConfirmationPage = () => {
                     <div>
                       <p className="text-sm text-gray-500">Total Amount</p>
                       <p className="font-semibold">
-                        ${fullOrderData.total_amount?.toFixed(2) || "0.00"}
+                        {formatPrice(fullOrderData.total_amount)}
                       </p>
                     </div>
                     <div>
@@ -158,7 +159,7 @@ const OrderConfirmationPage = () => {
                                   </p>
                                 </div>
                                 <p className="font-semibold">
-                                  ${item.total_price?.toFixed(2) || "0.00"}
+                                  {formatPrice(item.total_price)}
                                 </p>
                               </div>
                             )
