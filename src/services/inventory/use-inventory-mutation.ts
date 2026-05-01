@@ -44,7 +44,7 @@ export interface AddProductParams {
   initial_stock?: number;
 }
 
-export interface UpdateProductParams {
+export interface InventoryUpdateProductParams {
   product_id: string;
   name?: string;
   slug?: string;
@@ -171,13 +171,13 @@ export function useAddProduct() {
   });
 }
 
-// Update Product Mutation
-export function useUpdateProduct() {
+// Update Product Mutation (inventory RPC; distinct from catalog useUpdateProduct)
+export function useInventoryUpdateProduct() {
   const queryClient = useQueryClient();
   const { showSuccess, showError } = useToast();
 
   return useMutation({
-    mutationFn: async (params: UpdateProductParams) => {
+    mutationFn: async (params: InventoryUpdateProductParams) => {
       const { data, error } = await supabase.rpc("update_product", {
         p_product_id: params.product_id,
         p_name: params.name,

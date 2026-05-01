@@ -17,7 +17,7 @@ export function useAddToCart() {
       productId,
       variantId,
       quantity = 1,
-      suppressToast = false,
+      suppressToast: _suppressToast = false,
     }: {
       userId?: string;
       sessionId?: string;
@@ -266,7 +266,7 @@ export function useUpdateCartItemQuantity() {
       // Return a context object with the snapshotted value
       return { previousCartData };
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (data, _variables) => {
       // Show success toast for quantity update
       if (data) {
         const productName = data?.product?.name || "Item";

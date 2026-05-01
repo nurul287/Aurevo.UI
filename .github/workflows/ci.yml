@@ -1,0 +1,87 @@
+# Runs on every PR and on pushes to main/dev.
+#
+# Branch protection: require these checks from GitHub Actions (after this workflow
+# has run once on a PR):
+#   CI / Lint
+#   CI / Typecheck
+#   CI / Build
+# Do NOT add a required check named only "CI" with source "Any source" — nothing
+# reports that context, so the PR will stay stuck on "Waiting for status".
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main, dev]
+  push:
+    branches: [main, dev]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run typecheck
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+
+  # Optional single gate: require only "CI / All checks passed" in branch rules if you prefer one checkbox.
+  all-green:
+    name: All checks passed
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, build]
+    steps:
+      - run: echo "Lint, typecheck, and build succeeded."

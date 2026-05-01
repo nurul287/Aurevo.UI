@@ -3,10 +3,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCategories } from "@/services";
 import { Link } from "react-router-dom";
 
-interface CategoryIcon {
+type CategoryCard = {
+  id?: string;
   name: string;
   icon: string;
-}
+  slug?: string;
+};
 
 const categoryIcons: Record<string, string> = {
   MAN: "👔",
@@ -28,15 +30,15 @@ export const ProductCategorySection = () => {
   }));
 
   // If we don't have enough categories, add placeholders
-  const defaultCategories = [
-    { name: "MAN", icon: "👔" },
-    { name: "WOMEN", icon: "👗" },
-    { name: "CHILD", icon: "👶" },
-    { name: "BOOTS", icon: "🥾" },
-    { name: "SLIDER", icon: "🩴" },
+  const defaultCategories: CategoryCard[] = [
+    { id: "placeholder-man", name: "MAN", icon: "👔", slug: "man" },
+    { id: "placeholder-women", name: "WOMEN", icon: "👗", slug: "women" },
+    { id: "placeholder-child", name: "CHILD", icon: "👶", slug: "child" },
+    { id: "placeholder-boots", name: "BOOTS", icon: "🥾", slug: "boots" },
+    { id: "placeholder-slider", name: "SLIDER", icon: "🩴", slug: "slider" },
   ];
 
-  const categoriesToShow =
+  const categoriesToShow: CategoryCard[] =
     displayCategories.length > 0 ? displayCategories : defaultCategories;
 
   return (
