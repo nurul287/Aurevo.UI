@@ -1,8 +1,15 @@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { getSupabaseErrorMessage } from "@/lib/supabase-error";
 import { ProductGender } from "@/services/types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { productQueryKeys } from "./use-product-query";
+
+/** Empty string → null so UNIQUE(sku) is not violated by duplicate '' rows */
+function normalizeOptionalSku(sku: string | undefined | null): string | null {
+  const t = typeof sku === "string" ? sku.trim() : "";
+  return t.length > 0 ? t : null;
+}
 
 // Types for product mutations
 export interface CreateProductParams {
@@ -159,7 +166,7 @@ export function useCreateProduct() {
           slug: params.slug,
           description: params.description,
           short_description: params.short_description,
-          sku: params.sku,
+          sku: normalizeOptionalSku(params.sku),
           category_id: params.category_id,
           brand_id: params.brand_id,
           gender: params.gender,
@@ -193,7 +200,7 @@ export function useCreateProduct() {
       if (params.variants && params.variants.length > 0) {
         const variants = params.variants.map((variant) => ({
           product_id: product.id,
-          sku: variant.sku,
+          sku: normalizeOptionalSku(variant.sku),
           name: variant.name,
           size: variant.size,
           color: variant.color,
@@ -284,7 +291,7 @@ export function useCreateProduct() {
     },
     onError: (error) => {
       console.error("❌ Error creating product:", error);
-      showError("Failed to Create Product", error.message);
+      showError("Failed to Create Product", getSupabaseErrorMessage(error));
     },
   });
 }
@@ -307,7 +314,7 @@ export function useUpdateProduct() {
           slug: params.slug,
           description: params.description,
           short_description: params.short_description,
-          sku: params.sku,
+          sku: normalizeOptionalSku(params.sku),
           category_id: params.category_id,
           brand_id: params.brand_id,
           gender: params.gender,
@@ -350,7 +357,7 @@ export function useUpdateProduct() {
     },
     onError: (error) => {
       console.error("❌ Error updating product:", error);
-      showError("Failed to Update Product", error.message);
+      showError("Failed to Update Product", getSupabaseErrorMessage(error));
     },
   });
 }
@@ -409,7 +416,7 @@ export function useUpdateProductVariant() {
       const { data, error } = await supabase
         .from("product_variants")
         .update({
-          sku: params.sku,
+          sku: normalizeOptionalSku(params.sku),
           name: params.name,
           size: params.size,
           color: params.color,
@@ -447,7 +454,7 @@ export function useUpdateProductVariant() {
     },
     onError: (error) => {
       console.error("❌ Error updating product variant:", error);
-      showError("Failed to Update Variant", error.message);
+      showError("Failed to Update Variant", getSupabaseErrorMessage(error));
     },
   });
 }
@@ -467,7 +474,7 @@ export function useCreateProductVariant() {
         .from("product_variants")
         .insert({
           product_id: params.product_id,
-          sku: params.sku,
+          sku: normalizeOptionalSku(params.sku),
           name: params.name,
           size: params.size,
           color: params.color,
@@ -504,7 +511,7 @@ export function useCreateProductVariant() {
     },
     onError: (error) => {
       console.error("❌ Error creating product variant:", error);
-      showError("Failed to Create Variant", error.message);
+      showError("Failed to Create Variant", getSupabaseErrorMessage(error));
     },
   });
 }
@@ -549,7 +556,7 @@ export function useBulkCreateVariants() {
 
       const variantRows = variants.map((v, index) => ({
         product_id,
-        sku: v.sku || null,
+        sku: normalizeOptionalSku(v.sku),
         name: v.name || null,
         size: v.size || null,
         color: v.color || null,

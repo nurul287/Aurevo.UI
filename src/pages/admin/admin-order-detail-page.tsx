@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatPrice } from "@/lib/currency";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +29,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
 import {
   useUpdateFulfillmentStatus,
   useUpdateOrderNotes,
@@ -74,11 +74,143 @@ const fulfillmentStatusColors = {
   fulfilled: "bg-green-100 text-green-800",
 };
 
+type LooseAddr = Record<string, unknown>;
+
+function addrStr(v: unknown): string {
+  return typeof v === "string" ? v.trim() : "";
+}
+
+/** Name from profile-linked user, or guest JSON on shipping/billing. */
+function getCustomerDisplayName(order: {
+  user?: { first_name?: string; last_name?: string } | null;
+  shipping_address?: unknown;
+  billing_address?: unknown;
+}): string {
+  if (order.user) {
+    const n = `${order.user.first_name || ""} ${order.user.last_name || ""}`.trim();
+    if (n) return n;
+  }
+  const fromShip = nameFromAddressJson(order.shipping_address);
+  if (fromShip) return fromShip;
+  const fromBill = nameFromAddressJson(order.billing_address);
+  if (fromBill) return fromBill;
+  return "Guest checkout";
+}
+
+function nameFromAddressJson(addr: unknown): string {
+  if (!addr || typeof addr !== "object") return "";
+  const a = addr as LooseAddr;
+  const fn = addrStr(a.firstName || a.first_name);
+  const ln = addrStr(a.lastName || a.last_name);
+  const combined = `${fn} ${ln}`.trim();
+  if (combined) return combined;
+  return addrStr(a.name);
+}
+
+function phoneFromAddressJson(addr: unknown): string | undefined {
+  if (!addr || typeof addr !== "object") return undefined;
+  const p = addrStr((addr as LooseAddr).phone);
+  return p || undefined;
+}
+
+function getCustomerPhoneDisplay(order: {
+  phone?: string | null;
+  shipping_address?: unknown;
+  billing_address?: unknown;
+}): string | undefined {
+  const top = order.phone?.trim();
+  if (top) return top;
+  return (
+    phoneFromAddressJson(order.shipping_address) ||
+    phoneFromAddressJson(order.billing_address)
+  );
+}
+
+/**
+ * Renders shipping (or billing-style) JSON from checkout (BD) or legacy
+ * street/city rows.
+ */
+/** Coerce Supabase decimal / string amounts for display. */
+function toMoneyAmount(value: unknown): number {
+  if (value == null) return 0;
+  const n = typeof value === "string" ? parseFloat(value) : Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** Legacy checkout placeholder; treat as no email for display. */
+function isSyntheticGuestEmail(email: string | null | undefined): boolean {
+  const e = email?.trim() ?? "";
+  if (!e) return false;
+  return /^guest_\d+@example\.com$/i.test(e);
+}
+
+function orderEmailForDisplay(email: string | null | undefined): string | null {
+  const e = email?.trim() ?? "";
+  if (!e || isSyntheticGuestEmail(e)) return null;
+  return e;
+}
+
+/** When `shipping_amount` was not stored but `total_amount` includes it. */
+function resolvedShippingDisplay(order: {
+  subtotal?: unknown;
+  tax_amount?: unknown;
+  discount_amount?: unknown;
+  shipping_amount?: unknown;
+  total_amount?: unknown;
+}): number {
+  const sub = toMoneyAmount(order.subtotal);
+  const tax = toMoneyAmount(order.tax_amount);
+  const disc = toMoneyAmount(order.discount_amount);
+  const ship = toMoneyAmount(order.shipping_amount);
+  const total = toMoneyAmount(order.total_amount);
+  if (ship > 0.005) return ship;
+  const implied = total - sub - tax + disc;
+  return implied > 0.005 ? implied : 0;
+}
+
+function linesFromAddressJson(addr: unknown): string[] {
+  if (!addr || typeof addr !== "object") return [];
+  const a = addr as LooseAddr;
+
+  const street = addrStr(a.address || a.address1 || a.line1 || a.street);
+  const upazila = addrStr(a.upazila || a.suburb);
+  const district = addrStr(a.district);
+  const city = addrStr(a.city);
+  const state = addrStr(a.state || a.region);
+  const postal = addrStr(a.postal_code || a.postalCode || a.zip);
+  const country = addrStr(a.country);
+
+  const lines: string[] = [];
+
+  if (street) lines.push(street);
+
+  const locality = [upazila, district].filter(Boolean).join(", ");
+  if (locality) {
+    lines.push(locality);
+  } else if (city || state) {
+    const tail = [city, state].filter(Boolean).join(", ");
+    if (tail) lines.push(tail);
+  }
+
+  if (postal) lines.push(postal);
+  if (country) lines.push(country);
+
+  if (lines.length === 0) {
+    const legacyName = addrStr(a.name);
+    if (legacyName) lines.push(legacyName);
+    const a2 = addrStr(a.address2);
+    if (a2) lines.push(a2);
+    const legacyCity = [city, state, postal].filter(Boolean).join(" ");
+    if (legacyCity) lines.push(legacyCity);
+    if (country && !lines.includes(country)) lines.push(country);
+  }
+
+  return lines.filter(Boolean);
+}
+
 export default function AdminOrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
-  const { showSuccess } = useToast();
-
   // Dialog states
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
@@ -110,9 +242,7 @@ export default function AdminOrderDetailPage() {
   const { data: orderItems, isLoading: itemsLoading } = useOrderItems(
     orderId || ""
   );
-  const { data: payments, isLoading: paymentsLoading } = useOrderPayments(
-    orderId || ""
-  );
+  const { data: payments } = useOrderPayments(orderId || "");
 
   // Mutation hooks
   const updateOrderStatusMutation = useUpdateOrderStatus();
@@ -219,15 +349,6 @@ export default function AdminOrderDetailPage() {
 
   const formatCurrency = (amount: number) => formatPrice(amount);
 
-  const getCustomerName = (order: any) => {
-    if (order.user) {
-      return `${order.user.first_name || ""} ${
-        order.user.last_name || ""
-      }`.trim();
-    }
-    return "Guest Customer";
-  };
-
   if (orderLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -243,6 +364,8 @@ export default function AdminOrderDetailPage() {
       </div>
     );
   }
+
+  const customerEmailDisplay = orderEmailForDisplay(order.email);
 
   return (
     <div className="space-y-6">
@@ -300,9 +423,13 @@ export default function AdminOrderDetailPage() {
               </CardHeader>
               <CardContent>
                 <Badge
-                  className={
-                    statusColors[order.status as keyof typeof statusColors]
-                  }
+                  variant="outline"
+                  className={cn(
+                    "border-transparent font-semibold capitalize",
+                    statusColors[
+                      order.status as keyof typeof statusColors
+                    ] ?? "bg-gray-100 text-gray-800",
+                  )}
                 >
                   {order.status}
                 </Badge>
@@ -317,11 +444,13 @@ export default function AdminOrderDetailPage() {
               </CardHeader>
               <CardContent>
                 <Badge
-                  className={
+                  variant="outline"
+                  className={cn(
+                    "border-transparent font-semibold capitalize",
                     paymentStatusColors[
                       order.payment_status as keyof typeof paymentStatusColors
-                    ]
-                  }
+                    ] ?? "bg-gray-100 text-gray-800",
+                  )}
                 >
                   {order.payment_status}
                 </Badge>
@@ -336,11 +465,13 @@ export default function AdminOrderDetailPage() {
               </CardHeader>
               <CardContent>
                 <Badge
-                  className={
+                  variant="outline"
+                  className={cn(
+                    "border-transparent font-semibold capitalize",
                     fulfillmentStatusColors[
                       order.fulfillment_status as keyof typeof fulfillmentStatusColors
-                    ]
-                  }
+                    ] ?? "bg-gray-100 text-gray-800",
+                  )}
                 >
                   {order.fulfillment_status}
                 </Badge>
@@ -373,15 +504,10 @@ export default function AdminOrderDetailPage() {
                       {orderItems.map((item) => (
                         <TableRow key={item.id}>
                           <TableCell>
-                            <div>
-                              <div className="font-medium">
-                                {item.product_name}
-                              </div>
-                              {item.product && (
-                                <div className="text-sm text-muted-foreground">
-                                  {item.product.name}
-                                </div>
-                              )}
+                            <div className="font-medium text-foreground">
+                              {item.product_name?.trim() ||
+                                item.product?.name ||
+                                "—"}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -432,19 +558,50 @@ export default function AdminOrderDetailPage() {
                         <TableRow key={payment.id}>
                           <TableCell>{payment.payment_method}</TableCell>
                           <TableCell>
-                            {formatCurrency(payment.amount)}
+                            {(() => {
+                              const pAmt = toMoneyAmount(payment.amount);
+                              const oTot = toMoneyAmount(order.total_amount);
+                              const singleRow = payments.length === 1;
+                              const legacyShort =
+                                singleRow &&
+                                oTot > pAmt + 0.01 &&
+                                Math.abs(
+                                  pAmt - toMoneyAmount(order.subtotal)
+                                ) < 0.02;
+                              const displayAmt = legacyShort ? oTot : pAmt;
+                              return (
+                                <div>
+                                  <span className="font-medium tabular-nums">
+                                    {formatCurrency(displayAmt)}
+                                  </span>
+                                  {legacyShort && (
+                                    <p className="text-[10px] text-muted-foreground mt-1 leading-snug max-w-[200px]">
+                                      Stored payment row was{" "}
+                                      {formatCurrency(pAmt)} (items only).
+                                      Showing full order total.
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell>
                             <Badge
-                              className={
+                              variant="outline"
+                              className={cn(
+                                "border-transparent font-semibold capitalize",
                                 payment.status === "succeeded"
                                   ? "bg-green-100 text-green-800"
                                   : payment.status === "failed"
                                   ? "bg-red-100 text-red-800"
-                                  : "bg-yellow-100 text-yellow-800"
-                              }
+                                  : payment.status === "refunded"
+                                  ? "bg-gray-100 text-gray-800"
+                                  : "bg-yellow-100 text-yellow-800",
+                              )}
                             >
-                              {payment.status}
+                              {payment.status === "succeeded"
+                                ? "paid"
+                                : payment.status}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
@@ -467,36 +624,58 @@ export default function AdminOrderDetailPage() {
             <CardHeader>
               <CardTitle>Order Summary</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>{formatCurrency(order.subtotal)}</span>
+            <CardContent className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Product total</span>
+                <span className="font-medium tabular-nums">
+                  {formatCurrency(toMoneyAmount(order.subtotal))}
+                </span>
               </div>
-              {order.tax_amount && order.tax_amount > 0 && (
+              <div className="flex flex-col gap-0.5 text-sm">
                 <div className="flex justify-between">
-                  <span>Tax</span>
-                  <span>{formatCurrency(order.tax_amount)}</span>
+                  <span className="text-muted-foreground">Shipping</span>
+                  <span className="font-medium tabular-nums">
+                    {formatCurrency(resolvedShippingDisplay(order))}
+                  </span>
                 </div>
-              )}
-              {order.shipping_amount && order.shipping_amount > 0 && (
-                <div className="flex justify-between">
-                  <span>Shipping</span>
-                  <span>{formatCurrency(order.shipping_amount)}</span>
-                </div>
-              )}
-              {order.discount_amount && order.discount_amount > 0 && (
-                <div className="flex justify-between">
-                  <span>Discount</span>
-                  <span className="text-green-600">
-                    -{formatCurrency(order.discount_amount)}
+                {toMoneyAmount(order.shipping_amount) < 0.005 &&
+                  resolvedShippingDisplay(order) > 0.005 && (
+                    <p className="text-[10px] text-muted-foreground text-right leading-snug">
+                      Inferred from order total (legacy row)
+                    </p>
+                  )}
+              </div>
+              {toMoneyAmount(order.tax_amount) > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Tax</span>
+                  <span className="font-medium tabular-nums">
+                    {formatCurrency(toMoneyAmount(order.tax_amount))}
                   </span>
                 </div>
               )}
-              <div className="border-t pt-4">
-                <div className="flex justify-between font-bold text-lg">
-                  <span>Total</span>
-                  <span>{formatCurrency(order.total_amount)}</span>
+              {toMoneyAmount(order.discount_amount) > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Discount</span>
+                  <span className="font-medium tabular-nums text-green-600">
+                    −{formatCurrency(toMoneyAmount(order.discount_amount))}
+                  </span>
                 </div>
+              )}
+              <div className="border-t pt-3 space-y-1">
+                <div className="flex justify-between font-bold text-base">
+                  <span>Order total</span>
+                  <span className="tabular-nums">
+                    {formatCurrency(toMoneyAmount(order.total_amount))}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  Product total + shipping
+                  {toMoneyAmount(order.tax_amount) > 0 ? " + tax" : ""}
+                  {toMoneyAmount(order.discount_amount) > 0
+                    ? " − discount"
+                    : ""}
+                  .
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -509,18 +688,24 @@ export default function AdminOrderDetailPage() {
             <CardContent className="space-y-4">
               <div>
                 <Label className="text-sm font-medium">Name</Label>
-                <p className="text-sm">{getCustomerName(order)}</p>
+                <p className="text-sm text-foreground">
+                  {getCustomerDisplayName(order)}
+                </p>
               </div>
               <div>
                 <Label className="text-sm font-medium">Email</Label>
-                <p className="text-sm">{order.email}</p>
+                {customerEmailDisplay ? (
+                  <p className="text-sm break-all">{customerEmailDisplay}</p>
+                ) : (
+                  <p className="text-sm font-mono text-muted-foreground">null</p>
+                )}
               </div>
-              {order.phone && (
-                <div>
-                  <Label className="text-sm font-medium">Phone</Label>
-                  <p className="text-sm">{order.phone}</p>
-                </div>
-              )}
+              <div>
+                <Label className="text-sm font-medium">Phone</Label>
+                <p className="text-sm tabular-nums">
+                  {getCustomerPhoneDisplay(order) || "—"}
+                </p>
+              </div>
             </CardContent>
           </Card>
 
@@ -529,26 +714,38 @@ export default function AdminOrderDetailPage() {
             <CardHeader>
               <CardTitle>Shipping Address</CardTitle>
             </CardHeader>
-            <CardContent>
-              {order.shipping_address ? (
-                <div className="text-sm space-y-1">
-                  <p>{order.shipping_address.name}</p>
-                  <p>{order.shipping_address.address1}</p>
-                  {order.shipping_address.address2 && (
-                    <p>{order.shipping_address.address2}</p>
-                  )}
-                  <p>
-                    {order.shipping_address.city},{" "}
-                    {order.shipping_address.state}{" "}
-                    {order.shipping_address.postal_code}
-                  </p>
-                  <p>{order.shipping_address.country}</p>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No shipping address
-                </p>
-              )}
+            <CardContent className="space-y-3">
+              {(() => {
+                const lines = linesFromAddressJson(order.shipping_address);
+                const shipPhone = phoneFromAddressJson(order.shipping_address);
+                const customerPhone = getCustomerPhoneDisplay(order);
+                const showExtraPhone =
+                  Boolean(shipPhone) && shipPhone !== customerPhone;
+                if (lines.length === 0 && !shipPhone) {
+                  return (
+                    <p className="text-sm text-muted-foreground">
+                      No shipping address on file.
+                    </p>
+                  );
+                }
+                return (
+                  <div className="text-sm space-y-1.5 text-foreground">
+                    {lines.map((line, i) => (
+                      <p key={i} className="leading-snug">
+                        {line}
+                      </p>
+                    ))}
+                    {showExtraPhone && (
+                      <p className="pt-1 text-muted-foreground tabular-nums">
+                        <span className="font-medium text-foreground">
+                          Phone:{" "}
+                        </span>
+                        {shipPhone}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
 

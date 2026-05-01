@@ -21,8 +21,8 @@ import { APP_PATHS } from "@/constants/app-paths";
 import NumberStepper from "@/components/NumberStepper";
 import ProductVideoPlayer from "@/components/ProductVideoPlayer";
 
-const defaultVideoUrl =
-  "https://assets.adidas.com/videos/ar_1,w_480,c_fill,q_auto,f_auto/41a0e81b8f4d463caf6036b59517f1a2_d98c/Handball_Spezial_Shoes_Black_IE5897_video.mp4";
+/** Set to true when the catalog provides reliable product `video_url` values. */
+const ENABLE_PRODUCT_VIDEO = false;
 
 const ProductDetailPage = () => {
   const { id } = useParams();
@@ -493,14 +493,18 @@ const ProductDetailPage = () => {
               </Button>
             </div>
 
-            {/* Product Video */}
-            <div className="mt-2">
-              <ProductVideoPlayer
-                videoUrl={(product as any)?.video_url || defaultVideoUrl}
-                posterImage={productImages[0]?.url}
-                alt={`${product.name} video`}
-              />
-            </div>
+            {ENABLE_PRODUCT_VIDEO && (
+              <div className="mt-2">
+                <ProductVideoPlayer
+                  videoUrl={
+                    (product as any)?.video_url ||
+                    "https://assets.adidas.com/videos/ar_1,w_480,c_fill,q_auto,f_auto/41a0e81b8f4d463caf6036b59517f1a2_d98c/Handball_Spezial_Shoes_Black_IE5897_video.mp4"
+                  }
+                  posterImage={productImages[0]?.url}
+                  alt={`${product.name} video`}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

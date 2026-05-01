@@ -54,7 +54,17 @@ export function useOrders(params: PaginationParams = {}) {
         .select(
           `
           *,
-          user:profiles(id, first_name, last_name)
+          user:profiles(id, first_name, last_name),
+          order_items(
+            id,
+            sku,
+            product_name,
+            variant_name,
+            quantity,
+            unit_price,
+            total_price,
+            variant:product_variants(sku)
+          )
         `
         )
         .order("created_at", { ascending: false })
@@ -260,7 +270,17 @@ export function useSearchOrders(query: string, params: PaginationParams = {}) {
         .select(
           `
           *,
-          user:profiles(id, first_name, last_name)
+          user:profiles(id, first_name, last_name),
+          order_items(
+            id,
+            sku,
+            product_name,
+            variant_name,
+            quantity,
+            unit_price,
+            total_price,
+            variant:product_variants(sku)
+          )
         `
         )
         .or(

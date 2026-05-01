@@ -35,6 +35,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice } from "@/lib/currency";
+import { cn } from "@/lib/utils";
 import {
   useBulkUpdateOrderStatus,
   useCancelOrder,
@@ -64,30 +65,91 @@ import {
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-// Status color mappings
+/** Badge uses `variant="outline"` so Tailwind colors stay on hover (default Badge uses primary hover). */
 const statusColors = {
-  pending: "bg-yellow-100 text-yellow-800",
-  confirmed: "bg-blue-100 text-blue-800",
-  processing: "bg-blue-100 text-blue-800",
-  shipped: "bg-purple-100 text-purple-800",
-  delivered: "bg-green-100 text-green-800",
-  cancelled: "bg-red-100 text-red-800",
-  refunded: "bg-gray-100 text-gray-800",
+  pending:
+    "border-transparent bg-amber-100 text-amber-950 hover:bg-amber-100 hover:text-amber-950",
+  confirmed:
+    "border-transparent bg-sky-100 text-sky-950 hover:bg-sky-100 hover:text-sky-950",
+  processing:
+    "border-transparent bg-blue-100 text-blue-950 hover:bg-blue-100 hover:text-blue-950",
+  shipped:
+    "border-transparent bg-violet-100 text-violet-950 hover:bg-violet-100 hover:text-violet-950",
+  delivered:
+    "border-transparent bg-emerald-100 text-emerald-950 hover:bg-emerald-100 hover:text-emerald-950",
+  cancelled:
+    "border-transparent bg-red-100 text-red-950 hover:bg-red-100 hover:text-red-950",
+  refunded:
+    "border-transparent bg-zinc-200 text-zinc-900 hover:bg-zinc-200 hover:text-zinc-900",
 };
 
 const paymentStatusColors = {
-  paid: "bg-green-100 text-green-800",
-  pending: "bg-yellow-100 text-yellow-800",
-  failed: "bg-red-100 text-red-800",
-  refunded: "bg-gray-100 text-gray-800",
-  partially_refunded: "bg-orange-100 text-orange-800",
+  paid: "border-transparent bg-emerald-100 text-emerald-950 hover:bg-emerald-100 hover:text-emerald-950",
+  pending:
+    "border-transparent bg-amber-100 text-amber-950 hover:bg-amber-100 hover:text-amber-950",
+  failed: "border-transparent bg-red-100 text-red-950 hover:bg-red-100 hover:text-red-950",
+  refunded:
+    "border-transparent bg-zinc-200 text-zinc-900 hover:bg-zinc-200 hover:text-zinc-900",
+  partially_refunded:
+    "border-transparent bg-orange-100 text-orange-950 hover:bg-orange-100 hover:text-orange-950",
 };
 
 const fulfillmentStatusColors = {
-  unfulfilled: "bg-gray-100 text-gray-800",
-  partial: "bg-orange-100 text-orange-800",
-  fulfilled: "bg-green-100 text-green-800",
+  unfulfilled:
+    "border-transparent bg-slate-200 text-slate-950 hover:bg-slate-200 hover:text-slate-950",
+  partial:
+    "border-transparent bg-orange-100 text-orange-950 hover:bg-orange-100 hover:text-orange-950",
+  fulfilled:
+    "border-transparent bg-emerald-100 text-emerald-950 hover:bg-emerald-100 hover:text-emerald-950",
 };
+
+type OrderItemRow = {
+  id?: string;
+  sku?: string | null;
+  product_name?: string;
+  variant_name?: string | null;
+  quantity?: number;
+  variant?: { sku?: string | null } | null;
+};
+
+type OrderRow = Order & {
+  user?: { first_name?: string; last_name?: string } | null;
+  order_items?: OrderItemRow[] | { count: number }[];
+};
+
+function getOrderLineItems(order: OrderRow): OrderItemRow[] {
+  const raw = order.order_items;
+  if (!Array.isArray(raw) || raw.length === 0) return [];
+  const first = raw[0] as Record<string, unknown>;
+  if ("count" in first && typeof first.count === "number") return [];
+  return raw as OrderItemRow[];
+}
+
+function lineItemSku(it: OrderItemRow): string {
+  const fromRow = (it.sku || "").trim();
+  if (fromRow) return fromRow;
+  const fromVariant = (it.variant?.sku || "").trim();
+  if (fromVariant) return fromVariant;
+  return "—";
+}
+
+function getCustomerPhone(order: Order): string | undefined {
+  const top = order.phone?.trim();
+  if (top) return top;
+  const addr = order.shipping_address;
+  if (addr && typeof addr === "object") {
+    const a = addr as Record<string, unknown>;
+    const p = String(a.phone ?? "").trim();
+    if (p) return p;
+  }
+  const bill = order.billing_address;
+  if (bill && typeof bill === "object") {
+    const b = bill as Record<string, unknown>;
+    const p = String(b.phone ?? "").trim();
+    if (p) return p;
+  }
+  return undefined;
+}
 
 export default function AdminOrdersPage() {
   const navigate = useNavigate();
@@ -306,13 +368,28 @@ export default function AdminOrdersPage() {
 
   const formatCurrency = (amount: number) => formatPrice(amount);
 
-  const getCustomerName = (order: Order & { user?: any }) => {
+  const getCustomerDisplayName = (order: OrderRow) => {
     if (order.user) {
-      return `${order.user.first_name || ""} ${
-        order.user.last_name || ""
-      }`.trim();
+      const n = `${order.user.first_name || ""} ${order.user.last_name || ""}`.trim();
+      if (n) return n;
     }
-    return "Guest Customer";
+    const ship = order.shipping_address;
+    if (ship && typeof ship === "object") {
+      const s = ship as Record<string, string | undefined>;
+      const fn = s.firstName || s.first_name;
+      const ln = s.lastName || s.last_name;
+      const combined = `${fn || ""} ${ln || ""}`.trim();
+      if (combined) return combined;
+    }
+    const bill = order.billing_address;
+    if (bill && typeof bill === "object") {
+      const b = bill as Record<string, string | undefined>;
+      const fn = b.firstName || b.first_name;
+      const ln = b.lastName || b.last_name;
+      const combined = `${fn || ""} ${ln || ""}`.trim();
+      if (combined) return combined;
+    }
+    return "Guest";
   };
 
   return (
@@ -488,11 +565,11 @@ export default function AdminOrdersPage() {
           <CardTitle>Orders ({filteredOrders.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[50px]">
+                  <TableHead className="w-[50px] sticky left-0 z-10 bg-background">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -505,33 +582,48 @@ export default function AdminOrdersPage() {
                       )}
                     </Button>
                   </TableHead>
-                  <TableHead>Order</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Payment</TableHead>
-                  <TableHead>Fulfillment</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead className="min-w-[120px] whitespace-nowrap">
+                    Order
+                  </TableHead>
+                  <TableHead className="min-w-[168px] whitespace-nowrap">
+                    Customer
+                  </TableHead>
+                  <TableHead className="min-w-[120px] whitespace-nowrap">
+                    SKU
+                  </TableHead>
+                  <TableHead className="min-w-[100px] whitespace-nowrap">
+                    Total
+                  </TableHead>
+                  <TableHead className="min-w-[120px] whitespace-nowrap">
+                    Ordered
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Status</TableHead>
+                  <TableHead className="whitespace-nowrap">Payment</TableHead>
+                  <TableHead className="whitespace-nowrap">Fulfillment</TableHead>
                   <TableHead className="w-[70px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
+                    <TableCell colSpan={10} className="text-center py-8">
                       Loading orders...
                     </TableCell>
                   </TableRow>
                 ) : filteredOrders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
+                    <TableCell colSpan={10} className="text-center py-8">
                       No orders found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredOrders.map((order) => (
+                  filteredOrders.map((order) => {
+                    const row = order as OrderRow;
+                    const lineItems = getOrderLineItems(row);
+                    const phone = getCustomerPhone(order);
+                    return (
                     <TableRow key={order.id}>
-                      <TableCell>
+                      <TableCell className="sticky left-0 z-10 bg-background align-top">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -544,66 +636,101 @@ export default function AdminOrdersPage() {
                           )}
                         </Button>
                       </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">
-                            {order.order_number}
+                      <TableCell className="align-top">
+                        <button
+                          type="button"
+                          onClick={() => handleViewOrder(order.id)}
+                          className="block text-left font-semibold text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+                        >
+                          {order.order_number}
+                        </button>
+                      </TableCell>
+                      <TableCell className="align-top">
+                        <div className="space-y-1.5 max-w-[220px]">
+                          <div>
+                            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                              Name
+                            </p>
+                            <p className="text-sm font-medium text-foreground leading-snug">
+                              {getCustomerDisplayName(row)}
+                            </p>
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            {order.email}
+                          <div>
+                            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                              Phone
+                            </p>
+                            <p className="text-xs text-foreground tabular-nums">
+                              {phone || "—"}
+                            </p>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">
-                            {getCustomerName(order)}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {order.email}
-                          </div>
-                        </div>
+                      <TableCell className="align-top">
+                        {lineItems.length === 0 ? (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        ) : (
+                          <ul className="space-y-1 max-w-[200px]">
+                            {lineItems.map((it, idx) => (
+                              <li key={it.id || idx}>
+                                <span className="font-mono text-xs text-foreground">
+                                  {lineItemSku(it)}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell className="align-top text-sm font-semibold tabular-nums text-foreground">
                         {formatCurrency(order.total_amount)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="align-top text-sm text-muted-foreground whitespace-nowrap">
+                        {formatDate(order.created_at || "")}
+                      </TableCell>
+                      <TableCell className="align-top">
                         <Badge
-                          className={
+                          variant="outline"
+                          className={cn(
+                            "px-2 py-0.5 text-xs font-medium capitalize shadow-none",
                             statusColors[
-                              order.status as keyof typeof statusColors
-                            ]
-                          }
+                              (order.status || "pending") as keyof typeof statusColors
+                            ] ||
+                              "border-transparent bg-zinc-100 text-zinc-900 hover:bg-zinc-100 hover:text-zinc-900"
+                          )}
                         >
                           {order.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="align-top">
                         <Badge
-                          className={
+                          variant="outline"
+                          className={cn(
+                            "px-2 py-0.5 text-xs font-medium capitalize shadow-none",
                             paymentStatusColors[
-                              order.payment_status as keyof typeof paymentStatusColors
-                            ]
-                          }
+                              (order.payment_status ||
+                                "pending") as keyof typeof paymentStatusColors
+                            ] ||
+                              "border-transparent bg-zinc-100 text-zinc-900 hover:bg-zinc-100 hover:text-zinc-900"
+                          )}
                         >
                           {order.payment_status}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="align-top">
                         <Badge
-                          className={
+                          variant="outline"
+                          className={cn(
+                            "px-2 py-0.5 text-xs font-medium capitalize shadow-none",
                             fulfillmentStatusColors[
-                              order.fulfillment_status as keyof typeof fulfillmentStatusColors
-                            ]
-                          }
+                              (order.fulfillment_status ||
+                                "unfulfilled") as keyof typeof fulfillmentStatusColors
+                            ] ||
+                              "border-transparent bg-slate-200 text-slate-950 hover:bg-slate-200 hover:text-slate-950"
+                          )}
                         >
-                          {order.fulfillment_status}
+                          {order.fulfillment_status || "unfulfilled"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {formatDate(order.created_at || "")}
-                      </TableCell>
-                      <TableCell>
+                      <TableCell className="align-top">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0">
@@ -649,7 +776,8 @@ export default function AdminOrdersPage() {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

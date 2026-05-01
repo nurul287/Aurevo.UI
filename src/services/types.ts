@@ -134,6 +134,8 @@ export interface ProductVariant {
   id: string; // UUID
   product_id: string; // UUID
   sku?: string;
+  /** Nested when selected via `product_variants(..., inventory(*))` */
+  inventory?: Inventory | Inventory[] | null;
   name?: string;
   size?: string;
   color?: string;
@@ -239,7 +241,8 @@ export interface Order {
   id: string; // UUID
   order_number: string;
   user_id?: string; // UUID
-  email: string;
+  /** Null when guest did not provide an email */
+  email?: string | null;
   phone?: string;
   // Order totals
   subtotal: number; // DECIMAL

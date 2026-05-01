@@ -10,6 +10,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { formatPrice } from "@/lib/currency";
 import { getLeadImageUrl } from "@/lib/product-images";
+import { getSupabaseErrorMessage } from "@/lib/supabase-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -30,13 +31,23 @@ import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateGuestOrder } from "@/services/order/use-order-mutation";
 import { CheckCircle2 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { BANGLADESH_DISTRICTS, upazilasForDistrictName } from "@/lib/bangladesh-locations";
 import { useProduct } from "@/services";
-import { useQuery } from "@tanstack/react-query";
 import bkashLogo from "@/assets/image/bkash.png";
 
-const SHIPPING_COST = 80; // Fixed shipping cost for all areas
+const SHIPPING_INSIDE_DHAKA = 100;
+const SHIPPING_OUTSIDE_DHAKA = 130;
+
+/** District display name for the capital; normalized for comparison. */
+function shippingZoneForDistrict(
+  district: string,
+): "inside_dhaka" | "outside_dhaka" | null {
+  const d = district.trim().toLowerCase();
+  if (!d) return null;
+  return d === "dhaka" ? "inside_dhaka" : "outside_dhaka";
+}
 
 const CheckoutPage = () => {
   const [searchParams] = useSearchParams();
@@ -64,7 +75,7 @@ const CheckoutPage = () => {
       directCheckoutProduct
     ) {
       const variant = directCheckoutProduct.variants?.find(
-        (v) => v.id === directCheckoutVariantId
+        (v) => v.id === directCheckoutVariantId,
       );
       if (variant) {
         return {
@@ -98,10 +109,21 @@ const CheckoutPage = () => {
   // Calculate totals
   const itemCount = checkoutItems.reduce(
     (sum, item) => sum + (item.quantity || 1),
-    0
+    0,
   );
   const discountAmount = 0; // Will be calculated when coupon is applied
-  const checkoutTotal = checkoutSubtotal + SHIPPING_COST - discountAmount;
+
+  const [shippingZone, setShippingZone] = useState<
+    "inside_dhaka" | "outside_dhaka" | null
+  >(null);
+
+  const shippingCost = useMemo(() => {
+    if (shippingZone === "inside_dhaka") return SHIPPING_INSIDE_DHAKA;
+    if (shippingZone === "outside_dhaka") return SHIPPING_OUTSIDE_DHAKA;
+    return 0;
+  }, [shippingZone]);
+
+  const checkoutTotal = checkoutSubtotal + shippingCost - discountAmount;
 
   const [formData, setFormData] = useState({
     name: "",
@@ -114,58 +136,31 @@ const CheckoutPage = () => {
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch districts
-  const { data: districtsData } = useQuery({
-    queryKey: ["districts"],
-    queryFn: async () => {
-      const response = await fetch("https://bdapis.com/api/v1.2/districts");
-      if (!response.ok) throw new Error("Failed to fetch districts");
-      const data = await response.json();
-      return data.data || [];
-    },
-    staleTime: 24 * 60 * 60 * 1000, // Cache for 24 hours
-  });
+  useEffect(() => {
+    setShippingZone(shippingZoneForDistrict(formData.district));
+  }, [formData.district]);
 
-  // Convert districts to DropDownList options
-  const districtOptions: DropDownListOption[] = useMemo(() => {
-    if (!districtsData) return [];
-    return districtsData.map((district: any) => ({
-      value: district.district,
-      label: district.district,
-    }));
-  }, [districtsData]);
+  const districtOptions: DropDownListOption[] = useMemo(
+    () =>
+      BANGLADESH_DISTRICTS.map((d) => ({
+        value: d.name,
+        label: d.name,
+      })),
+    [],
+  );
 
-  // Fetch upazilas when district is selected
-  const { data: upazilasData } = useQuery({
-    queryKey: ["upazilas", formData.district],
-    queryFn: async () => {
-      if (!formData.district) return [];
-      const response = await fetch(
-        `https://bdapis.com/api/v1.2/district/${encodeURIComponent(
-          formData.district
-        )}`
-      );
-      if (!response.ok) throw new Error("Failed to fetch upazilas");
-      const data = await response.json();
-      // API returns: { data: [{ district: "...", upazillas: [...] }] }
-      // Extract the upazillas array from the first district object
-      const districtData = data.data?.[0];
-      if (districtData && districtData.upazillas) {
-        return districtData.upazillas; // Array of strings
-      }
-      return [];
-    },
-    enabled: !!formData.district,
-    staleTime: 24 * 60 * 60 * 1000, // Cache for 24 hours
-  });
+  const upazilasData = useMemo(
+    () =>
+      formData.district ? upazilasForDistrictName(formData.district) : [],
+    [formData.district],
+  );
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,14 +177,23 @@ const CheckoutPage = () => {
       ) {
         showWarning(
           "Required fields missing",
-          "Name, phone number, address, district, and upazila are required"
+          "Name, phone number, address, district, and upazila are required",
         );
         setIsSubmitting(false);
         return;
       }
 
-      // Use email if provided, otherwise generate a temporary one
-      const email = formData.email || `guest_${Date.now()}@example.com`;
+      if (!shippingZone) {
+        showWarning(
+          "Shipping method required",
+          "Please choose Inside Dhaka or Outside Dhaka delivery.",
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      const emailTrimmed = formData.email.trim();
+      const email = emailTrimmed.length > 0 ? emailTrimmed : null;
 
       // Extract first and last name from name field
       const nameParts = formData.name.trim().split(" ");
@@ -227,7 +231,7 @@ const CheckoutPage = () => {
         })),
         subtotal: checkoutSubtotal,
         tax_amount: 0,
-        shipping_amount: SHIPPING_COST,
+        shipping_amount: shippingCost,
         discount_amount: discountAmount,
         total_amount: checkoutTotal,
         payment_method: paymentMethod,
@@ -237,14 +241,14 @@ const CheckoutPage = () => {
 
       console.log(
         "✅ Order created successfully:",
-        orderResult.order.order_number
+        orderResult.order.order_number,
       );
 
       // Clear the cart after successful order (only if not direct checkout)
       if (!directCheckoutItem) {
-      try {
-        await clearCart();
-      } catch (cartError) {
+        try {
+          await clearCart();
+        } catch (cartError) {
           console.warn("⚠️ Failed to clear cart:", cartError);
         }
       }
@@ -262,10 +266,7 @@ const CheckoutPage = () => {
       navigate(`/order-confirmation?${params.toString()}`);
     } catch (error) {
       console.error("Checkout error:", error);
-      showError(
-        "Failed to process checkout",
-        "Something went wrong. Please try again."
-      );
+      showError("Failed to process checkout", getSupabaseErrorMessage(error));
       setIsSubmitting(false);
     }
   };
@@ -386,7 +387,7 @@ const CheckoutPage = () => {
                         </div>
                       );
                     })}
-              </div>
+                  </div>
 
                   {/* Totals */}
                   <div className="space-y-2 pt-4 border-t border-gray-200">
@@ -397,21 +398,23 @@ const CheckoutPage = () => {
                       </span>
                       <span className="text-sm font-semibold text-gray-900">
                         {formatPrice(checkoutSubtotal)}
-              </span>
-            </div>
+                      </span>
+                    </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">Shipping</span>
                       <span className="text-sm font-semibold text-gray-900">
-                        {formatPrice(SHIPPING_COST)}
+                        {shippingZone
+                          ? formatPrice(shippingCost)
+                          : "Select method"}
                       </span>
-              </div>
+                    </div>
                     {discountAmount > 0 && (
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600">Discount</span>
                         <span className="text-sm font-semibold text-green-600">
                           -{formatPrice(discountAmount)}
-              </span>
-            </div>
+                        </span>
+                      </div>
                     )}
                     <div className="flex justify-between items-center pt-3 border-t border-gray-200">
                       <span className="text-base font-bold text-gray-900">
@@ -419,17 +422,17 @@ const CheckoutPage = () => {
                       </span>
                       <span className="text-base font-bold text-gray-900">
                         {formatPrice(checkoutTotal)}
-              </span>
-            </div>
-          </div>
+                      </span>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
-        </div>
+            </div>
 
             {/* Right Column - Form Sections */}
             <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
               {/* Delivery Address Section */}
-            <Card>
+              <Card>
                 <CardContent className="pt-6">
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">
                     Your delivery address
@@ -495,16 +498,16 @@ const CheckoutPage = () => {
                         Address <span className="text-red-500">*</span>
                       </Label>
                       <Input
-                      id="address"
-                      name="address"
-                      value={formData.address}
-                      onChange={handleInputChange}
+                        id="address"
+                        name="address"
+                        value={formData.address}
+                        onChange={handleInputChange}
                         placeholder="Address"
-                      required
+                        required
                         className="mt-1 border-gray-300"
-                    />
-                  </div>
-                  <div>
+                      />
+                    </div>
+                    <div>
                       <Label
                         htmlFor="district"
                         className="text-sm font-medium text-gray-700"
@@ -524,10 +527,10 @@ const CheckoutPage = () => {
                         placeholder="Select District"
                         searchPlaceholder="Filter"
                         emptyMessage="No districts found"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
                       <Label
                         htmlFor="upazila"
                         className="text-sm font-medium text-gray-700"
@@ -554,8 +557,8 @@ const CheckoutPage = () => {
                       </Select>
                     </div>
                   </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
               {/* Shipping Section */}
               <Card>
@@ -563,16 +566,56 @@ const CheckoutPage = () => {
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">
                     Shipping Method
                   </h2>
-                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
-                        Delivery Charge
-                      </span>
+                  <RadioGroup
+                    value={shippingZone ?? ""}
+                    onValueChange={(v) =>
+                      setShippingZone(v as "inside_dhaka" | "outside_dhaka")
+                    }
+                    className="space-y-3"
+                  >
+                    <label
+                      htmlFor="ship-inside-dhaka"
+                      className={`flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-colors ${
+                        shippingZone === "inside_dhaka"
+                          ? "border-gray-900 bg-gray-50"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <RadioGroupItem
+                          value="inside_dhaka"
+                          id="ship-inside-dhaka"
+                        />
+                        <span className="text-sm font-medium text-gray-900">
+                          Inside Dhaka
+                        </span>
+                      </div>
                       <span className="text-sm font-semibold text-gray-900">
-                        ৳{formatPrice(SHIPPING_COST)}
+                        {formatPrice(SHIPPING_INSIDE_DHAKA)}
                       </span>
-                  </div>
-                </div>
+                    </label>
+                    <label
+                      htmlFor="ship-outside-dhaka"
+                      className={`flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-colors ${
+                        shippingZone === "outside_dhaka"
+                          ? "border-gray-900 bg-gray-50"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <RadioGroupItem
+                          value="outside_dhaka"
+                          id="ship-outside-dhaka"
+                        />
+                        <span className="text-sm font-medium text-gray-900">
+                          Outside Dhaka
+                        </span>
+                      </div>
+                      <span className="text-sm font-semibold text-gray-900">
+                        {formatPrice(SHIPPING_OUTSIDE_DHAKA)}
+                      </span>
+                    </label>
+                  </RadioGroup>
                 </CardContent>
               </Card>
 
@@ -589,13 +632,13 @@ const CheckoutPage = () => {
                   >
                     <div className="flex items-center justify-between p-4 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors">
                       <div className="flex items-center space-x-3">
-                      <RadioGroupItem value="cash" id="cash" />
-                      <Label
-                        htmlFor="cash"
+                        <RadioGroupItem value="cash" id="cash" />
+                        <Label
+                          htmlFor="cash"
                           className="text-sm font-medium text-gray-900 cursor-pointer"
-                      >
+                        >
                           Cash On Delivery
-                      </Label>
+                        </Label>
                       </div>
                       {paymentMethod === "cash" && (
                         <CheckCircle2 className="w-5 h-5 text-green-600" />
@@ -612,14 +655,14 @@ const CheckoutPage = () => {
                       </p>
                       <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
                         <span className="text-sm font-medium text-green-800">
-                          01897918383
+                          01840300379
                         </span>
                         <img src={bkashLogo} alt="bKash" className="h-6" />
-                  </div>
-                </div>
+                      </div>
+                    </div>
                   )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
               {/* Order Now Button */}
               <Button
@@ -629,8 +672,8 @@ const CheckoutPage = () => {
               >
                 {isSubmitting ? "Processing..." : "Order Now"}
               </Button>
+            </div>
           </div>
-        </div>
         </form>
       </div>
     </div>

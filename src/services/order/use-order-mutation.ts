@@ -38,7 +38,7 @@ export interface BulkUpdateOrderStatusParams {
 }
 
 export interface CreateGuestOrderParams {
-  email: string;
+  email?: string | null;
   phone?: string;
   firstName?: string;
   lastName?: string;
@@ -122,6 +122,24 @@ export function useUpdateOrderStatus() {
   });
 }
 
+/** `payments.status` uses gateway-style values; align with `orders.payment_status`. */
+function orderPaymentStatusToPaymentRowStatus(
+  ps: PaymentStatus,
+): "pending" | "succeeded" | "failed" | "cancelled" | "refunded" {
+  switch (ps) {
+    case "paid":
+      return "succeeded";
+    case "failed":
+      return "failed";
+    case "refunded":
+    case "partially_refunded":
+      return "refunded";
+    case "pending":
+    default:
+      return "pending";
+  }
+}
+
 /**
  * Hook for updating payment status
  */
@@ -149,6 +167,23 @@ export function useUpdatePaymentStatus() {
         throw error;
       }
 
+      const rowStatus = orderPaymentStatusToPaymentRowStatus(
+        params.paymentStatus,
+      );
+      const { error: paymentsError } = await supabase
+        .from("payments")
+        .update({
+          status: rowStatus,
+          processed_at:
+            rowStatus === "succeeded" ? new Date().toISOString() : null,
+        })
+        .eq("order_id", params.orderId);
+
+      if (paymentsError) {
+        console.error("❌ Error syncing payment rows:", paymentsError);
+        throw paymentsError;
+      }
+
       console.log("✅ Payment status updated:", data);
       return data;
     },
@@ -172,6 +207,9 @@ export function useUpdatePaymentStatus() {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({
         queryKey: orderQueryKeys.order(variables.orderId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: orderQueryKeys.orderPayments(variables.orderId),
       });
       queryClient.invalidateQueries({ queryKey: ["orders", "stats"] });
     },
@@ -411,7 +449,7 @@ export function useCancelOrder() {
  */
 export function useCreateGuestOrder() {
   const queryClient = useQueryClient();
-  const { showSuccess, showError } = useToast();
+  const { showSuccess } = useToast();
 
   return useMutation({
     mutationFn: async (params: CreateGuestOrderParams) => {
@@ -434,7 +472,7 @@ export function useCreateGuestOrder() {
         {
           user_id: null, // Guest order
           email: params.email,
-          phone: params.phone,
+          phone: params.phone ?? null,
           items: params.items.map((item) => ({
             product_id: item.product_id,
             variant_id: item.variant_id,
@@ -443,10 +481,13 @@ export function useCreateGuestOrder() {
           })),
           billing_address: params.billingAddress,
           shipping_address: params.shippingAddress,
-          notes: params.notes,
-          session_id: params.session_id,
+          notes: params.notes ?? "",
+          session_id: params.session_id ?? null,
           payment_method: params.payment_method,
           guest_token: guest_token,
+          p_tax_amount: params.tax_amount ?? 0,
+          p_shipping_amount: params.shipping_amount ?? 0,
+          p_discount_amount: params.discount_amount ?? 0,
         }
       );
 
@@ -470,7 +511,6 @@ export function useCreateGuestOrder() {
     },
     onError: (error) => {
       console.error("❌ Error creating guest order:", error);
-      showError("Failed to Create Order", error.message);
     },
   });
 }

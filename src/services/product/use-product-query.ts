@@ -55,7 +55,7 @@ export function useProducts(params: PaginationParams = {}) {
           *,
           category:categories!category_id(*),
           brand:brands!brand_id(*),
-          variants:product_variants(*),
+          variants:product_variants(*, inventory(*)),
           images:product_images(*)
         `,
           { count: "exact" }
@@ -105,7 +105,7 @@ export function useInfiniteProducts(limit: number = 12) {
           *,
           category:categories!category_id(*),
           brand:brands!brand_id(*),
-          variants:product_variants(*),
+          variants:product_variants(*, inventory(*)),
           images:product_images(*)
         `,
           { count: "exact" }
@@ -180,7 +180,7 @@ export function useProduct(id: string) {
           updated_at,
           category:categories!category_id(*),
           brand:brands!brand_id(*),
-          variants:product_variants(id, product_id, sku, name, size, color, color_code, material, weight, price, compare_at_price, barcode, is_active, sort_order, created_at, updated_at),
+          variants:product_variants(id, product_id, sku, name, size, color, color_code, material, weight, price, compare_at_price, barcode, is_active, sort_order, created_at, updated_at, inventory(*)),
           images:product_images(*)
         `
         )
@@ -258,7 +258,7 @@ export function useProductsByCategory(
           updated_at,
           category:categories!category_id(*),
           brand:brands!brand_id(*),
-          variants:product_variants(id, product_id, sku, name, size, color, color_code, material, weight, price, compare_at_price, barcode, is_active, sort_order, created_at, updated_at),
+          variants:product_variants(id, product_id, sku, name, size, color, color_code, material, weight, price, compare_at_price, barcode, is_active, sort_order, created_at, updated_at, inventory(*)),
           images:product_images(*)
         `,
           { count: "exact" }
@@ -348,7 +348,7 @@ export function useSearchProducts(
           updated_at,
           category:categories!category_id(*),
           brand:brands!brand_id(*),
-          variants:product_variants(id, product_id, sku, name, size, color, color_code, material, weight, price, compare_at_price, barcode, is_active, sort_order, created_at, updated_at),
+          variants:product_variants(id, product_id, sku, name, size, color, color_code, material, weight, price, compare_at_price, barcode, is_active, sort_order, created_at, updated_at, inventory(*)),
           images:product_images(*)
         `,
           { count: "exact" }
