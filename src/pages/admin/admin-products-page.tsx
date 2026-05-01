@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatPrice } from "@/lib/currency";
+import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -51,7 +52,13 @@ import {
   CreateProductParams,
   UpdateProductParams,
 } from "@/services/product/use-product-mutation";
-import { ProductGender, ProductWithVariants } from "@/services/types";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Inventory,
+  ProductGender,
+  ProductVariant,
+  ProductWithVariants,
+} from "@/services/types";
 import {
   AlertTriangle,
   Edit,
@@ -97,7 +104,20 @@ interface ProductFormData {
   is_active: boolean;
 }
 
+function variantAvailableUnits(variant: ProductVariant): number {
+  const inv = variant.inventory;
+  if (inv == null) return 0;
+  const rows: Inventory[] = Array.isArray(inv) ? inv : [inv];
+  return rows.reduce((sum, row) => {
+    const avail =
+      row.available_quantity ??
+      Math.max(0, (row.quantity ?? 0) - (row.reserved_quantity ?? 0));
+    return sum + Math.max(0, avail);
+  }, 0);
+}
+
 export default function AdminProductsPage() {
+  const { showError } = useToast();
   // State management
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -199,10 +219,10 @@ export default function AdminProductsPage() {
       return { label: "No Variants", color: "bg-gray-100 text-gray-800" };
     }
 
-    const totalStock = product.variants.reduce((sum) => {
-      // This would need to be calculated from inventory table
-      return sum + 0; // Placeholder
-    }, 0);
+    const totalStock = product.variants.reduce(
+      (sum, v) => sum + variantAvailableUnits(v),
+      0,
+    );
 
     if (totalStock === 0)
       return { label: "Out of Stock", color: "bg-red-100 text-red-800" };
@@ -295,6 +315,14 @@ export default function AdminProductsPage() {
   };
 
   const handleSubmitProduct = () => {
+    if (!formData.category_id || !formData.brand_id) {
+      showError(
+        "Missing required fields",
+        "Please select both a category and a brand.",
+      );
+      return;
+    }
+
     if (editingProduct) {
       // Update existing product
       const updateData: UpdateProductParams = {
@@ -304,8 +332,8 @@ export default function AdminProductsPage() {
         description: formData.description,
         short_description: formData.short_description,
         sku: formData.sku,
-        category_id: formData.category_id || undefined,
-        brand_id: formData.brand_id || undefined,
+        category_id: formData.category_id,
+        brand_id: formData.brand_id,
         gender: formData.gender,
         material: formData.material,
         care_instructions: formData.care_instructions,
@@ -345,8 +373,8 @@ export default function AdminProductsPage() {
         description: formData.description,
         short_description: formData.short_description,
         sku: formData.sku,
-        category_id: formData.category_id || undefined,
-        brand_id: formData.brand_id || undefined,
+        category_id: formData.category_id,
+        brand_id: formData.brand_id,
         gender: formData.gender,
         material: formData.material,
         care_instructions: formData.care_instructions,
@@ -490,12 +518,12 @@ export default function AdminProductsPage() {
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="sku" className="text-right">
-                    SKU
+                    SKU (optional)
                   </Label>
                   <Input
                     id="sku"
                     className="col-span-3"
-                    placeholder="Product SKU"
+                    placeholder="Leave blank if unused — must be unique when set"
                     value={formData.sku}
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, sku: e.target.value }))
@@ -504,10 +532,10 @@ export default function AdminProductsPage() {
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="category" className="text-right">
-                    Category
+                    Category *
                   </Label>
                   <Select
-                    value={formData.category_id}
+                    value={formData.category_id || undefined}
                     onValueChange={(value) =>
                       setFormData((prev) => ({ ...prev, category_id: value }))
                     }
@@ -526,10 +554,10 @@ export default function AdminProductsPage() {
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="brand" className="text-right">
-                    Brand
+                    Brand *
                   </Label>
                   <Select
-                    value={formData.brand_id}
+                    value={formData.brand_id || undefined}
                     onValueChange={(value) =>
                       setFormData((prev) => ({ ...prev, brand_id: value }))
                     }
@@ -890,7 +918,13 @@ export default function AdminProductsPage() {
                             <div className="font-medium">
                               {product.variants?.length || 0} variants
                             </div>
-                            <Badge className={stockStatus.color}>
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "border-transparent font-semibold",
+                                stockStatus.color,
+                              )}
+                            >
                               {stockStatus.label}
                             </Badge>
                           </div>
@@ -898,22 +932,26 @@ export default function AdminProductsPage() {
                         <TableCell>
                           <div className="flex flex-col gap-1">
                             <Badge
-                              className={
+                              variant="outline"
+                              className={cn(
+                                "border-transparent font-semibold",
                                 product.is_active
                                   ? statusColors.active
-                                  : statusColors.inactive
-                              }
+                                  : statusColors.inactive,
+                              )}
                             >
                               Product:{" "}
                               {product.is_active ? "Active" : "Inactive"}
                             </Badge>
                             {product.brand && (
                               <Badge
-                                className={
+                                variant="outline"
+                                className={cn(
+                                  "border-transparent font-semibold",
                                   product.brand.is_active
                                     ? statusColors.active
-                                    : statusColors.inactive
-                                }
+                                    : statusColors.inactive,
+                                )}
                               >
                                 Brand:{" "}
                                 {product.brand.is_active
@@ -998,6 +1036,50 @@ export default function AdminProductsPage() {
                   setFormData((prev) => ({ ...prev, slug: e.target.value }))
                 }
               />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-category" className="text-right">
+                Category *
+              </Label>
+              <Select
+                value={formData.category_id || undefined}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, category_id: value }))
+                }
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories?.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-brand" className="text-right">
+                Brand *
+              </Label>
+              <Select
+                value={formData.brand_id || undefined}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, brand_id: value }))
+                }
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select brand" />
+                </SelectTrigger>
+                <SelectContent>
+                  {brands?.map((brand) => (
+                    <SelectItem key={brand.id} value={brand.id}>
+                      {brand.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-base_price" className="text-right">

@@ -17,6 +17,10 @@ dist-ssr
 !.vscode/extensions.json
 # Cursor: local MCP server URLs (machine-specific)
 .cursor/mcp.json
+.cursor/settings.json
+
+# Supabase CLI cache (local)
+supabase/.temp/
 .idea
 .DS_Store
 *.suo
