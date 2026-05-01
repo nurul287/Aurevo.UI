@@ -1,4 +1,6 @@
-# Runs on every PR and on pushes to main/dev.
+# Runs on PRs targeting main/dev, and on direct pushes to main only.
+# We intentionally do NOT run on push to dev: that would duplicate PR checks when
+# the PR head is dev (same commit triggers pull_request + push).
 #
 # Branch protection: require these checks from GitHub Actions (after this workflow
 # has run once on a PR):
@@ -14,7 +16,7 @@ on:
   pull_request:
     branches: [main, dev]
   push:
-    branches: [main, dev]
+    branches: [main]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
