@@ -27,5 +27,6 @@
     }
   },
   "include": ["src"],
+  "exclude": ["src/components/button-showcase.tsx"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

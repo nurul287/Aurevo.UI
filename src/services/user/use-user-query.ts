@@ -7,6 +7,7 @@ export const userQueryKeys = {
   orders: (userId: string) => ["user", "orders", userId] as const,
   order: (userId: string, orderId: string) =>
     ["user", "order", userId, orderId] as const,
+  profile: (userId: string) => ["user", "profile", userId] as const,
 } as const;
 
 // Note: useUserProfile is available from auth service

@@ -126,7 +126,7 @@ export function useDeleteAvatar() {
 
   return useMutation({
     mutationFn: async ({
-      userId,
+      userId: _userId,
       avatarUrl,
     }: {
       userId: string;
