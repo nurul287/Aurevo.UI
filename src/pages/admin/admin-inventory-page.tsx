@@ -13,7 +13,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +33,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { formatPrice } from "@/lib/currency";
 // Toast notifications are handled by the mutation hooks
 import {
   useAllInventoryMovements,
@@ -57,12 +57,25 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+function unwrapRelation<T>(rel: T | T[] | null | undefined): T | undefined {
+  if (rel == null) return undefined;
+  return Array.isArray(rel) ? rel[0] : rel;
+}
+
+function variantProductName(variant: { products?: unknown } | null): string {
+  if (!variant) return "Product";
+  const p = unwrapRelation(variant.products as any);
+  return (p as { name?: string } | undefined)?.name || "Product";
+}
+
 export default function AdminInventoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMovementType, setSelectedMovementType] =
     useState<string>("all");
   const [isRestockDialogOpen, setIsRestockDialogOpen] = useState(false);
   const [isDecreaseDialogOpen, setIsDecreaseDialogOpen] = useState(false);
+  /** True = header "Restock" (pick variant). False = row action (variant fixed). */
+  const [restockFromBulk, setRestockFromBulk] = useState(true);
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
   const [restockQuantity, setRestockQuantity] = useState("");
   const [restockCost, setRestockCost] = useState("");
@@ -116,24 +129,48 @@ export default function AdminInventoryPage() {
           .includes(searchTerm.toLowerCase())
     ) || [];
 
+  const resetRestockForm = () => {
+    setRestockQuantity("");
+    setRestockCost("");
+    setRestockReference("");
+    setRestockNotes("");
+    setSelectedVariant(null);
+    setRestockFromBulk(true);
+  };
+
+  const openBulkRestock = () => {
+    setRestockFromBulk(true);
+    setSelectedVariant(null);
+    setRestockQuantity("");
+    setRestockCost("");
+    setRestockReference("");
+    setRestockNotes("");
+    setIsRestockDialogOpen(true);
+  };
+
+  const openSingleRestock = (variant: any) => {
+    setRestockFromBulk(false);
+    setSelectedVariant(variant);
+    setRestockQuantity("");
+    setRestockCost("");
+    setRestockReference("");
+    setRestockNotes("");
+    setIsRestockDialogOpen(true);
+  };
+
   const handleRestock = async () => {
     if (!selectedVariant || !restockQuantity) return;
 
     try {
       await restockMutation.mutateAsync({
         variant_id: selectedVariant.id,
-        quantity: parseInt(restockQuantity),
+        quantity: parseInt(restockQuantity, 10),
         cost_per_unit: restockCost ? parseFloat(restockCost) : undefined,
         reference_number: restockReference || undefined,
         notes: restockNotes || undefined,
       });
 
-      // Reset form
-      setRestockQuantity("");
-      setRestockCost("");
-      setRestockReference("");
-      setRestockNotes("");
-      setSelectedVariant(null);
+      resetRestockForm();
       setIsRestockDialogOpen(false);
     } catch (error) {
       // Error handled by mutation
@@ -146,7 +183,8 @@ export default function AdminInventoryPage() {
     try {
       await decreaseMutation.mutateAsync({
         variant_id: selectedVariant.id,
-        quantity: parseInt(decreaseQuantity),
+        quantity: parseInt(decreaseQuantity, 10),
+        notes: decreaseReason.trim() || undefined,
       });
 
       // Reset form
@@ -231,50 +269,74 @@ export default function AdminInventoryPage() {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
+          <Button size="sm" type="button" onClick={openBulkRestock}>
+            <Plus className="h-4 w-4 mr-2" />
+            Restock
+          </Button>
           <Dialog
             open={isRestockDialogOpen}
-            onOpenChange={setIsRestockDialogOpen}
+            onOpenChange={(open) => {
+              setIsRestockDialogOpen(open);
+              if (!open) {
+                resetRestockForm();
+              }
+            }}
           >
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Restock
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Restock Inventory</DialogTitle>
+                <DialogTitle>
+                  {restockFromBulk ? "Restock inventory" : "Restock this variant"}
+                </DialogTitle>
                 <DialogDescription>
-                  Add stock to a product variant
+                  {restockFromBulk
+                    ? "Choose a variant and how many units to add."
+                    : "Add units to the variant you selected from the table."}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
-                <div>
-                  <Label htmlFor="variant">Product Variant</Label>
-                  <Select
-                    onValueChange={(value) => {
-                      const variant = inventoryLevels?.find(
-                        (item) => item.product_variants.id === value
-                      );
-                      setSelectedVariant(variant?.product_variants);
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a variant" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {inventoryLevels?.map((item) => (
-                        <SelectItem
-                          key={item.product_variants.id}
-                          value={item.product_variants.id}
-                        >
-                          {item.product_variants.products.name} -{" "}
-                          {item.product_variants.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {restockFromBulk ? (
+                  <div>
+                    <Label htmlFor="variant">Product variant</Label>
+                    <Select
+                      value={selectedVariant?.id ?? undefined}
+                      onValueChange={(value) => {
+                        const row = inventoryLevels?.find(
+                          (item) => item.product_variants.id === value,
+                        );
+                        setSelectedVariant(row?.product_variants ?? null);
+                      }}
+                    >
+                      <SelectTrigger id="variant">
+                        <SelectValue placeholder="Select a variant" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {inventoryLevels?.map((item) => (
+                          <SelectItem
+                            key={item.product_variants.id}
+                            value={item.product_variants.id}
+                          >
+                            {item.product_variants.products.name} —{" "}
+                            {item.product_variants.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  selectedVariant && (
+                    <div className="rounded-md border bg-muted/50 px-3 py-2 text-sm">
+                      <p className="font-medium">
+                        {variantProductName(selectedVariant)}
+                      </p>
+                      <p className="text-muted-foreground">
+                        {selectedVariant.name}
+                        {selectedVariant.sku
+                          ? ` · ${selectedVariant.sku}`
+                          : ""}
+                      </p>
+                    </div>
+                  )
+                )}
                 <div>
                   <Label htmlFor="quantity">Quantity</Label>
                   <Input
@@ -322,7 +384,7 @@ export default function AdminInventoryPage() {
                     Cancel
                   </Button>
                   <Button
-                    onClick={handleRestock}
+                    onClick={() => void handleRestock()}
                     disabled={
                       restockMutation.isPending ||
                       !selectedVariant ||
@@ -349,7 +411,9 @@ export default function AdminInventoryPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${inventoryStats?.totalStockValue.toLocaleString() || 0}
+              {formatPrice(inventoryStats?.totalStockValue ?? 0, {
+                decimals: 0,
+              })}
             </div>
           </CardContent>
         </Card>
@@ -463,10 +527,11 @@ export default function AdminInventoryPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              setSelectedVariant(item.product_variants);
-                              setIsRestockDialogOpen(true);
-                            }}
+                            type="button"
+                            title="Restock this variant"
+                            onClick={() =>
+                              openSingleRestock(item.product_variants)
+                            }
                           >
                             <Plus className="h-3 w-3" />
                           </Button>
@@ -529,16 +594,13 @@ export default function AdminInventoryPage() {
                         <Button
                           variant="outline"
                           size="sm"
+                          type="button"
                           onClick={() => {
-                            // Find the variant and open restock dialog
                             const variant = inventoryLevels?.find(
                               (inv) =>
-                                inv.product_variants.id === item.variant_id
+                                inv.product_variants.id === item.variant_id,
                             )?.product_variants;
-                            if (variant) {
-                              setSelectedVariant(variant);
-                              setIsRestockDialogOpen(true);
-                            }
+                            if (variant) openSingleRestock(variant);
                           }}
                         >
                           <Plus className="h-3 w-3 mr-1" />
@@ -645,16 +707,34 @@ export default function AdminInventoryPage() {
       {/* Decrease Stock Dialog */}
       <Dialog
         open={isDecreaseDialogOpen}
-        onOpenChange={setIsDecreaseDialogOpen}
+        onOpenChange={(open) => {
+          setIsDecreaseDialogOpen(open);
+          if (!open) {
+            setDecreaseQuantity("");
+            setDecreaseReason("");
+            setSelectedVariant(null);
+          }
+        }}
       >
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Decrease Stock</DialogTitle>
+            <DialogTitle>Decrease stock</DialogTitle>
             <DialogDescription>
-              Remove stock from a product variant
+              Remove units from the selected variant.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {selectedVariant && (
+              <div className="rounded-md border bg-muted/50 px-3 py-2 text-sm">
+                <p className="font-medium">
+                  {variantProductName(selectedVariant)}
+                </p>
+                <p className="text-muted-foreground">
+                  {selectedVariant.name}
+                  {selectedVariant.sku ? ` · ${selectedVariant.sku}` : ""}
+                </p>
+              </div>
+            )}
             <div>
               <Label htmlFor="decrease-quantity">Quantity</Label>
               <Input
@@ -682,7 +762,7 @@ export default function AdminInventoryPage() {
                 Cancel
               </Button>
               <Button
-                onClick={handleDecreaseStock}
+                onClick={() => void handleDecreaseStock()}
                 disabled={
                   decreaseMutation.isPending ||
                   !selectedVariant ||

@@ -1,6 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { APP_PATHS } from "@/constants/app-paths";
 import { useCategories } from "@/services";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 type CategoryCard = {
@@ -8,6 +10,7 @@ type CategoryCard = {
   name: string;
   icon: string;
   slug?: string;
+  image_url?: string | null;
 };
 
 const categoryIcons: Record<string, string> = {
@@ -18,6 +21,35 @@ const categoryIcons: Record<string, string> = {
   SLIDER: "🩴",
 };
 
+function CategoryTileMedia({
+  imageUrl,
+  icon,
+}: {
+  imageUrl?: string | null;
+  icon: string;
+}) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const trimmed = imageUrl?.trim() ?? "";
+  const showImg = trimmed.length > 0 && !imgFailed;
+
+  if (showImg) {
+    return (
+      <img
+        src={trimmed}
+        alt=""
+        className="relative z-10 h-[72px] w-[72px] object-contain"
+        loading="lazy"
+        decoding="async"
+        onError={() => setImgFailed(true)}
+      />
+    );
+  }
+
+  return (
+    <div className="relative z-10 text-5xl transform -rotate-45">{icon}</div>
+  );
+}
+
 export const ProductCategorySection = () => {
   const { data: categories = [], isLoading } = useCategories();
 
@@ -27,6 +59,7 @@ export const ProductCategorySection = () => {
     name: cat.name.toUpperCase(),
     icon: categoryIcons[cat.name.toUpperCase()] || "👟",
     slug: cat.slug,
+    image_url: cat.image_url,
   }));
 
   // If we don't have enough categories, add placeholders
@@ -59,9 +92,9 @@ export const ProductCategorySection = () => {
             {categoriesToShow.map((category, index) => (
               <Link
                 key={category.id || index}
-                to={`/products?category=${
-                  category.slug || category.name.toLowerCase()
-                }`}
+                to={`${APP_PATHS.products}?category=${encodeURIComponent(
+                  category.slug || category.name.toLowerCase(),
+                )}`}
                 className="group"
               >
                 <Card className="hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-indigo-200 h-full">
@@ -70,9 +103,10 @@ export const ProductCategorySection = () => {
                     <div className="relative w-24 h-24 flex items-center justify-center">
                       {/* Hexagon shape using clip-path */}
                       <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg transform rotate-45 group-hover:scale-110 transition-transform duration-300"></div>
-                      <div className="relative z-10 text-5xl transform -rotate-45">
-                        {category.icon}
-                      </div>
+                      <CategoryTileMedia
+                        imageUrl={category.image_url}
+                        icon={category.icon}
+                      />
                     </div>
                     <h3 className="text-lg font-bold text-gray-900 text-center group-hover:text-indigo-600 transition-colors">
                       {category.name}

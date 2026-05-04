@@ -85,6 +85,36 @@ export interface DecreaseStockParams {
   quantity: number;
   order_id?: string;
   order_item_id?: string;
+  /** Stored on the movement row as notes (e.g. admin reason). */
+  notes?: string;
+}
+
+/** Maps Supabase/Postgres RPC failures to short, user-readable text. */
+function inventoryRpcErrorMessage(error: unknown): string {
+  const raw =
+    error &&
+    typeof error === "object" &&
+    "message" in error &&
+    typeof (error as { message: unknown }).message === "string"
+      ? (error as { message: string }).message
+      : String(error);
+
+  if (raw.includes("Could not choose the best candidate function")) {
+    return "Stock could not be updated due to a server procedure conflict. Please refresh and try again, or contact support.";
+  }
+
+  if (
+    raw.includes("public.") &&
+    (raw.includes("function") || raw.includes("candidate"))
+  ) {
+    return "Could not update stock. Please try again or contact support if this continues.";
+  }
+
+  if (raw.length > 220) {
+    return "Something went wrong. Please try again.";
+  }
+
+  return raw;
 }
 
 export interface ReserveStockParams {
@@ -166,7 +196,7 @@ export function useAddProduct() {
       }
     },
     onError: (error) => {
-      showError("Failed to Add Product", error.message);
+      showError("Failed to Add Product", inventoryRpcErrorMessage(error));
     },
   });
 }
@@ -221,7 +251,7 @@ export function useInventoryUpdateProduct() {
       }
     },
     onError: (error) => {
-      showError("Failed to Update Product", error.message);
+      showError("Failed to Update Product", inventoryRpcErrorMessage(error));
     },
   });
 }
@@ -258,7 +288,7 @@ export function useRestockInventory() {
       }
     },
     onError: (error) => {
-      showError("Failed to Restock", error.message);
+      showError("Failed to Restock", inventoryRpcErrorMessage(error));
     },
   });
 }
@@ -273,8 +303,12 @@ export function useDecreaseStock() {
       const { data, error } = await supabase.rpc("decrease_stock", {
         p_variant_id: params.variant_id,
         p_quantity: params.quantity,
-        p_order_id: params.order_id,
-        p_order_item_id: params.order_item_id,
+        p_order_id: params.order_id ?? null,
+        p_order_item_id: params.order_item_id ?? null,
+        p_user_id: null,
+        p_reference_number: null,
+        p_notes: params.notes ?? null,
+        p_location: "main",
       });
 
       if (error) throw error;
@@ -294,7 +328,7 @@ export function useDecreaseStock() {
       }
     },
     onError: (error) => {
-      showError("Failed to Decrease Stock", error.message);
+      showError("Failed to Decrease Stock", inventoryRpcErrorMessage(error));
     },
   });
 }
@@ -329,7 +363,7 @@ export function useReserveStock() {
       }
     },
     onError: (error) => {
-      showError("Failed to Reserve Stock", error.message);
+      showError("Failed to Reserve Stock", inventoryRpcErrorMessage(error));
     },
   });
 }
@@ -363,7 +397,7 @@ export function useUnreserveStock() {
       }
     },
     onError: (error) => {
-      showError("Failed to Unreserve Stock", error.message);
+      showError("Failed to Unreserve Stock", inventoryRpcErrorMessage(error));
     },
   });
 }
@@ -397,7 +431,7 @@ export function useCancelOrder() {
       }
     },
     onError: (error) => {
-      showError("Failed to Cancel Order", error.message);
+      showError("Failed to Cancel Order", inventoryRpcErrorMessage(error));
     },
   });
 }
@@ -434,7 +468,7 @@ export function useReturnItem() {
       }
     },
     onError: (error) => {
-      showError("Failed to Return Item", error.message);
+      showError("Failed to Return Item", inventoryRpcErrorMessage(error));
     },
   });
 }
