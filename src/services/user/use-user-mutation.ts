@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase";
+import { authQueryKeys } from "@/services/auth/use-auth-query";
 import { UserProfile } from "@/services/types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { userQueryKeys } from "./use-user-query";
 
 /**
  * Hook for updating user profile
@@ -31,8 +31,10 @@ export function useUpdateUserProfile() {
       return data;
     },
     onSuccess: (data, variables) => {
-      // Update profile cache
-      queryClient.setQueryData(userQueryKeys.profile(variables.userId), data);
+      queryClient.setQueryData(
+        authQueryKeys.userProfile(variables.userId),
+        data,
+      );
     },
     onError: (error) => {
       console.error("Update profile error:", error);
@@ -69,8 +71,10 @@ export function useCreateUserProfile() {
       return data;
     },
     onSuccess: (data, variables) => {
-      // Update profile cache
-      queryClient.setQueryData(userQueryKeys.profile(variables.userId), data);
+      queryClient.setQueryData(
+        authQueryKeys.userProfile(variables.userId),
+        data,
+      );
     },
     onError: (error) => {
       console.error("Create profile error:", error);
@@ -103,13 +107,12 @@ export function useUploadAvatar() {
       return publicUrl;
     },
     onSuccess: (avatarUrl, variables) => {
-      // Update profile cache with new avatar URL
       queryClient.setQueryData(
-        userQueryKeys.profile(variables.userId),
+        authQueryKeys.userProfile(variables.userId),
         (oldData: UserProfile | null | undefined) => {
           if (!oldData) return oldData;
           return { ...oldData, avatar_url: avatarUrl };
-        }
+        },
       );
     },
     onError: (error) => {
@@ -144,13 +147,12 @@ export function useDeleteAvatar() {
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
-      // Update profile cache to remove avatar URL
       queryClient.setQueryData(
-        userQueryKeys.profile(variables.userId),
+        authQueryKeys.userProfile(variables.userId),
         (oldData: UserProfile | null | undefined) => {
           if (!oldData) return oldData;
           return { ...oldData, avatar_url: null };
-        }
+        },
       );
     },
     onError: (error) => {
