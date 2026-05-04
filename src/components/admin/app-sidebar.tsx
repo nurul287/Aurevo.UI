@@ -16,15 +16,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/auth-context";
-import {
-  BarChart3,
-  Home,
-  LogOut,
-  Package,
-  Settings,
-  ShoppingCart,
-  Users,
-} from "lucide-react";
+import { Home, Layers, LogOut, Package, ShoppingCart } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 const data = {
@@ -38,7 +30,7 @@ const data = {
     {
       title: "Product Setup",
       url: "/admin/categories",
-      icon: Settings,
+      icon: Layers,
       items: [
         {
           title: "1. Categories",
@@ -104,21 +96,6 @@ const data = {
           url: "/admin/orders?status=cancelled",
         },
       ],
-    },
-    {
-      title: "Analytics",
-      url: "/admin/analytics",
-      icon: BarChart3,
-    },
-    {
-      title: "Users",
-      url: "/admin/users",
-      icon: Users,
-    },
-    {
-      title: "Settings",
-      url: "/admin/settings",
-      icon: Settings,
     },
   ],
 };

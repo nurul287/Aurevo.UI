@@ -18,9 +18,10 @@ export interface UpdateCategoryParams {
   id: string;
   name?: string;
   slug?: string;
-  description?: string;
-  parent_id?: string;
-  image_url?: string;
+  description?: string | null;
+  parent_id?: string | null;
+  /** Pass `null` or empty string to clear the image in the database. */
+  image_url?: string | null;
   sort_order?: number;
   is_active?: boolean;
 }
@@ -36,17 +37,25 @@ export function useCreateCategory() {
     mutationFn: async (params: CreateCategoryParams) => {
       console.log("📁 Creating category:", params);
 
+      const row: Record<string, unknown> = {
+        name: params.name,
+        slug: params.slug,
+        sort_order: params.sort_order ?? 0,
+        is_active: params.is_active ?? true,
+      };
+      if (params.description !== undefined) {
+        row.description = params.description;
+      }
+      if (params.parent_id !== undefined) {
+        row.parent_id = params.parent_id;
+      }
+      if (params.image_url !== undefined && params.image_url !== "") {
+        row.image_url = params.image_url;
+      }
+
       const { data, error } = await supabase
         .from("categories")
-        .insert({
-          name: params.name,
-          slug: params.slug,
-          description: params.description,
-          parent_id: params.parent_id,
-          image_url: params.image_url,
-          sort_order: params.sort_order || 0,
-          is_active: params.is_active ?? true,
-        })
+        .insert(row)
         .select()
         .single();
 
@@ -81,17 +90,31 @@ export function useUpdateCategory() {
     mutationFn: async (params: UpdateCategoryParams) => {
       console.log("📁 Updating category:", params);
 
+      const patch: Record<string, unknown> = {};
+      if (params.name !== undefined) patch.name = params.name;
+      if (params.slug !== undefined) patch.slug = params.slug;
+      if (params.description !== undefined) {
+        patch.description = params.description;
+      }
+      if (params.parent_id !== undefined) {
+        patch.parent_id = params.parent_id;
+      }
+      if (params.image_url !== undefined) {
+        patch.image_url =
+          params.image_url === "" || params.image_url === null
+            ? null
+            : params.image_url;
+      }
+      if (params.sort_order !== undefined) patch.sort_order = params.sort_order;
+      if (params.is_active !== undefined) patch.is_active = params.is_active;
+
+      if (Object.keys(patch).length === 0) {
+        throw new Error("Nothing to update");
+      }
+
       const { data, error } = await supabase
         .from("categories")
-        .update({
-          name: params.name,
-          slug: params.slug,
-          description: params.description,
-          parent_id: params.parent_id,
-          image_url: params.image_url,
-          sort_order: params.sort_order,
-          is_active: params.is_active,
-        })
+        .update(patch)
         .eq("id", params.id)
         .select()
         .single();
