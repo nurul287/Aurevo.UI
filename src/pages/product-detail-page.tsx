@@ -447,8 +447,8 @@ const ProductDetailPage = () => {
                       onClick={() => setSelectedSize(size || "")}
                       className={`w-11 h-10.5 flex items-center justify-center px-4 py-2 text-sm font-medium rounded transition-all cursor-pointer ${
                         selectedSize === size
-                          ? "border-2 border-[#333333] bg-[#333333] text-white"
-                          : "border border-[#ddd] hover:border-[#333333]"
+                          ? "border-2 border-black bg-black text-white"
+                          : "border border-[#ddd] hover:border-gray-900"
                       }`}
                     >
                       {size}

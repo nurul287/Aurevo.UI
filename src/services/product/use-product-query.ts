@@ -89,16 +89,63 @@ export function useProducts(params: PaginationParams = {}) {
   });
 }
 
+export type InfiniteProductsFilters = {
+  categorySlug?: string | null;
+  search?: string | null;
+};
+
+/** Escape LIKE wildcards and commas so user search cannot broaden or break `.or()`. */
+function escapeIlikePattern(raw: string) {
+  return raw
+    .replace(/\\/g, "\\\\")
+    .replace(/%/g, "\\%")
+    .replace(/_/g, "\\_")
+    .replace(/,/g, " ");
+}
+
 /**
  * Hook to get all products with infinite scroll pagination
  */
-export function useInfiniteProducts(limit: number = 12) {
+export function useInfiniteProducts(
+  limit: number = 12,
+  filters: InfiniteProductsFilters = {}
+) {
+  const categorySlug = filters.categorySlug?.trim() || null;
+  const searchRaw = filters.search?.trim() || null;
+
   return useInfiniteQuery({
-    queryKey: ["products", "infinite", limit],
+    queryKey: ["products", "infinite", limit, categorySlug ?? "", searchRaw ?? ""],
     queryFn: async ({ pageParam = 1 }) => {
+      let resolvedCategoryId: string | null = null;
+
+      if (categorySlug) {
+        const { data: catRow, error: catError } = await supabase
+          .from("categories")
+          .select("id")
+          .eq("is_active", true)
+          .ilike("slug", categorySlug)
+          .maybeSingle();
+
+        if (catError) {
+          console.error("❌ Error resolving category:", catError);
+          throw catError;
+        }
+
+        if (!catRow?.id) {
+          return {
+            data: [],
+            count: 0,
+            page: pageParam,
+            limit,
+            totalPages: 0,
+          };
+        }
+        resolvedCategoryId = catRow.id;
+      }
+
       const offset = (pageParam - 1) * limit;
 
-      const { data, error, count } = await supabase
+      let query = supabase
         .from("products")
         .select(
           `
@@ -110,6 +157,20 @@ export function useInfiniteProducts(limit: number = 12) {
         `,
           { count: "exact" }
         )
+        .eq("is_active", true);
+
+      if (resolvedCategoryId) {
+        query = query.eq("category_id", resolvedCategoryId);
+      }
+
+      if (searchRaw) {
+        const term = escapeIlikePattern(searchRaw);
+        query = query.or(
+          `name.ilike.%${term}%,description.ilike.%${term}%,short_description.ilike.%${term}%`
+        );
+      }
+
+      const { data, error, count } = await query
         .order("created_at", { ascending: false })
         .range(offset, offset + limit - 1);
 
