@@ -12,6 +12,8 @@ export const APP_PATHS = {
   checkout: "/checkout",
   orderConfirmation: "/order-confirmation",
   dashboard: "/dashboard",
+  dashboardProfile: "/dashboard/profile",
+  about: "/about",
   terms: "/terms",
 
   // Admin paths

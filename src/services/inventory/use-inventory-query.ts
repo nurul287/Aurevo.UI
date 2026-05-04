@@ -65,6 +65,26 @@ export interface LowStockItem {
   reorder_quantity: number;
 }
 
+/** Supabase embeds may return a single FK as an object or a one-element array. */
+function unwrapRelation<T>(rel: T | T[] | null | undefined): T | undefined {
+  if (rel == null) return undefined;
+  return Array.isArray(rel) ? rel[0] : rel;
+}
+
+/** Retail unit price for an inventory row: variant override, else product base. */
+function inventoryRowUnitRetailPrice(row: {
+  quantity: number;
+  product_variants: unknown;
+}): number {
+  const variant = unwrapRelation(row.product_variants as any);
+  if (!variant) return 0;
+  const variantPrice = Number(variant.price);
+  if (Number.isFinite(variantPrice) && variantPrice > 0) return variantPrice;
+  const product = unwrapRelation(variant.products);
+  const base = Number(product?.base_price);
+  return Number.isFinite(base) && base > 0 ? base : 0;
+}
+
 export interface InventorySummary {
   product_id: string;
   total_stock: number;
@@ -311,17 +331,12 @@ export function useInventoryStats() {
 
       if (variantsError) throw variantsError;
 
-      // Calculate total stock value (using variant price or product base_price)
+      // Retail value on hand: sum( qty × unit ), unit = variant.price ?? product.base_price
       const totalValue =
         stockValue?.reduce((sum, item) => {
-          const variant = Array.isArray(item.product_variants)
-            ? item.product_variants[0]
-            : item.product_variants;
-          const price =
-            (variant as any)?.price ||
-            (variant as any)?.products?.base_price ||
-            0;
-          return sum + item.quantity * price;
+          const qty = Number(item.quantity) || 0;
+          const unit = inventoryRowUnitRetailPrice(item);
+          return sum + qty * unit;
         }, 0) || 0;
 
       return {
@@ -329,7 +344,10 @@ export function useInventoryStats() {
         lowStockCount: lowStock?.length || 0,
         totalVariants: totalVariants || 0,
         totalStockQuantity:
-          stockValue?.reduce((sum, item) => sum + item.quantity, 0) || 0,
+          stockValue?.reduce(
+            (sum, item) => sum + (Number(item.quantity) || 0),
+            0,
+          ) || 0,
       };
     },
   });

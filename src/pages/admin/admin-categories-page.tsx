@@ -36,6 +36,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { CategoryImageField } from "@/components/admin/category-image-field";
+import { useToast } from "@/hooks/use-toast";
+import { uploadCategoryCoverImage } from "@/lib/upload-category-image";
 import {
   useBulkUpdateCategoryStatus,
   useCreateCategory,
@@ -49,12 +52,43 @@ import {
   Edit,
   Filter,
   Folder,
+  Image as ImagePlaceholderIcon,
   MoreHorizontal,
   Plus,
   Search,
   Trash2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+
+function CategoryRowThumbnail({ category }: { category: Category }) {
+  const [loadFailed, setLoadFailed] = useState(false);
+  const url = category.image_url?.trim();
+
+  if (url && !loadFailed) {
+    return (
+      <img
+        src={url}
+        alt=""
+        className="h-10 w-10 shrink-0 rounded-md border border-border object-cover bg-muted"
+        loading="lazy"
+        decoding="async"
+        onError={() => setLoadFailed(true)}
+      />
+    );
+  }
+
+  return (
+    <div
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-dashed border-border bg-muted"
+      title="No category image"
+    >
+      <ImagePlaceholderIcon
+        className="h-5 w-5 text-muted-foreground"
+        aria-hidden
+      />
+    </div>
+  );
+}
 
 const statusColors = {
   active: "bg-green-100 text-green-800",
@@ -88,6 +122,9 @@ export default function AdminCategoriesPage() {
   const [bulkAction, setBulkAction] = useState<
     "activate" | "deactivate" | "delete"
   >("activate");
+  const [categoryImageFile, setCategoryImageFile] = useState<File | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
+  const { showError } = useToast();
 
   // Form state
   const [formData, setFormData] = useState<CategoryFormData>({
@@ -106,6 +143,21 @@ export default function AdminCategoriesPage() {
   const updateCategoryMutation = useUpdateCategory();
   const deleteCategoryMutation = useDeleteCategory();
   const bulkUpdateStatusMutation = useBulkUpdateCategoryStatus();
+
+  const emptyForm = (): CategoryFormData => ({
+    name: "",
+    slug: "",
+    description: "",
+    parent_id: "",
+    image_url: "",
+    sort_order: "0",
+    is_active: true,
+  });
+
+  const resetFormAndImage = () => {
+    setFormData(emptyForm());
+    setCategoryImageFile(null);
+  };
 
   // Computed values
   const filteredCategories = useMemo(() => {
@@ -169,6 +221,7 @@ export default function AdminCategoriesPage() {
 
   const handleEditCategory = (category: Category) => {
     setEditingCategory(category);
+    setCategoryImageFile(null);
     setFormData({
       name: category.name,
       slug: category.slug,
@@ -214,45 +267,95 @@ export default function AdminCategoriesPage() {
     setIsBulkActionDialogOpen(false);
   };
 
-  const handleSubmitCategory = () => {
-    if (editingCategory) {
-      // Update existing category
-      updateCategoryMutation.mutate({
-        id: editingCategory.id,
-        name: formData.name,
-        slug: formData.slug,
-        description: formData.description,
-        parent_id: formData.parent_id || undefined,
-        image_url: formData.image_url || undefined,
-        sort_order: parseInt(formData.sort_order),
-        is_active: formData.is_active,
-      });
-      setIsEditDialogOpen(false);
-      setEditingCategory(null);
-    } else {
-      // Create new category
-      createCategoryMutation.mutate({
-        name: formData.name,
-        slug: formData.slug,
-        description: formData.description,
-        parent_id: formData.parent_id || undefined,
-        image_url: formData.image_url || undefined,
-        sort_order: parseInt(formData.sort_order),
-        is_active: formData.is_active,
-      });
-      setIsAddDialogOpen(false);
+  const handleSubmitCategory = async () => {
+    if (!formData.name.trim() || !formData.slug.trim()) {
+      showError("Validation", "Name and slug are required.");
+      return;
     }
 
-    // Reset form
-    setFormData({
-      name: "",
-      slug: "",
-      description: "",
-      parent_id: "",
-      image_url: "",
-      sort_order: "0",
-      is_active: true,
-    });
+    const sortOrder = parseInt(formData.sort_order || "0", 10);
+    if (Number.isNaN(sortOrder)) {
+      showError("Validation", "Sort order must be a number.");
+      return;
+    }
+
+    setImageUploading(true);
+    try {
+      if (editingCategory) {
+        let imageUrl: string | null = formData.image_url?.trim() || null;
+        if (categoryImageFile) {
+          try {
+            imageUrl = await uploadCategoryCoverImage(
+              editingCategory.id,
+              categoryImageFile,
+            );
+          } catch (err) {
+            showError(
+              "Image upload failed",
+              err instanceof Error ? err.message : "Upload failed.",
+            );
+            return;
+          }
+        }
+
+        await updateCategoryMutation.mutateAsync({
+          id: editingCategory.id,
+          name: formData.name,
+          slug: formData.slug,
+          description: formData.description,
+          parent_id: formData.parent_id || undefined,
+          image_url: imageUrl,
+          sort_order: sortOrder,
+          is_active: formData.is_active,
+        });
+        setIsEditDialogOpen(false);
+        setEditingCategory(null);
+        resetFormAndImage();
+      } else {
+        const created = await createCategoryMutation.mutateAsync({
+          name: formData.name,
+          slug: formData.slug,
+          description: formData.description,
+          parent_id: formData.parent_id || undefined,
+          sort_order: sortOrder,
+          is_active: formData.is_active,
+        });
+
+        if (categoryImageFile && created?.id) {
+          try {
+            const url = await uploadCategoryCoverImage(
+              created.id,
+              categoryImageFile,
+            );
+            await updateCategoryMutation.mutateAsync({
+              id: created.id,
+              image_url: url,
+            });
+          } catch (err) {
+            showError(
+              "Image upload failed",
+              err instanceof Error
+                ? err.message
+                : "Category was created but the image could not be saved. Try editing the category to add an image.",
+            );
+            setIsAddDialogOpen(false);
+            resetFormAndImage();
+            return;
+          }
+        }
+        setIsAddDialogOpen(false);
+        resetFormAndImage();
+      }
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
+  const handleCategoryImageFileChange = (file: File | null) => {
+    setCategoryImageFile(file);
+    if (!file) {
+      setFormData((prev) => ({ ...prev, image_url: "" }));
+    }
   };
 
   const handleNameChange = (name: string) => {
@@ -262,6 +365,11 @@ export default function AdminCategoriesPage() {
       slug: editingCategory ? prev.slug : generateSlug(name),
     }));
   };
+
+  const formBusy =
+    createCategoryMutation.isPending ||
+    updateCategoryMutation.isPending ||
+    imageUploading;
 
   if (categoriesLoading) {
     return (
@@ -295,7 +403,17 @@ export default function AdminCategoriesPage() {
               Bulk Actions ({selectedCategories.length})
             </Button>
           )}
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <Dialog
+            open={isAddDialogOpen}
+            onOpenChange={(open) => {
+              setIsAddDialogOpen(open);
+              if (open) {
+                resetFormAndImage();
+              } else {
+                resetFormAndImage();
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
@@ -379,23 +497,12 @@ export default function AdminCategoriesPage() {
                     }
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="image_url" className="text-right">
-                    Image URL
-                  </Label>
-                  <Input
-                    id="image_url"
-                    className="col-span-3"
-                    placeholder="https://example.com/image.jpg"
-                    value={formData.image_url}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        image_url: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
+                <CategoryImageField
+                  existingUrl={formData.image_url || null}
+                  file={categoryImageFile}
+                  onFileChange={handleCategoryImageFileChange}
+                  disabled={formBusy}
+                />
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="description" className="text-right">
                     Description
@@ -435,12 +542,10 @@ export default function AdminCategoriesPage() {
               <DialogFooter>
                 <Button
                   type="submit"
-                  onClick={handleSubmitCategory}
-                  disabled={createCategoryMutation.isPending}
+                  onClick={() => void handleSubmitCategory()}
+                  disabled={formBusy}
                 >
-                  {createCategoryMutation.isPending
-                    ? "Creating..."
-                    : "Create Category"}
+                  {formBusy ? "Saving..." : "Create Category"}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -545,9 +650,10 @@ export default function AdminCategoriesPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
-                              <Folder className="h-4 w-4 text-muted-foreground" />
-                            </div>
+                            <CategoryRowThumbnail
+                              key={`${category.id}-${category.image_url ?? ""}`}
+                              category={category}
+                            />
                             <div>
                               <div className="font-medium">{category.name}</div>
                               <div className="text-sm text-muted-foreground">
@@ -612,7 +718,16 @@ export default function AdminCategoriesPage() {
       </Card>
 
       {/* Edit Category Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) {
+            setEditingCategory(null);
+            resetFormAndImage();
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Edit Category</DialogTitle>
@@ -647,6 +762,12 @@ export default function AdminCategoriesPage() {
                 }
               />
             </div>
+            <CategoryImageField
+              existingUrl={formData.image_url || null}
+              file={categoryImageFile}
+              onFileChange={handleCategoryImageFileChange}
+              disabled={formBusy}
+            />
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Options</Label>
               <div className="col-span-3 space-y-2">
@@ -669,12 +790,10 @@ export default function AdminCategoriesPage() {
           <DialogFooter>
             <Button
               type="submit"
-              onClick={handleSubmitCategory}
-              disabled={updateCategoryMutation.isPending}
+              onClick={() => void handleSubmitCategory()}
+              disabled={formBusy}
             >
-              {updateCategoryMutation.isPending
-                ? "Updating..."
-                : "Update Category"}
+              {formBusy ? "Saving..." : "Update Category"}
             </Button>
           </DialogFooter>
         </DialogContent>

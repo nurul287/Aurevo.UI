@@ -1,3 +1,4 @@
+import AboutPage from "@/pages/about-page";
 import CheckoutPage from "@/pages/checkout-page";
 import HomePage from "@/pages/home-page";
 import NotFoundPage from "@/pages/not-found-page";
@@ -13,6 +14,7 @@ export const publicRoutes = [
   { path: APP_PATHS.productDetail(":id"), element: <ProductDetailPage /> },
   { path: APP_PATHS.checkout, element: <CheckoutPage /> },
   { path: APP_PATHS.orderConfirmation, element: <OrderConfirmationPage /> },
+  { path: APP_PATHS.about, element: <AboutPage /> },
   { path: APP_PATHS.terms, element: <TermsPage /> },
   // 404 route
   {

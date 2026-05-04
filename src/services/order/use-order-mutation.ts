@@ -38,6 +38,8 @@ export interface BulkUpdateOrderStatusParams {
 }
 
 export interface CreateGuestOrderParams {
+  /** When set, order is linked to this account (dashboard / history). */
+  user_id?: string | null;
   email?: string | null;
   phone?: string;
   firstName?: string;
@@ -456,6 +458,8 @@ export function useCreateGuestOrder() {
       console.log("🛒 Creating guest order:", params);
 
       // Generate guest token in frontend
+      const rpcUserId = params.user_id ?? null;
+
       const generateGuestToken = () => {
         const arr = new Uint8Array(16);
         crypto.getRandomValues(arr);
@@ -464,13 +468,13 @@ export function useCreateGuestOrder() {
           .join("");
       };
 
-      const guest_token = generateGuestToken();
+      const guest_token = rpcUserId ? null : generateGuestToken();
 
       // Use the stored procedure to create the order
       const { data: order, error: orderError } = await supabase.rpc(
         "create_order",
         {
-          user_id: null, // Guest order
+          user_id: rpcUserId,
           email: params.email,
           phone: params.phone ?? null,
           items: params.items.map((item) => ({
@@ -484,7 +488,7 @@ export function useCreateGuestOrder() {
           notes: params.notes ?? "",
           session_id: params.session_id ?? null,
           payment_method: params.payment_method,
-          guest_token: guest_token,
+          guest_token,
           p_tax_amount: params.tax_amount ?? 0,
           p_shipping_amount: params.shipping_amount ?? 0,
           p_discount_amount: params.discount_amount ?? 0,
@@ -496,7 +500,7 @@ export function useCreateGuestOrder() {
         throw orderError;
       }
 
-      console.log("✅ Guest order created:", order);
+      console.log("✅ Order created:", order);
       return { order, guest_token };
     },
     onSuccess: (data) => {
@@ -508,6 +512,7 @@ export function useCreateGuestOrder() {
       // Invalidate and refetch order queries
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["orders", "stats"] });
+      queryClient.invalidateQueries({ queryKey: ["user", "orders"] });
     },
     onError: (error) => {
       console.error("❌ Error creating guest order:", error);

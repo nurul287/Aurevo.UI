@@ -10,7 +10,9 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
-import { Link, Outlet } from "react-router-dom";
+import { APP_PATHS } from "@/constants/app-paths";
+import { useCategories } from "@/services";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import AurevoBlack from "@/assets/icon/aurevo-black";
@@ -38,6 +40,9 @@ const Layout = () => {
   const { user, isAdmin, signOut } = useAuth();
   const { itemCount: cartItemCount } = useCart();
   const { openCartPanel } = useGuestCart();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { data: headerCategories = [] } = useCategories();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -68,12 +73,18 @@ const Layout = () => {
     };
   }, []);
 
-  const navigation = [
-    { name: "Home", href: "/" },
-    { name: "Category", href: "/products" },
-    { name: "About us", href: "/about" },
-    { name: "Contact", href: "/contact" },
-  ];
+  const isCategoryNavActive = (slug: string | undefined) => {
+    if (!slug || location.pathname !== APP_PATHS.products) return false;
+    const current = new URLSearchParams(location.search).get("category");
+    return current?.toLowerCase() === slug.toLowerCase();
+  };
+
+  const categoryNavLinkClass = (slug: string) =>
+    `text-sm xl:text-base font-medium whitespace-nowrap transition-colors ${
+      isCategoryNavActive(slug)
+        ? "text-gray-900 border-b-2 border-gray-900 pb-0.5"
+        : "text-gray-700 hover:text-gray-900"
+    }`;
 
   const handleSignOut = async () => {
     try {
@@ -89,11 +100,12 @@ const Layout = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      // Navigate to products page with search query
-      window.location.href = `/products?search=${encodeURIComponent(
-        searchQuery
-      )}`;
+    const q = searchQuery.trim();
+    if (q) {
+      navigate(
+        `${APP_PATHS.products}?search=${encodeURIComponent(q)}`,
+      );
+      closeMobileMenu();
     }
   };
 
@@ -107,22 +119,34 @@ const Layout = () => {
             <div className="flex items-center gap-4 lg:gap-12">
               {/* Logo */}
               <div className="flex-shrink-0">
-                <Link to="/">
+                <Link to={APP_PATHS.home}>
                   <AurevoBlack />
                 </Link>
               </div>
 
               {/* Desktop Navigation */}
               <nav className="hidden lg:flex items-center space-x-4 xl:space-x-6">
-                {navigation.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    className={`text-sm xl:text-base font-medium whitespace-nowrap`}
-                  >
-                    {item.name}
-                  </Link>
-                ))}
+                {headerCategories.map((cat) =>
+                  cat.slug ? (
+                    <Link
+                      key={cat.id}
+                      to={`${APP_PATHS.products}?category=${encodeURIComponent(cat.slug)}`}
+                      className={categoryNavLinkClass(cat.slug)}
+                    >
+                      {cat.name}
+                    </Link>
+                  ) : null,
+                )}
+                <Link
+                  to={APP_PATHS.about}
+                  className={`text-sm xl:text-base font-medium whitespace-nowrap transition-colors ${
+                    location.pathname === APP_PATHS.about
+                      ? "text-gray-900 border-b-2 border-gray-900 pb-0.5"
+                      : "text-gray-700 hover:text-gray-900"
+                  }`}
+                >
+                  About us
+                </Link>
               </nav>
             </div>
 
@@ -240,16 +264,33 @@ const Layout = () => {
               </form>
 
               {/* Mobile Navigation */}
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  onClick={closeMobileMenu}
-                  className={`block px-3 py-2 text-base font-medium`}
-                >
-                  {item.name}
-                </Link>
-              ))}
+              {headerCategories.map((cat) =>
+                cat.slug ? (
+                  <Link
+                    key={cat.id}
+                    to={`${APP_PATHS.products}?category=${encodeURIComponent(cat.slug)}`}
+                    onClick={closeMobileMenu}
+                    className={`block px-3 py-2 text-base font-medium ${
+                      isCategoryNavActive(cat.slug)
+                        ? "text-gray-900 bg-gray-50 rounded-md"
+                        : ""
+                    }`}
+                  >
+                    {cat.name}
+                  </Link>
+                ) : null,
+              )}
+              <Link
+                to={APP_PATHS.about}
+                onClick={closeMobileMenu}
+                className={`block px-3 py-2 text-base font-medium ${
+                  location.pathname === APP_PATHS.about
+                    ? "text-gray-900 bg-gray-50 rounded-md"
+                    : ""
+                }`}
+              >
+                About us
+              </Link>
 
               {/* Mobile User Menu */}
               {user ? (
@@ -426,15 +467,7 @@ const Layout = () => {
               <ul className="space-y-3 text-sm">
                 <li>
                   <Link
-                    to="/"
-                    className="text-white hover:text-gray-400 transition-colors"
-                  >
-                    Home
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/products"
+                    to={APP_PATHS.products}
                     className="text-white hover:text-gray-400 transition-colors"
                   >
                     Category
@@ -474,15 +507,7 @@ const Layout = () => {
                 </li>
                 <li>
                   <Link
-                    to="/contact"
-                    className="text-white hover:text-gray-400 transition-colors"
-                  >
-                    Contact Us
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/about"
+                    to={APP_PATHS.about}
                     className="text-white hover:text-gray-400 transition-colors"
                   >
                     About Us

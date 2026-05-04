@@ -7,7 +7,7 @@ import {
   Package,
   ShoppingCart,
   TrendingUp,
-  Users,
+  UserCircle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -110,7 +110,7 @@ const AdminDashboardPage = () => {
             <CardTitle className="text-sm font-medium">
               Total Customers
             </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <UserCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -125,7 +125,7 @@ const AdminDashboardPage = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -190,39 +190,6 @@ const AdminDashboardPage = () => {
               <Button asChild variant="outline" className="w-full">
                 <Link to="/admin/inventory/products">
                   Manage Inventory
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Customer Insights
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">New Customers</span>
-                <span className="text-sm font-medium text-green-600">+47</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Active Customers</span>
-                <span className="text-sm font-medium">1,892</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Avg. Order Value</span>
-                <span className="text-sm font-medium">
-                  {formatCurrency(156.78)}
-                </span>
-              </div>
-              <Button asChild variant="outline" className="w-full">
-                <Link to="/admin/users">
-                  View Customers
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
