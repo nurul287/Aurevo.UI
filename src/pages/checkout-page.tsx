@@ -26,6 +26,7 @@ import {
   DropDownListOption,
 } from "@/components/ui/dropdown-list";
 import { APP_PATHS } from "@/constants/app-paths";
+import { useAuth } from "@/contexts/auth-context";
 import { useGuestCart } from "@/contexts/guest-cart-context";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
@@ -52,6 +53,7 @@ function shippingZoneForDistrict(
 const CheckoutPage = () => {
   const [searchParams] = useSearchParams();
   const { cartItems, cartTotal, loading, clearCart } = useCart();
+  const { user } = useAuth();
   const { sessionId } = useGuestCart();
   const navigate = useNavigate();
   const createGuestOrderMutation = useCreateGuestOrder();
@@ -192,6 +194,15 @@ const CheckoutPage = () => {
         return;
       }
 
+      if (!user?.id && !sessionId) {
+        showWarning(
+          "Session required",
+          "Your cart session is missing. Please refresh the page and try again.",
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
       const emailTrimmed = formData.email.trim();
       const email = emailTrimmed.length > 0 ? emailTrimmed : null;
 
@@ -200,9 +211,9 @@ const CheckoutPage = () => {
       const firstName = nameParts[0] || "";
       const lastName = nameParts.slice(1).join(" ") || "";
 
-      // Create guest order
-      console.log("🛒 Creating guest order...");
+      console.log("🛒 Creating order...");
       const orderResult = await createGuestOrderMutation.mutateAsync({
+        user_id: user?.id ?? null,
         email: email,
         phone: formData.phone,
         firstName: firstName,
@@ -236,7 +247,7 @@ const CheckoutPage = () => {
         total_amount: checkoutTotal,
         payment_method: paymentMethod,
         notes: "",
-        session_id: sessionId!,
+        session_id: user?.id ? undefined : sessionId,
       });
 
       console.log(
