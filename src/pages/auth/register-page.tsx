@@ -1,11 +1,17 @@
+import { APP_PATHS } from "@/constants/app-paths";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth-context";
+import { useSession } from "@/services/auth/use-auth-query";
+import {
+  parseSupabaseOAuthErrorFromUrl,
+  stripSupabaseOAuthParamsFromUrl,
+} from "@/lib/oauth-error-url";
 import { ArrowLeft } from "lucide-react";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import registerImage from "@/assets/image/register.png";
 import GoogleIcon from "@/assets/icon/google-icon";
 import FacebookIcon from "@/assets/icon/facebook-icon";
@@ -19,8 +25,29 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
-  const { signUp } = useAuth();
+  const { signUp, signInWithOAuth } = useAuth();
+  const { user, isLoading: sessionLoading } = useSession();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const state = location.state as { oauthError?: string } | null;
+    if (state?.oauthError) {
+      setError(state.oauthError);
+      navigate(APP_PATHS.register, { replace: true, state: {} });
+      return;
+    }
+    const fromUrl = parseSupabaseOAuthErrorFromUrl();
+    if (fromUrl) {
+      setError(fromUrl);
+      stripSupabaseOAuthParamsFromUrl();
+    }
+  }, [location.pathname, location.state, location.search, location.hash, navigate]);
+
+  useEffect(() => {
+    if (sessionLoading || !user) return;
+    navigate(APP_PATHS.dashboard, { replace: true });
+  }, [sessionLoading, user, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -68,14 +95,32 @@ const RegisterPage = () => {
     }
   };
 
-  const handleGoogleLogin = () => {
-    // TODO: Implement Google login
-    console.log("Google login clicked");
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const result = await signInWithOAuth("google");
+      if (!result.success && result.error) {
+        const err = result.error as { message?: string };
+        setError(err.message || "Google sign-in could not start");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleFacebookLogin = () => {
-    // TODO: Implement Facebook login
-    console.log("Facebook login clicked");
+  const handleFacebookLogin = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const result = await signInWithOAuth("facebook");
+      if (!result.success && result.error) {
+        const err = result.error as { message?: string };
+        setError(err.message || "Facebook sign-in could not start");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

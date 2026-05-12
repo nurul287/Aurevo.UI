@@ -1,3 +1,5 @@
+import { OAuthErrorRouteHandler } from "@/components/oauth-error-route-handler";
+import { OAuthSuccessLandingRedirect } from "@/components/oauth-success-landing-redirect";
 import { useEffect } from "react";
 import { BrowserRouter as Router, useLocation } from "react-router-dom";
 import { Toaster } from "./components/ui/sonner";
@@ -22,6 +24,8 @@ function App() {
     <Router>
       <ScrollToTop />
       <AuthProvider>
+        <OAuthErrorRouteHandler />
+        <OAuthSuccessLandingRedirect />
         <GuestCartProvider>
           <AppRoutes />
           <Toaster richColors position="top-right" />
