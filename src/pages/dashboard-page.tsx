@@ -244,13 +244,15 @@ const DashboardPage = () => {
                   <Table>
                     <TableHeader>
                       <TableRow className="hover:bg-transparent">
-                        <TableHead className="w-[140px]">Order</TableHead>
-                        <TableHead>Placed</TableHead>
+                        <TableHead className="whitespace-nowrap">Order</TableHead>
+                        <TableHead className="whitespace-nowrap">Placed</TableHead>
                         <TableHead>Items</TableHead>
-                        <TableHead className="min-w-[220px]">
+                        <TableHead className="max-w-[140px] lg:max-w-[180px]">
                           Ship to
                         </TableHead>
-                        <TableHead className="text-right">Total</TableHead>
+                        <TableHead className="whitespace-nowrap text-right">
+                          Total
+                        </TableHead>
                         <TableHead className="text-right">Status</TableHead>
                         <TableHead className="w-[100px] text-right">
                           {""}
@@ -260,10 +262,10 @@ const DashboardPage = () => {
                     <TableBody>
                       {(orders as OrderWithItems[]).slice(0, 8).map((order) => (
                         <TableRow key={order.id}>
-                          <TableCell className="font-mono text-sm font-medium">
+                          <TableCell className="whitespace-nowrap font-mono text-sm font-medium">
                             {order.order_number || order.id.slice(0, 8)}
                           </TableCell>
-                          <TableCell className="text-muted-foreground text-sm">
+                          <TableCell className="whitespace-nowrap text-muted-foreground text-sm">
                             {order.created_at
                               ? new Date(order.created_at).toLocaleDateString(
                                   undefined,
@@ -278,10 +280,19 @@ const DashboardPage = () => {
                           <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
                             {orderItemsSummary(order)}
                           </TableCell>
-                          <TableCell className="text-sm text-muted-foreground leading-snug">
-                            {formatOrderShippingLine(order.shipping_address)}
+                          <TableCell className="text-sm text-muted-foreground">
+                            <div
+                              className="max-w-[140px] truncate lg:max-w-[180px]"
+                              title={formatOrderShippingLine(
+                                order.shipping_address,
+                              )}
+                            >
+                              {formatOrderShippingLine(
+                                order.shipping_address,
+                              )}
+                            </div>
                           </TableCell>
-                          <TableCell className="text-right font-semibold tabular-nums">
+                          <TableCell className="whitespace-nowrap text-right font-semibold tabular-nums">
                             {formatPrice(order.total_amount, { decimals: 0 })}
                           </TableCell>
                           <TableCell className="text-right">
@@ -315,8 +326,8 @@ const DashboardPage = () => {
                   {(orders as OrderWithItems[]).slice(0, 8).map((order) => (
                     <div key={order.id} className="space-y-3 p-4">
                       <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-mono text-sm font-semibold">
+                        <div className="min-w-0">
+                          <p className="font-mono text-sm font-semibold whitespace-nowrap">
                             {order.order_number || order.id.slice(0, 8)}
                           </p>
                           <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
@@ -346,7 +357,7 @@ const DashboardPage = () => {
                         {formatOrderShippingLine(order.shipping_address)}
                       </p>
                       <div className="flex items-center justify-between pt-1">
-                        <span className="text-base font-semibold tabular-nums">
+                        <span className="whitespace-nowrap text-base font-semibold tabular-nums">
                           {formatPrice(order.total_amount, { decimals: 0 })}
                         </span>
                         <Button variant="outline" size="sm" asChild>
