@@ -13,10 +13,10 @@ type FormatPriceOptions = {
  * Formats a numeric amount as a localized BDT price string.
  *
  * Examples:
- *   formatPrice(2450)              // "৳ 2,450.00"
- *   formatPrice(2450, { decimals: 0 })       // "৳ 2,450"
+ *   formatPrice(2450)              // "৳2,450.00"
+ *   formatPrice(2450, { decimals: 0 })       // "৳2,450"
  *   formatPrice(2450, { showSymbol: false }) // "2,450.00"
- *   formatPrice(null)              // "৳ 0.00"
+ *   formatPrice(null)              // "৳0.00"
  */
 export function formatPrice(
   amount: number | string | null | undefined,
@@ -33,5 +33,5 @@ export function formatPrice(
     maximumFractionDigits: decimals,
   });
 
-  return showSymbol ? `${TAKA_SYMBOL} ${formatted}` : formatted;
+  return showSymbol ? `${TAKA_SYMBOL}${formatted}` : formatted;
 }

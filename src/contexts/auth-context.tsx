@@ -1,7 +1,11 @@
+import { buildProfileFieldsFromUserMetadata } from "@/lib/profile-from-auth-metadata";
 import { useAuthMutations, useAuth as useAuthQuery } from "@/services/auth";
+import { authQueryKeys } from "@/services/auth/use-auth-query";
 import { useMigrateGuestCart } from "@/services/cart/use-cart-mutation";
+import { useCreateUserProfile } from "@/services/user";
 import { UserProfile } from "@/services/types";
-import { User } from "@supabase/supabase-js";
+import type { Provider, User } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
 import { createContext, ReactNode, useContext, useEffect, useRef } from "react";
 
 interface AuthContextType {
@@ -11,6 +15,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isAuthenticated: boolean;
   signIn: (email: string, password: string) => Promise<any>;
+  signInWithOAuth: (provider: Provider) => Promise<any>;
   signUp: (email: string, password: string, userData?: any) => Promise<any>;
   signOut: () => Promise<void>;
   updateProfile: (updates: any) => Promise<any>;
@@ -24,12 +29,15 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
+  const queryClient = useQueryClient();
   // Use TanStack Query hooks for auth state
   const { user, profile, isLoading, isAuthenticated, isAdmin } = useAuthQuery();
+  const createUserProfile = useCreateUserProfile();
 
   // Use TanStack Query mutations
   const {
     signIn: signInMutation,
+    signInWithOAuth: signInWithOAuthMutation,
     signUp: signUpMutation,
     signOut: signOutMutation,
     updateProfile: updateProfileMutation,
@@ -39,6 +47,54 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Cart migration mutation
   const migrateGuestCartMutation = useMigrateGuestCart();
   const migrationAttempted = useRef<string | null>(null);
+  const profileBootstrapForUserId = useRef<string | null>(null);
+
+  /**
+   * OAuth (and some email) users exist in `auth.users` but this app reads
+   * `public.profiles`. There is no DB trigger in repo migrations — create a
+   * profile row once when the user is signed in and has no profile.
+   */
+  useEffect(() => {
+    if (!user?.id) {
+      profileBootstrapForUserId.current = null;
+      return;
+    }
+    if (isLoading || profile) return;
+
+    if (profileBootstrapForUserId.current === user.id) return;
+    profileBootstrapForUserId.current = user.id;
+
+    const meta = (user.user_metadata || {}) as Record<string, unknown>;
+    const fields = buildProfileFieldsFromUserMetadata(meta);
+
+    createUserProfile.mutate(
+      { userId: user.id, profileData: fields },
+      {
+        onError: (error: unknown) => {
+          const err = error as { code?: string; message?: string };
+          const msg = String(err?.message ?? "");
+          if (
+            err?.code === "23505" ||
+            msg.includes("duplicate") ||
+            msg.includes("unique")
+          ) {
+            void queryClient.invalidateQueries({
+              queryKey: authQueryKeys.userProfile(user.id),
+            });
+            return;
+          }
+          profileBootstrapForUserId.current = null;
+        },
+      },
+    );
+  }, [
+    user?.id,
+    user?.user_metadata,
+    isLoading,
+    profile,
+    createUserProfile,
+    queryClient,
+  ]);
 
   // Migrate guest cart to user cart when user logs in
   useEffect(() => {
@@ -62,6 +118,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return { success: true, data: result, error: null };
     } catch (error) {
       return { success: false, data: null, error };
+    }
+  };
+
+  const signInWithOAuth = async (provider: Provider) => {
+    try {
+      await signInWithOAuthMutation.mutateAsync(provider);
+      return { success: true, error: null };
+    } catch (error) {
+      return { success: false, error };
     }
   };
 
@@ -122,6 +187,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     isAdmin,
     isAuthenticated,
     signIn,
+    signInWithOAuth,
     signUp,
     signOut,
     updateProfile,

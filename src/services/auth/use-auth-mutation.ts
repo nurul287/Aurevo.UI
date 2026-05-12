@@ -1,6 +1,9 @@
+import { APP_PATHS } from "@/constants/app-paths";
+import { markOAuthLoginPending } from "@/lib/oauth-login-flag";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { SignInData, SignUpData, UserProfile } from "@/services/types";
+import type { Provider } from "@supabase/supabase-js";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { authQueryKeys } from "./use-auth-query";
 
@@ -36,6 +39,33 @@ export function useSignIn() {
       showError(
         "Sign in failed",
         error.message || "Invalid email or password. Please try again."
+      );
+    },
+  });
+}
+
+/**
+ * OAuth sign-in (Facebook, Google, etc.). Redirects the browser away from the app.
+ */
+export function useSignInWithOAuth() {
+  const { showError } = useToast();
+
+  return useMutation({
+    mutationFn: async (provider: Provider) => {
+      markOAuthLoginPending();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}${APP_PATHS.dashboard}`,
+        },
+      });
+      if (error) throw error;
+    },
+    onError: (error: Error) => {
+      console.error("OAuth sign in error:", error);
+      showError(
+        "Sign in failed",
+        error.message || "Could not start social sign-in. Please try again.",
       );
     },
   });
@@ -216,6 +246,7 @@ export function useUpdatePassword() {
  */
 export function useAuthMutations() {
   const signIn = useSignIn();
+  const signInWithOAuth = useSignInWithOAuth();
   const signUp = useSignUp();
   const signOut = useSignOut();
   const updateProfile = useUpdateProfile();
@@ -225,6 +256,7 @@ export function useAuthMutations() {
 
   return {
     signIn,
+    signInWithOAuth,
     signUp,
     signOut,
     updateProfile,
