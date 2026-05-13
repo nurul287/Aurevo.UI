@@ -4,6 +4,7 @@ export { FullCollectionBanner } from "./full-collection-banner";
 export { NewCollectionSection } from "./new-collection-section";
 export { PromotionalBanners } from "./promotional-banners";
 export { OurShopSection } from "./our-shop-section";
+export { SneakerGallerySection } from "./sneaker-gallery-section";
 export { AboutStoreSection } from "./about-store-section";
 export { ContactUsSection } from "./contact-us-section";
 export { StoreLocationSection } from "./store-location-section";
