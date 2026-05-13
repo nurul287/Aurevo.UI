@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { APP_PATHS } from "@/constants/app-paths";
 import promotionCard1 from "@/assets/image/promotion-card-1.png";
 import promotionCard2 from "@/assets/image/promotion-card-2.png";
+import { Link } from "react-router-dom";
 
 export const PromotionalBanners = () => {
   return (
@@ -31,8 +33,11 @@ export const PromotionalBanners = () => {
                 kicks really turn heads, we mixed smooth leather with soft.
               </p>
               <div className="pt-2">
-                <Button className="bg-[#111111] hover:bg-[#2A2A2A] text-white px-6 h-10 text-sm font-medium rounded">
-                  Add Cart
+                <Button
+                  asChild
+                  className="bg-[#111111] hover:bg-[#2A2A2A] text-white px-6 h-10 text-sm font-medium rounded"
+                >
+                  <Link to={APP_PATHS.products}>View Details</Link>
                 </Button>
               </div>
             </div>
@@ -61,8 +66,11 @@ export const PromotionalBanners = () => {
                 kicks really turn heads, we invest smooth leather with soft...
               </p>
               <div className="pt-2">
-                <Button className="bg-[#111111] hover:bg-[#2A2A2A] text-white px-6 h-10 text-sm font-medium rounded">
-                  Add Cart
+                <Button
+                  asChild
+                  className="bg-[#111111] hover:bg-[#2A2A2A] text-white px-6 h-10 text-sm font-medium rounded"
+                >
+                  <Link to={APP_PATHS.products}>View Details</Link>
                 </Button>
               </div>
             </div>
