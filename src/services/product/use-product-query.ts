@@ -375,6 +375,8 @@ export function useSearchProducts(
 
       // Single optimized query that gets both count and data
       // Excluding cost_price from products and variants for security
+      const term = escapeIlikePattern(query.trim());
+
       const { data, error, count } = await supabase
         .from("products")
         .select(
@@ -414,7 +416,10 @@ export function useSearchProducts(
         `,
           { count: "exact" }
         )
-        .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
+        .eq("is_active", true)
+        .or(
+          `name.ilike.%${term}%,description.ilike.%${term}%,short_description.ilike.%${term}%`
+        )
         .order("created_at", { ascending: false })
         .range(offset, offset + limit - 1);
 
@@ -441,7 +446,7 @@ export function useSearchProducts(
         totalPages,
       };
     },
-    enabled: !!query && query.length > 0,
+    enabled: !!query.trim() && query.trim().length >= 2,
     staleTime: 2 * 60 * 1000, // 2 minutes for search results
   });
 }
