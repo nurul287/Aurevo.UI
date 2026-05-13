@@ -6,6 +6,7 @@ import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice } from "@/lib/currency";
 import { getLeadImageUrl } from "@/lib/product-images";
+import { cn } from "@/lib/utils";
 import { HeartIcon, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -26,7 +27,6 @@ export const ProductCard = ({
 
   const firstImage = getLeadImageUrl(product.images);
 
-  // Discount calculation — shown only when there's a real markdown.
   const basePrice = Number(product.base_price ?? 0);
   const comparePrice = Number(product.compare_at_price ?? 0);
   const hasDiscount = comparePrice > basePrice && basePrice > 0;
@@ -34,8 +34,6 @@ export const ProductCard = ({
     ? Math.round(((comparePrice - basePrice) / comparePrice) * 100)
     : 0;
 
-  // Dedupe sizes (a product can have the same size across multiple colors)
-  // and sort numerically when possible so 9 < 10 < 41 instead of "10" < "41" < "9".
   const rawSizes: string[] =
     product.variants
       ?.map((v: any) => v.size)
@@ -59,17 +57,14 @@ export const ProductCard = ({
     e.preventDefault();
     e.stopPropagation();
 
-    // If no sizes available, use first variant or create without variant
     if (availableSizes.length === 0) {
       const firstVariant = product.variants?.[0];
       if (firstVariant) {
         await addItem(product.id, firstVariant.id, 1);
-        // Success toast is handled by the cart mutation hook
-        // Side panel will open automatically via useCart hook
       } else {
         showWarning(
           "Product unavailable",
-          "This product cannot be added to cart"
+          "This product cannot be added to cart",
         );
       }
       return;
@@ -78,77 +73,132 @@ export const ProductCard = ({
     if (!selectedSize) {
       showWarning(
         "Please select a size",
-        "Choose a size before adding to cart"
+        "Choose a size before adding to cart",
       );
       return;
     }
 
-    // Find the variant with the selected size
-    const variant = product.variants?.find((v: any) => v.size === selectedSize);
+    const variantRow = product.variants?.find(
+      (v: any) => v.size === selectedSize,
+    );
 
-    if (variant) {
-      await addItem(product.id, variant.id, 1);
-      // Success toast is handled by the cart mutation hook
-      // Side panel will open automatically via useCart hook
+    if (variantRow) {
+      await addItem(product.id, variantRow.id, 1);
     }
   };
 
+  const isTeaser = variant === "teaser";
+
   return (
     <div className="group">
-      <Card className="overflow-hidden border-none shadow-md hover:shadow-xl transition-all duration-300 h-full bg-[#FDF7F3] rounded-2xl">
-        {/* Image Container */}
+      <Card className="h-full overflow-hidden rounded-xl border-none bg-[#FDF7F3] shadow-md transition-all duration-300 hover:shadow-xl">
         <Link to={APP_PATHS.productDetail(product.id)}>
-          <div className="relative aspect-square bg-white overflow-hidden rounded-t-2xl">
+          <div className="relative aspect-square overflow-hidden rounded-t-xl bg-white">
             {firstImage ? (
               <img
                 src={firstImage}
                 alt={product.name}
-                className="w-full h-full object-cover group-hover:scale-120 transition-transform duration-300"
+                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-120"
                 loading="lazy"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                <span className="text-6xl font-bold text-gray-300">
+              <div className="flex h-full w-full items-center justify-center bg-gray-100">
+                <span
+                  className={cn(
+                    "font-bold text-gray-300",
+                    isTeaser ? "text-4xl sm:text-6xl" : "text-6xl",
+                  )}
+                >
                   {product.name.charAt(0)}
                 </span>
               </div>
             )}
 
-            {/* Wishlist Button */}
             <button
-              className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center hover:scale-110 transition-all z-10"
+              type="button"
+              className={cn(
+                "absolute z-10 flex items-center justify-center transition-all hover:scale-110",
+                isTeaser
+                  ? "right-2 top-2 h-8 w-8 sm:right-3 sm:top-3 sm:h-9 sm:w-9"
+                  : "right-3 top-3 h-9 w-9",
+              )}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
               }}
             >
-              <HeartIcon className="h-7 w-7 text-[#E1680B] fill-none stroke-2" />
+              <HeartIcon
+                className={cn(
+                  "text-[#E1680B] fill-none stroke-2",
+                  isTeaser ? "h-5 w-5 sm:h-7 sm:w-7" : "h-7 w-7",
+                )}
+              />
             </button>
 
-            {/* Discount Badge (only when on sale) */}
             {hasDiscount && (
-              <Badge className="absolute top-3 left-3 bg-[#FF3B30] text-white px-2 py-1 text-xs font-semibold rounded shadow-sm hover:bg-[#FF3B30]">
+              <Badge
+                className={cn(
+                  "pointer-events-none absolute flex items-center justify-center rounded-full border-transparent bg-black p-0 font-bold leading-none text-white shadow-sm",
+                  isTeaser
+                    ? "left-2 top-2 h-9 w-9 text-[10px] sm:left-3 sm:top-3 sm:h-11 sm:w-11 sm:text-[11px]"
+                    : "left-3 top-3 h-11 w-11 text-[11px]",
+                )}
+              >
                 -{discountPercent}%
               </Badge>
             )}
           </div>
         </Link>
 
-        {/* Product Info */}
-        <CardContent className="p-4 bg-[#FDF7F3] flex flex-col">
-          <Link to={APP_PATHS.productDetail(product.id)}>
-            <h3 className="font-medium text-lg text-gray-900 line-clamp-2 hover:text-gray-700 transition-colors mb-2">
+        <CardContent
+          className={cn(
+            "flex flex-col bg-[#FDF7F3]",
+            isTeaser ? "p-3 sm:p-4" : "p-4",
+          )}
+        >
+          <Link
+            to={APP_PATHS.productDetail(product.id)}
+            className={cn(isTeaser && "block min-w-0")}
+          >
+            <h3
+              className={cn(
+                "font-medium text-gray-900 transition-colors hover:text-gray-700",
+                isTeaser
+                  ? "mb-1 line-clamp-1 text-xs leading-tight sm:mb-1.5 sm:line-clamp-2 sm:text-sm sm:leading-snug md:text-base"
+                  : "mb-2 line-clamp-2 text-lg",
+              )}
+            >
               {product.name}
             </h3>
           </Link>
 
-          {/* Price */}
-          <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-[#414141] rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-xs font-medium text-white">৳</span>
+          <div
+            className={cn(
+              "mb-3 flex items-center gap-x-2 gap-y-1",
+              isTeaser
+                ? "mb-2 min-w-0 flex-nowrap overflow-hidden sm:mb-3 sm:flex-wrap"
+                : "flex-wrap",
+            )}
+          >
+            <div
+              className={cn(
+                "flex min-w-0 items-center gap-1 sm:gap-1.5 md:gap-2",
+                isTeaser && "shrink-0",
+              )}
+            >
+              <div className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-[#414141] sm:h-4 sm:w-4">
+                <span className="text-[10px] font-medium text-white sm:text-xs">
+                  ৳
+                </span>
               </div>
-              <span className="text-lg font-semibold text-gray-900">
+              <span
+                className={cn(
+                  "font-semibold text-gray-900 tabular-nums",
+                  isTeaser
+                    ? "truncate text-xs sm:text-sm md:text-base lg:text-lg"
+                    : "text-lg",
+                )}
+              >
                 {formatPrice(basePrice, {
                   showSymbol: false,
                   decimals: 0,
@@ -156,7 +206,14 @@ export const ProductCard = ({
               </span>
             </div>
             {hasDiscount && (
-              <span className="text-sm text-gray-400 line-through">
+              <span
+                className={cn(
+                  "shrink-0 text-gray-400 line-through tabular-nums",
+                  isTeaser
+                    ? "truncate text-[11px] sm:text-xs md:text-sm"
+                    : "text-sm",
+                )}
+              >
                 ৳{" "}
                 {formatPrice(comparePrice, {
                   showSymbol: false,
@@ -168,14 +225,13 @@ export const ProductCard = ({
 
           {variant === "default" ? (
             <>
-              {/* Sizes */}
-              <div className="flex-grow min-h-[2rem] flex flex-col justify-end mb-3">
+              <div className="flex min-h-[2rem] flex-grow flex-col justify-end mb-3">
                 {availableSizes.length > 0 ? (
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-gray-900">
                       Size
                     </span>
-                    <div className="flex items-center gap-1 flex-wrap">
+                    <div className="flex flex-wrap items-center gap-1">
                       {availableSizes.slice(0, 5).map((size: string) => (
                         <button
                           key={size}
@@ -183,9 +239,9 @@ export const ProductCard = ({
                             e.preventDefault();
                             handleSizeSelect(size);
                           }}
-                          className={`px-2.5 py-1 text-sm font-medium transition-all border cursor-pointer ${
+                          className={`cursor-pointer border px-2.5 py-1 text-sm font-medium transition-all ${
                             selectedSize === size
-                              ? "bg-gray-900 text-white border-gray-900"
+                              ? "border-gray-900 bg-gray-900 text-white"
                               : "border-gray-300 hover:border-gray-900"
                           }`}
                         >
@@ -195,12 +251,14 @@ export const ProductCard = ({
                     </div>
                   </div>
                 ) : (
-                  <div className="text-sm text-gray-500">No sizes available</div>
+                  <div className="text-sm text-gray-500">
+                    No sizes available
+                  </div>
                 )}
               </div>
 
               <Button
-                className="w-[120px] bg-[#111111] hover:bg-[#2A2A2A] text-white h-10 text-sm font-normal rounded"
+                className="h-10 w-[120px] rounded bg-[#111111] text-sm font-normal text-white hover:bg-[#2A2A2A]"
                 onClick={handleAddToCart}
               >
                 <ShoppingCart className="mr-2 h-4.5 w-4.5" strokeWidth={3} />
@@ -210,7 +268,12 @@ export const ProductCard = ({
           ) : (
             <Button
               asChild
-              className="w-fit bg-[#111111] hover:bg-[#2A2A2A] text-white h-10 text-sm font-normal rounded"
+              className={cn(
+                "w-fit rounded bg-[#111111] font-normal text-white hover:bg-[#2A2A2A]",
+                isTeaser
+                  ? "h-9 px-4 text-xs sm:h-10 sm:px-6 sm:text-sm"
+                  : "h-10 text-sm",
+              )}
             >
               <Link to={APP_PATHS.productDetail(product.id)}>View Details</Link>
             </Button>

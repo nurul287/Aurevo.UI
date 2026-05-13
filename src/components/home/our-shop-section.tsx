@@ -11,35 +11,39 @@ export const OurShopSection = () => {
   const products = productsData?.data || [];
 
   return (
-    <section className="py-10 bg-white">
+    <section className="bg-white py-10 sm:py-12">
       <div className="container-custom">
-        <h2 className="text-3xl font-bold text-gray-900 text-center mb-8 uppercase">
+        <h2 className="mb-8 text-center text-2xl font-bold uppercase text-gray-900 sm:text-3xl">
           Our Shop
         </h2>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
             {[...Array(8)].map((_, i) => (
-              <div key={i} className="overflow-hidden">
-                <Skeleton className="h-64 w-full rounded-t-2xl" />
-                <div className="p-4 space-y-2 bg-[#FDF7F3] rounded-b-2xl">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                  <Skeleton className="h-9 w-full" />
+              <div key={i} className="overflow-hidden rounded-2xl">
+                <Skeleton className="aspect-square w-full rounded-t-2xl" />
+                <div className="space-y-2 rounded-b-2xl bg-[#FDF7F3] p-3 sm:p-4">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="mt-2 h-9 w-24" />
                 </div>
               </div>
             ))}
           </div>
         ) : products.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">
+          <div className="py-12 text-center">
+            <p className="text-lg text-gray-500">
               No products available in our shop.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
             {products.map((product: any) => (
-              <ProductCard key={product.id} product={product} variant="teaser" />
+              <ProductCard
+                key={product.id}
+                product={product}
+                variant="teaser"
+              />
             ))}
           </div>
         )}

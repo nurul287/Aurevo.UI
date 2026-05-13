@@ -19,7 +19,7 @@ const HEX_CLIP =
 const CATEGORY_FILL = "#D9D9D9";
 
 const categoryGridClassName =
-  "grid grid-cols-2 gap-3 justify-items-center sm:gap-4 md:grid-cols-3 md:gap-4 lg:grid-cols-6 lg:gap-x-2 lg:gap-y-3";
+  "grid grid-cols-3 gap-2 justify-items-center sm:gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-6 lg:gap-x-2 lg:gap-y-3";
 
 function SneakerLineIcon({ className }: { className?: string }) {
   return (
@@ -67,13 +67,13 @@ function CategoryHexVisual({
 
   return (
     <div
-      className="flex aspect-square w-full max-w-[190px] flex-col items-center justify-center gap-2 px-2 py-4 text-gray-900 drop-shadow-[0_3px_10px_rgba(0,0,0,0.08)] sm:gap-2.5 sm:px-3 sm:py-5"
+      className="flex aspect-square w-full max-w-full flex-col items-center justify-center gap-1 px-1.5 py-2.5 text-gray-900 drop-shadow-[0_2px_8px_rgba(0,0,0,0.07)] sm:max-w-[190px] sm:gap-2 sm:px-2 sm:py-4 md:gap-2.5 md:px-3 md:py-5"
       style={{
         clipPath: HEX_CLIP,
         background: CATEGORY_FILL,
       }}
     >
-      <div className="flex h-[min(100px,42%)] w-[min(140px,74%)] shrink-0 items-center justify-center px-0.5">
+      <div className="flex h-[min(56px,40%)] w-[min(140px,72%)] shrink-0 items-center justify-center px-0.5 sm:h-[min(88px,41%)] sm:w-[min(140px,74%)] md:h-[min(100px,42%)]">
         {showImg ? (
           <img
             src={trimmed}
@@ -87,7 +87,7 @@ function CategoryHexVisual({
           <SneakerLineIcon className="mx-auto h-[100%] w-[100%] text-gray-800" />
         )}
       </div>
-      <span className="max-w-full shrink-0 px-1 text-center font-semibold uppercase leading-snug tracking-wide text-gray-900 sm:text-[18px] text-base">
+      <span className="max-w-full shrink-0 px-0.5 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide text-gray-900 sm:px-1 sm:text-xs sm:leading-snug md:text-base lg:text-[18px]">
         {name}
       </span>
     </div>
@@ -117,9 +117,9 @@ export const ProductCategorySection = () => {
     displayCategories.length > 0 ? displayCategories : defaultCategories;
 
   return (
-    <section className="bg-white py-12 md:py-14">
+    <section className="bg-white py-10 sm:py-12">
       <div className="container-custom">
-        <h2 className="mb-12 text-center text-2xl font-semibold uppercase tracking-tight text-slate-900 sm:text-4xl">
+        <h2 className="mb-8 text-center text-xl font-bold uppercase tracking-tight text-slate-900 sm:mb-10 sm:text-2xl md:mb-12 md:text-4xl">
           Our product category
         </h2>
 
@@ -128,9 +128,9 @@ export const ProductCategorySection = () => {
             {[...Array(6)].map((_, i) => (
               <div
                 key={i}
-                className="flex w-full max-w-[190px] items-center justify-center"
+                className="flex w-full max-w-full items-center justify-center sm:max-w-[190px]"
               >
-                <Skeleton className="aspect-square w-full max-w-[190px] [clip-path:polygon(50%_0%,100%_25%,100%_75%,50%_100%,0%_75%,0%_25%)]" />
+                <Skeleton className="aspect-square w-full max-w-full [clip-path:polygon(50%_0%,100%_25%,100%_75%,50%_100%,0%_75%,0%_25%)] sm:max-w-[190px]" />
               </div>
             ))}
           </div>
@@ -142,7 +142,7 @@ export const ProductCategorySection = () => {
                 to={`${APP_PATHS.products}?category=${encodeURIComponent(
                   category.slug || category.name.toLowerCase(),
                 )}`}
-                className="group flex w-full max-w-[190px] items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+                className="group flex w-full max-w-full items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 sm:max-w-[190px]"
               >
                 <article className="flex h-full w-full items-center justify-center transition-transform duration-200 group-hover:scale-[1.03]">
                   <CategoryHexVisual
