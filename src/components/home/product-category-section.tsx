@@ -15,9 +15,11 @@ type CategoryCard = {
 const HEX_CLIP =
   "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" as const;
 
-/** Figma: fill #D9D9D9, size 190×190 (corner radius 24px in file — clip-path hex; refine with SVG if needed). */
-const HEX_PX = 190;
+/** Figma: fill #D9D9D9; tile max 190×190, shrinks in narrower grid cells. */
 const CATEGORY_FILL = "#D9D9D9";
+
+const categoryGridClassName =
+  "grid grid-cols-2 gap-3 justify-items-center sm:gap-4 md:grid-cols-3 md:gap-4 lg:grid-cols-6 lg:gap-x-2 lg:gap-y-3";
 
 function SneakerLineIcon({ className }: { className?: string }) {
   return (
@@ -65,15 +67,13 @@ function CategoryHexVisual({
 
   return (
     <div
-      className="flex flex-col items-center justify-center gap-2.5 px-3 py-5 text-gray-900 drop-shadow-[0_3px_10px_rgba(0,0,0,0.08)]"
+      className="flex aspect-square w-full max-w-[190px] flex-col items-center justify-center gap-2 px-2 py-4 text-gray-900 drop-shadow-[0_3px_10px_rgba(0,0,0,0.08)] sm:gap-2.5 sm:px-3 sm:py-5"
       style={{
         clipPath: HEX_CLIP,
         background: CATEGORY_FILL,
-        width: HEX_PX,
-        height: HEX_PX,
       }}
     >
-      <div className="flex w-[140px] h-[100px] shrink-0 items-center justify-center px-0.5">
+      <div className="flex h-[min(100px,42%)] w-[min(140px,74%)] shrink-0 items-center justify-center px-0.5">
         {showImg ? (
           <img
             src={trimmed}
@@ -116,8 +116,6 @@ export const ProductCategorySection = () => {
   const categoriesToShow: CategoryCard[] =
     displayCategories.length > 0 ? displayCategories : defaultCategories;
 
-  const gridMin = HEX_PX + 8;
-
   return (
     <section className="bg-white py-12 md:py-14">
       <div className="container-custom">
@@ -126,40 +124,25 @@ export const ProductCategorySection = () => {
         </h2>
 
         {isLoading ? (
-          <div
-            className="grid justify-items-center gap-4 sm:gap-5 md:gap-6"
-            style={{
-              gridTemplateColumns: `repeat(auto-fill, minmax(${gridMin}px, 1fr))`,
-            }}
-          >
+          <div className={categoryGridClassName}>
             {[...Array(6)].map((_, i) => (
               <div
                 key={i}
-                className="flex items-center justify-center"
-                style={{ width: HEX_PX, height: HEX_PX }}
+                className="flex w-full max-w-[190px] items-center justify-center"
               >
-                <Skeleton
-                  className="[clip-path:polygon(50%_0%,100%_25%,100%_75%,50%_100%,0%_75%,0%_25%)]"
-                  style={{ width: HEX_PX, height: HEX_PX }}
-                />
+                <Skeleton className="aspect-square w-full max-w-[190px] [clip-path:polygon(50%_0%,100%_25%,100%_75%,50%_100%,0%_75%,0%_25%)]" />
               </div>
             ))}
           </div>
         ) : (
-          <div
-            className="grid justify-items-center gap-4 sm:gap-5 md:gap-6"
-            style={{
-              gridTemplateColumns: `repeat(auto-fill, minmax(${gridMin}px, 1fr))`,
-            }}
-          >
+          <div className={categoryGridClassName}>
             {categoriesToShow.map((category, index) => (
               <Link
                 key={category.id || index}
                 to={`${APP_PATHS.products}?category=${encodeURIComponent(
                   category.slug || category.name.toLowerCase(),
                 )}`}
-                className="group flex items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
-                style={{ width: HEX_PX, height: HEX_PX }}
+                className="group flex w-full max-w-[190px] items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
               >
                 <article className="flex h-full w-full items-center justify-center transition-transform duration-200 group-hover:scale-[1.03]">
                   <CategoryHexVisual
