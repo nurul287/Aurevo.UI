@@ -4,7 +4,6 @@ import { useGuestCart } from "@/contexts/guest-cart-context";
 import CartSidePanel from "@/components/cart-side-panel";
 import {
   Bars3Icon,
-  MagnifyingGlassIcon,
   ShoppingBagIcon,
   UserIcon,
   XMarkIcon,
@@ -13,8 +12,8 @@ import { useEffect, useRef, useState } from "react";
 import { APP_PATHS } from "@/constants/app-paths";
 import { useCategories } from "@/services";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { HeaderProductSearch } from "@/components/header-product-search";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
 import AurevoBlack from "@/assets/icon/aurevo-black";
 import AurevoWhite from "@/assets/icon/aurevo-white";
 
@@ -98,15 +97,11 @@ const Layout = () => {
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearchSubmit = () => {
     const q = searchQuery.trim();
-    if (q) {
-      navigate(
-        `${APP_PATHS.products}?search=${encodeURIComponent(q)}`,
-      );
-      closeMobileMenu();
-    }
+    if (!q) return;
+    navigate(`${APP_PATHS.products}?search=${encodeURIComponent(q)}`);
+    closeMobileMenu();
   };
 
   return (
@@ -152,21 +147,13 @@ const Layout = () => {
 
             {/* Right side: Search Bar + Icons + Sign In */}
             <div className="flex items-center space-x-2 lg:space-x-4">
-              {/* Search Bar */}
-              <form onSubmit={handleSearch} className="hidden lg:block">
-                <div className="relative">
-                  <div className="absolute inset-y-0 right-5 pl-3 flex items-center pointer-events-none">
-                    <MagnifyingGlassIcon className="h-[18px] w-[18px] text-gray-400" />
-                  </div>
-                  <Input
-                    type="text"
-                    placeholder="Search"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-[200px] xl:w-[320px] h-[44px] rounded-full border-none bg-[#FAFAFA] placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-none focus-visible:bg-[#F3F3F3] focus-visible:shadow-[0px_4px_4px_0px_rgba(0,0,0,0.08)]"
-                  />
-                </div>
-              </form>
+              <HeaderProductSearch
+                value={searchQuery}
+                onChange={setSearchQuery}
+                onSubmitSearch={handleSearchSubmit}
+                formClassName="hidden lg:block"
+                inputClassName="w-[200px] xl:w-[320px] h-[44px] rounded-full border-none bg-[#FAFAFA] pr-12 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-none focus-visible:bg-[#F3F3F3] focus-visible:shadow-[0px_4px_4px_0px_rgba(0,0,0,0.08)]"
+              />
 
               {/* Cart */}
               <button
@@ -247,21 +234,14 @@ const Layout = () => {
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-gray-200 bg-white">
             <div className="px-4 py-2 space-y-1">
-              {/* Mobile/Tablet Search */}
-              <form onSubmit={handleSearch} className="mb-4">
-                <div className="relative">
-                  <div className="absolute inset-y-0 right-5 pl-3 flex items-center pointer-events-none">
-                    <MagnifyingGlassIcon className="h-[18px] w-[18px] text-gray-400" />
-                  </div>
-                  <Input
-                    type="text"
-                    placeholder="Search"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full h-[44px] rounded-full border-none bg-[#FAFAFA] placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-none focus-visible:bg-[#F3F3F3] focus-visible:shadow-[0px_4px_4px_0px_rgba(0,0,0,0.08)]"
-                  />
-                </div>
-              </form>
+              <HeaderProductSearch
+                value={searchQuery}
+                onChange={setSearchQuery}
+                onSubmitSearch={handleSearchSubmit}
+                onAfterNavigate={closeMobileMenu}
+                formClassName="mb-4"
+                inputClassName="w-full h-[44px] rounded-full border-none bg-[#FAFAFA] pr-12 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-none focus-visible:bg-[#F3F3F3] focus-visible:shadow-[0px_4px_4px_0px_rgba(0,0,0,0.08)]"
+              />
 
               {/* Mobile Navigation */}
               {headerCategories.map((cat) =>
@@ -394,6 +374,20 @@ const Layout = () => {
                   </a>
                 </li>
                 <li className="flex items-center gap-2">
+                  <PhoneIcon
+                    width={16}
+                    height={16}
+                    className="flex-shrink-0"
+                    fill="#9CA3AF"
+                  />
+                  <a
+                    href="tel:+8801752600246"
+                    className="hover:text-gray-400 transition-colors"
+                  >
+                    01752-600246
+                  </a>
+                </li>
+                <li className="flex items-center gap-2">
                   <WhatsAppIcon
                     width={16}
                     height={16}
@@ -416,46 +410,18 @@ const Layout = () => {
                 Category
               </h3>
               <ul className="space-y-3 text-sm">
-                <li>
-                  <Link
-                    to="/products?category=men"
-                    className="text-white hover:text-gray-400 transition-colors"
-                  >
-                    Man
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/products?category=women"
-                    className="text-white hover:text-gray-400 transition-colors"
-                  >
-                    Women
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/products?category=kids"
-                    className="text-white hover:text-gray-400 transition-colors"
-                  >
-                    Kids
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/products?category=boots"
-                    className="text-white hover:text-gray-400 transition-colors"
-                  >
-                    Boots
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/products?category=slider"
-                    className="text-white hover:text-gray-400 transition-colors"
-                  >
-                    SLIDER
-                  </Link>
-                </li>
+                {headerCategories
+                  .filter((cat) => cat.slug)
+                  .map((cat) => (
+                    <li key={cat.id}>
+                      <Link
+                        to={`${APP_PATHS.products}?category=${encodeURIComponent(cat.slug!)}`}
+                        className="text-white hover:text-gray-400 transition-colors"
+                      >
+                        {cat.name}
+                      </Link>
+                    </li>
+                  ))}
               </ul>
             </div>
 
@@ -475,7 +441,7 @@ const Layout = () => {
                 </li>
                 <li>
                   <Link
-                    to="/support"
+                    to={APP_PATHS.support}
                     className="text-white hover:text-gray-400 transition-colors"
                   >
                     24/7 Support
@@ -483,7 +449,7 @@ const Layout = () => {
                 </li>
                 <li>
                   <Link
-                    to="/shipping"
+                    to={APP_PATHS.shipping}
                     className="text-white hover:text-gray-400 transition-colors"
                   >
                     Fast Delivery
@@ -491,7 +457,7 @@ const Layout = () => {
                 </li>
                 <li>
                   <Link
-                    to="/payment"
+                    to={APP_PATHS.payment}
                     className="text-white hover:text-gray-400 transition-colors"
                   >
                     Online Payment
@@ -499,7 +465,7 @@ const Layout = () => {
                 </li>
                 <li>
                   <Link
-                    to="/tracking"
+                    to={APP_PATHS.tracking}
                     className="text-white hover:text-gray-400 transition-colors"
                   >
                     Tracking
@@ -515,7 +481,7 @@ const Layout = () => {
                 </li>
                 <li>
                   <Link
-                    to="/terms"
+                    to={APP_PATHS.terms}
                     className="text-white hover:text-gray-400 transition-colors"
                   >
                     Terms &amp; Conditions
