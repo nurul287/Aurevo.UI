@@ -18,10 +18,10 @@ export const NewCollectionSection = () => {
   const products = productsData?.data || [];
 
   return (
-    <section className="py-10 bg-white">
+    <section className="py-10 sm:py-12 bg-white">
       <div className="container-custom">
         <div className="mb-8 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 uppercase">
+          <h2 className="sm:text-3xl text-2xl font-bold text-gray-900 uppercase">
             New Collection
           </h2>
         </div>
