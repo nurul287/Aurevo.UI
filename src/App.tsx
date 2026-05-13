@@ -28,7 +28,7 @@ function App() {
         <OAuthSuccessLandingRedirect />
         <GuestCartProvider>
           <AppRoutes />
-          <Toaster richColors position="top-right" />
+          <Toaster richColors position="top-center" />
         </GuestCartProvider>
       </AuthProvider>
     </Router>

@@ -5,6 +5,12 @@ import NotFoundPage from "@/pages/not-found-page";
 import OrderConfirmationPage from "@/pages/order-confirmation-page";
 import ProductDetailPage from "@/pages/product-detail-page";
 import ProductsPage from "@/pages/products-page";
+import {
+  PaymentPage,
+  ShippingPage,
+  SupportPage,
+  TrackingPage,
+} from "@/pages/shop-help-pages";
 import TermsPage from "@/pages/terms-page";
 import { APP_PATHS } from "../constants/app-paths";
 
@@ -16,6 +22,10 @@ export const publicRoutes = [
   { path: APP_PATHS.orderConfirmation, element: <OrderConfirmationPage /> },
   { path: APP_PATHS.about, element: <AboutPage /> },
   { path: APP_PATHS.terms, element: <TermsPage /> },
+  { path: APP_PATHS.support, element: <SupportPage /> },
+  { path: APP_PATHS.shipping, element: <ShippingPage /> },
+  { path: APP_PATHS.payment, element: <PaymentPage /> },
+  { path: APP_PATHS.tracking, element: <TrackingPage /> },
   // 404 route
   {
     path: APP_PATHS.notFound,

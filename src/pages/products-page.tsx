@@ -119,9 +119,9 @@ const ProductsPage = () => {
         : "Discover our complete collection of premium footwear.";
 
   return (
-    <div className="min-h-screen py-8 bg-gray-50">
+    <div className="min-h-screen py-6 bg-gray-50">
       <div className="container-custom">
-        <Breadcrumb className="mb-6">
+        <Breadcrumb className="mb-4">
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
@@ -145,7 +145,7 @@ const ProductsPage = () => {
           </BreadcrumbList>
         </Breadcrumb>
 
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">{pageTitle}</h1>
           <p className="text-gray-600">{pageSubtitle}</p>
         </div>

@@ -1,4 +1,3 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { APP_PATHS } from "@/constants/app-paths";
 import { useCategories } from "@/services";
@@ -8,111 +7,149 @@ import { Link } from "react-router-dom";
 type CategoryCard = {
   id?: string;
   name: string;
-  icon: string;
   slug?: string;
   image_url?: string | null;
 };
 
-const categoryIcons: Record<string, string> = {
-  MAN: "👔",
-  WOMEN: "👗",
-  CHILD: "👶",
-  BOOTS: "🥾",
-  SLIDER: "🩴",
-};
+/** Pointy top / bottom hexagon (fits design “Polygon” tile). */
+const HEX_CLIP =
+  "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" as const;
 
-function CategoryTileMedia({
+/** Figma: fill #D9D9D9; tile max 190×190, shrinks in narrower grid cells. */
+const CATEGORY_FILL = "#D9D9D9";
+
+const categoryGridClassName =
+  "grid grid-cols-2 gap-3 justify-items-center sm:gap-4 md:grid-cols-3 md:gap-4 lg:grid-cols-6 lg:gap-x-2 lg:gap-y-3";
+
+function SneakerLineIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 56 48"
+      className={className}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+    >
+      <path
+        d="M6 38h44l-1.5-6-6-14c-1.5-3.5-5-6-9-6H20c-3.5 0-6.5 2-8 5L7 30l-1 8Z"
+        stroke="currentColor"
+        strokeWidth="2.15"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M20 12h14c3 0 5.5 1.5 7 4l5 10M18 12l-2.5-4c-.8-1.2-2-2-3.5-2"
+        stroke="currentColor"
+        strokeWidth="2.15"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M14 38h36"
+        stroke="currentColor"
+        strokeWidth="2.15"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function CategoryHexVisual({
   imageUrl,
-  icon,
+  name,
 }: {
   imageUrl?: string | null;
-  icon: string;
+  name: string;
 }) {
   const [imgFailed, setImgFailed] = useState(false);
   const trimmed = imageUrl?.trim() ?? "";
   const showImg = trimmed.length > 0 && !imgFailed;
 
-  if (showImg) {
-    return (
-      <img
-        src={trimmed}
-        alt=""
-        className="relative z-10 h-[72px] w-[72px] object-contain"
-        loading="lazy"
-        decoding="async"
-        onError={() => setImgFailed(true)}
-      />
-    );
-  }
-
   return (
-    <div className="relative z-10 text-5xl transform -rotate-45">{icon}</div>
+    <div
+      className="flex aspect-square w-full max-w-[190px] flex-col items-center justify-center gap-2 px-2 py-4 text-gray-900 drop-shadow-[0_3px_10px_rgba(0,0,0,0.08)] sm:gap-2.5 sm:px-3 sm:py-5"
+      style={{
+        clipPath: HEX_CLIP,
+        background: CATEGORY_FILL,
+      }}
+    >
+      <div className="flex h-[min(100px,42%)] w-[min(140px,74%)] shrink-0 items-center justify-center px-0.5">
+        {showImg ? (
+          <img
+            src={trimmed}
+            alt=""
+            className="mx-auto h-[100%] w-[100%] object-contain object-center"
+            loading="lazy"
+            decoding="async"
+            onError={() => setImgFailed(true)}
+          />
+        ) : (
+          <SneakerLineIcon className="mx-auto h-[100%] w-[100%] text-gray-800" />
+        )}
+      </div>
+      <span className="max-w-full shrink-0 px-1 text-center font-semibold uppercase leading-snug tracking-wide text-gray-900 sm:text-[18px] text-base">
+        {name}
+      </span>
+    </div>
   );
 }
 
 export const ProductCategorySection = () => {
   const { data: categories = [], isLoading } = useCategories();
 
-  // Map categories to display format
-  const displayCategories = categories.slice(0, 5).map((cat) => ({
+  const displayCategories = categories.slice(0, 6).map((cat) => ({
     id: cat.id,
     name: cat.name.toUpperCase(),
-    icon: categoryIcons[cat.name.toUpperCase()] || "👟",
     slug: cat.slug,
     image_url: cat.image_url,
   }));
 
-  // If we don't have enough categories, add placeholders
   const defaultCategories: CategoryCard[] = [
-    { id: "placeholder-man", name: "MAN", icon: "👔", slug: "man" },
-    { id: "placeholder-women", name: "WOMEN", icon: "👗", slug: "women" },
-    { id: "placeholder-child", name: "CHILD", icon: "👶", slug: "child" },
-    { id: "placeholder-boots", name: "BOOTS", icon: "🥾", slug: "boots" },
-    { id: "placeholder-slider", name: "SLIDER", icon: "🩴", slug: "slider" },
+    { id: "ph-sneakers", name: "SNEAKERS", slug: "sneakers" },
+    { id: "ph-panjabi", name: "PANJABI", slug: "panjabi" },
+    { id: "ph-tshirt", name: "T-SHIRT", slug: "t-shirt" },
+    { id: "ph-cap", name: "CAP", slug: "cap" },
+    { id: "ph-slider", name: "SLIDER", slug: "slider" },
+    { id: "ph-pant", name: "PANT", slug: "pant" },
   ];
 
   const categoriesToShow: CategoryCard[] =
     displayCategories.length > 0 ? displayCategories : defaultCategories;
 
   return (
-    <section className="py-10 bg-white">
+    <section className="bg-white py-12 md:py-14">
       <div className="container-custom">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-900">
-          OUR PRODUCT CATEGORY
+        <h2 className="mb-12 text-center text-2xl font-semibold uppercase tracking-tight text-slate-900 sm:text-4xl">
+          Our product category
         </h2>
 
         {isLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-32 w-full rounded-lg" />
+          <div className={categoryGridClassName}>
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={i}
+                className="flex w-full max-w-[190px] items-center justify-center"
+              >
+                <Skeleton className="aspect-square w-full max-w-[190px] [clip-path:polygon(50%_0%,100%_25%,100%_75%,50%_100%,0%_75%,0%_25%)]" />
+              </div>
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+          <div className={categoryGridClassName}>
             {categoriesToShow.map((category, index) => (
               <Link
                 key={category.id || index}
                 to={`${APP_PATHS.products}?category=${encodeURIComponent(
                   category.slug || category.name.toLowerCase(),
                 )}`}
-                className="group"
+                className="group flex w-full max-w-[190px] items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
               >
-                <Card className="hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-indigo-200 h-full">
-                  <CardContent className="p-6 flex flex-col items-center justify-center space-y-4 min-h-[180px]">
-                    {/* Hexagonal Icon Container */}
-                    <div className="relative w-24 h-24 flex items-center justify-center">
-                      {/* Hexagon shape using clip-path */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg transform rotate-45 group-hover:scale-110 transition-transform duration-300"></div>
-                      <CategoryTileMedia
-                        imageUrl={category.image_url}
-                        icon={category.icon}
-                      />
-                    </div>
-                    <h3 className="text-lg font-bold text-gray-900 text-center group-hover:text-indigo-600 transition-colors">
-                      {category.name}
-                    </h3>
-                  </CardContent>
-                </Card>
+                <article className="flex h-full w-full items-center justify-center transition-transform duration-200 group-hover:scale-[1.03]">
+                  <CategoryHexVisual
+                    imageUrl={category.image_url}
+                    name={category.name}
+                  />
+                </article>
               </Link>
             ))}
           </div>

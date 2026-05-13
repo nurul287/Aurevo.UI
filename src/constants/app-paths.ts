@@ -15,6 +15,10 @@ export const APP_PATHS = {
   dashboardProfile: "/dashboard/profile",
   about: "/about",
   terms: "/terms",
+  support: "/support",
+  shipping: "/shipping",
+  payment: "/payment",
+  tracking: "/tracking",
 
   // Admin paths
   admin: "/admin",

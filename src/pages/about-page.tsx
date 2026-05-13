@@ -9,7 +9,7 @@ import {
 import { APP_PATHS } from "@/constants/app-paths";
 import { Link } from "react-router-dom";
 
-const COVER_SRC = "/about-cover.png";
+const COVER_SRC = "/cover-photo.png";
 
 const AboutPage = () => {
   return (
@@ -48,8 +48,8 @@ const AboutPage = () => {
       </figure>
 
       <div className="container-custom">
-        <article className="max-w-2xl py-14 sm:py-20 md:py-24">
-          <div className="h-px w-10 bg-[#FF6600] mb-8" aria-hidden />
+        <article className="max-w-2xl pt-8 pb-16 sm:pt-10 sm:pb-20 md:pt-12 md:pb-24">
+          <div className="h-px w-10 bg-[#FF6600] mb-6" aria-hidden />
           <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 tracking-tight mb-6">
             Aurevo Fashion
           </h1>
