@@ -5,6 +5,7 @@ import {
   NewCollectionSection,
   PromotionalBanners,
   OurShopSection,
+  SneakerGallerySection,
   NewsletterBanner,
 } from "@/components/home";
 
@@ -28,6 +29,9 @@ const HomePage = () => {
 
       {/* Our Shop Section */}
       <OurShopSection />
+
+      {/* Sneaker gallery */}
+      <SneakerGallerySection />
 
       {/* Newsletter Banner */}
       <NewsletterBanner />
