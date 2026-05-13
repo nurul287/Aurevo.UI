@@ -20,8 +20,8 @@ export const NewCollectionSection = () => {
   return (
     <section className="py-10 bg-white">
       <div className="container-custom">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 uppercase">
+        <div className="mb-8 text-center">
+          <h2 className="text-3xl font-bold text-gray-900 uppercase">
             New Collection
           </h2>
         </div>
@@ -59,7 +59,7 @@ export const NewCollectionSection = () => {
                   key={product.id}
                   className="pl-4 md:basis-1/2 lg:basis-1/3"
                 >
-                  <ProductCard product={product} />
+                  <ProductCard product={product} variant="teaser" />
                 </CarouselItem>
               ))}
             </CarouselContent>
