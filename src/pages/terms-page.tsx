@@ -60,7 +60,7 @@ const TermsPage = () => {
     <div className="min-h-screen bg-gray-50 mb-2">
       {/* Hero Header */}
       <div className="bg-gradient-to-br from-[#DEF0F9] to-[#FDEBEC] border-b border-gray-200 p-2 mb-2">
-        <div className="container-custom py-12 sm:py-16 lg:py-20">
+        <div className="container-custom py-8 sm:py-11 lg:py-14">
           <div className="px-2 sm:px-4 lg:px-8">
             <nav
               aria-label="Breadcrumb"
@@ -89,7 +89,7 @@ const TermsPage = () => {
       </div>
 
       {/* Body */}
-      <div className="container-custom py-10 sm:py-14 lg:py-16 pb-16 sm:pb-20 lg:pb-24">
+      <div className="container-custom pt-6 pb-16 sm:pt-8 sm:pb-20 lg:pt-10 lg:pb-24">
         <div className="px-2 sm:px-4 lg:px-8 lg:grid lg:grid-cols-12 lg:gap-10">
           {/* Sidebar Table of Contents */}
           <aside className="hidden lg:block lg:col-span-4 xl:col-span-3">
@@ -249,16 +249,18 @@ const TermsPage = () => {
                   <p>We accept the following payment methods:</p>
                   <ul className="list-disc pl-6 space-y-2">
                     <li>
+                      <strong>Cash on Delivery (COD)</strong> where available
+                      (subject to location and order value)—our usual way to
+                      complete a sale at your door
+                    </li>
+                    <li>
                       <strong>bKash</strong> and <strong>Nagad</strong> (mobile
-                      financial services)
+                      financial services), including for advance charges when
+                      shown at checkout
                     </li>
                     <li>
                       <strong>Visa</strong> and <strong>MasterCard</strong>{" "}
                       debit/credit cards via our secure payment gateway
-                    </li>
-                    <li>
-                      <strong>Cash on Delivery (COD)</strong> where available
-                      (subject to location and order value)
                     </li>
                   </ul>
                   <p>
@@ -554,6 +556,13 @@ const TermsPage = () => {
                         className="text-[#FF6600] hover:text-[#E65C00] underline"
                       >
                         +880 1887-375148
+                      </a>
+                      <span className="text-gray-400"> · </span>
+                      <a
+                        href="tel:+8801752600246"
+                        className="text-[#FF6600] hover:text-[#E65C00] underline"
+                      >
+                        +880 1752-600246
                       </a>
                     </p>
                     <p>
