@@ -53,11 +53,11 @@ export const NewCollectionSection = () => {
             }}
             className="w-full"
           >
-            <CarouselContent className="-ml-4 mb-2">
+            <CarouselContent className="-ml-4 mb-2 items-stretch">
               {products.map((product: any) => (
                 <CarouselItem
                   key={product.id}
-                  className="pl-4 md:basis-1/2 lg:basis-1/3"
+                  className="flex h-full pl-4 md:basis-1/2 lg:basis-1/3"
                 >
                   <ProductCard product={product} variant="teaser" />
                 </CarouselItem>

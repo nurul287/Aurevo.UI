@@ -103,11 +103,15 @@ export function HeaderProductSearch({
     >
       <div ref={rootRef} className="relative">
         <div className="pointer-events-none absolute inset-y-0 right-5 flex items-center pl-3">
-          <MagnifyingGlassIcon className="h-[18px] w-[18px] text-gray-400" />
+          <MagnifyingGlassIcon
+            className="h-[18px] w-[18px] text-gray-600"
+            aria-hidden
+          />
         </div>
         <Input
           type="search"
           autoComplete="off"
+          aria-label="Search products"
           aria-autocomplete="list"
           aria-expanded={showPanel}
           aria-controls={showPanel ? listId : undefined}

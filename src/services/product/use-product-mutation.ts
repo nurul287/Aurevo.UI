@@ -85,7 +85,7 @@ export interface UpdateProductParams {
     height?: number;
   };
   base_price?: number;
-  compare_at_price?: number;
+  compare_at_price?: number | null;
   is_active?: boolean;
   is_featured?: boolean;
   requires_shipping?: boolean;

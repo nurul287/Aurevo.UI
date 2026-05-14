@@ -90,9 +90,12 @@ export const ProductCard = ({
   const isTeaser = variant === "teaser";
 
   return (
-    <div className="group">
-      <Card className="h-full overflow-hidden rounded-xl border-none bg-[#FDF7F3] shadow-md transition-all duration-300 hover:shadow-xl">
-        <Link to={APP_PATHS.productDetail(product.id)}>
+    <div className="group flex h-full min-h-0 flex-col">
+      <Card className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border-none bg-[#FDF7F3] shadow-md transition-all duration-300 hover:shadow-xl">
+        <Link
+          to={APP_PATHS.productDetail(product.id)}
+          className="block shrink-0"
+        >
           <div className="relative aspect-square overflow-hidden rounded-t-xl bg-white">
             {firstImage ? (
               <img
@@ -152,7 +155,7 @@ export const ProductCard = ({
 
         <CardContent
           className={cn(
-            "flex flex-col bg-[#FDF7F3]",
+            "flex min-h-0 flex-1 flex-col bg-[#FDF7F3]",
             isTeaser ? "p-3 sm:p-4" : "p-4",
           )}
         >
@@ -164,7 +167,7 @@ export const ProductCard = ({
               className={cn(
                 "font-medium text-gray-900 transition-colors hover:text-gray-700",
                 isTeaser
-                  ? "mb-1 line-clamp-1 text-xs leading-tight sm:mb-1.5 sm:line-clamp-2 sm:text-sm sm:leading-snug md:text-base"
+                  ? "mb-1 line-clamp-2 min-h-[2.75rem] text-xs leading-snug sm:mb-1.5 sm:min-h-[3.25rem] sm:text-sm sm:leading-snug md:text-base"
                   : "mb-2 line-clamp-2 text-lg",
               )}
             >
@@ -224,8 +227,8 @@ export const ProductCard = ({
           </div>
 
           {variant === "default" ? (
-            <>
-              <div className="flex min-h-[2rem] flex-grow flex-col justify-end mb-3">
+            <div className="mt-auto flex w-full flex-col gap-3">
+              <div className="flex min-h-[2rem] flex-col justify-end">
                 {availableSizes.length > 0 ? (
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-gray-900">
@@ -258,25 +261,29 @@ export const ProductCard = ({
               </div>
 
               <Button
-                className="h-10 w-[120px] rounded bg-[#111111] text-sm font-normal text-white hover:bg-[#2A2A2A]"
+                className="h-10 w-[120px] shrink-0 rounded bg-[#111111] text-sm font-normal text-white hover:bg-[#2A2A2A]"
                 onClick={handleAddToCart}
               >
                 <ShoppingCart className="mr-2 h-4.5 w-4.5" strokeWidth={3} />
                 Add Cart
               </Button>
-            </>
+            </div>
           ) : (
-            <Button
-              asChild
-              className={cn(
-                "w-fit rounded bg-[#111111] font-normal text-white hover:bg-[#2A2A2A]",
-                isTeaser
-                  ? "h-9 px-4 text-xs sm:h-10 sm:px-6 sm:text-sm"
-                  : "h-10 text-sm",
-              )}
-            >
-              <Link to={APP_PATHS.productDetail(product.id)}>View Details</Link>
-            </Button>
+            <div className="mt-auto shrink-0 pt-1">
+              <Button
+                asChild
+                className={cn(
+                  "w-fit rounded bg-[#111111] font-normal text-white hover:bg-[#2A2A2A]",
+                  isTeaser
+                    ? "h-9 px-4 text-xs sm:h-10 sm:px-6 sm:text-sm"
+                    : "h-10 text-sm",
+                )}
+              >
+                <Link to={APP_PATHS.productDetail(product.id)}>
+                  View Details
+                </Link>
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
