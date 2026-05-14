@@ -15,7 +15,8 @@ import { sortProductImages } from "@/lib/product-images";
 import { useProduct } from "@/services";
 import { ShoppingBagIcon } from "@heroicons/react/24/outline";
 import { ShoppingCart } from "lucide-react";
-import { useState, useRef } from "react";
+import { getProductHeroImageUrl } from "@/lib/product-hero-image-url";
+import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { APP_PATHS } from "@/constants/app-paths";
 import NumberStepper from "@/components/NumberStepper";
@@ -47,6 +48,25 @@ const ProductDetailPage = () => {
   const { data: product, isLoading, error } = useProduct(id || "");
   const { addItem, isAddingToCart } = useCart();
 
+  const productImages = useMemo(
+    () => (product?.images ? sortProductImages(product.images) : []),
+    [product?.images],
+  );
+
+  const mainImage = useMemo(() => {
+    if (!product) return "";
+    return (
+      productImages[selectedImageIndex]?.url ||
+      productImages[0]?.url ||
+      "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=600"
+    );
+  }, [product, productImages, selectedImageIndex]);
+
+  const heroImageUrl = useMemo(
+    () => (mainImage ? getProductHeroImageUrl(mainImage) : ""),
+    [mainImage],
+  );
+
   // Set default selections when product loads
   if (
     product &&
@@ -68,7 +88,7 @@ const ProductDetailPage = () => {
     if (!selectedSize) {
       showWarning(
         "Size required",
-        "Please select a size before adding to cart"
+        "Please select a size before adding to cart",
       );
       return;
     }
@@ -76,13 +96,13 @@ const ProductDetailPage = () => {
     try {
       // Find the variant that matches the selected size and color
       const variant = product.variants?.find(
-        (v) => v.size === selectedSize && v.color === selectedColor
+        (v) => v.size === selectedSize && v.color === selectedColor,
       );
 
       if (!variant) {
         showWarning(
           "Variant not available",
-          "Selected variant is not available"
+          "Selected variant is not available",
         );
         return;
       }
@@ -94,7 +114,7 @@ const ProductDetailPage = () => {
       console.error("Add to cart error:", error);
       showError(
         "Failed to add item to cart",
-        "Something went wrong. Please try again."
+        "Something went wrong. Please try again.",
       );
     }
   };
@@ -112,7 +132,7 @@ const ProductDetailPage = () => {
 
     // Find the variant that matches the selected size and color
     const variant = product.variants?.find(
-      (v) => v.size === selectedSize && v.color === selectedColor
+      (v) => v.size === selectedSize && v.color === selectedColor,
     );
 
     if (!variant) {
@@ -135,10 +155,10 @@ const ProductDetailPage = () => {
       <div className="min-h-screen py-8 bg-white">
         <div className="container-custom">
           <Skeleton className="h-6 w-40 mb-8" />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Product Images Skeleton */}
-            <div>
-              <Skeleton className="w-full h-96 rounded-lg mb-4" />
+          <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
+            {/* Product Images Skeleton — full-bleed hero on mobile */}
+            <div className="min-w-0 max-lg:-mx-5 max-lg:w-[calc(100%+2.5rem)] lg:mx-0">
+              <Skeleton className="mb-4 h-64 w-full max-lg:rounded-none lg:rounded-lg lg:h-[min(560px,60dvh)] lg:min-h-[300px]" />
               <div className="flex gap-2">
                 {[...Array(5)].map((_, i) => (
                   <Skeleton key={i} className="w-20 h-20 rounded-lg" />
@@ -181,11 +201,6 @@ const ProductDetailPage = () => {
     ...new Set(product.variants?.map((v) => v.size).filter(Boolean) || []),
   ];
 
-  const productImages = sortProductImages(product.images);
-  const mainImage =
-    productImages[selectedImageIndex]?.url ||
-    productImages[0]?.url ||
-    "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=600";
   const productCode = product.sku || product.id.slice(0, 6).toUpperCase();
 
   // Drag-to-scroll handlers
@@ -286,25 +301,31 @@ const ProductDetailPage = () => {
           </BreadcrumbList>
         </Breadcrumb>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Left Column - Product Images */}
-          <div>
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
+          {/* Left column: full-bleed on mobile (cancel container px-5) */}
+          <div className="min-w-0 max-lg:-mx-5 max-lg:w-[calc(100%+2.5rem)] lg:mx-0 lg:w-auto">
             {/* Main Product Image */}
             <div
               ref={imageContainerRef}
-              className="mb-4 relative overflow-hidden rounded-lg border border-gray-200 bg-white cursor-zoom-in group"
+              className="mb-4 relative cursor-zoom-in overflow-hidden border border-gray-200 bg-white max-lg:rounded-none max-lg:border-x-0 lg:rounded-lg lg:bg-[#ebebeb] group"
               onMouseMove={handleImageMouseMove}
               onMouseEnter={handleImageMouseEnter}
               onMouseLeave={handleImageMouseLeave}
               onClick={handleImageClick}
             >
-              <div className="relative w-full h-[500px] flex items-center justify-center">
+              {/* Mobile: intrinsic height (frame follows image), full width; lg+: fixed stage + cover */}
+              <div className="relative w-full overflow-hidden lg:h-[min(560px,60dvh)] lg:min-h-[300px]">
                 <img
                   key={selectedImageIndex}
-                  src={mainImage}
+                  src={heroImageUrl}
                   alt={product.name}
-                  className={`w-full h-full object-cover transition-transform duration-200 ease-out ${
-                    isZoomed ? "scale-[2.5]" : "scale-100"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  decoding="async"
+                  fetchPriority="high"
+                  className={`block h-auto w-full object-contain object-center [backface-visibility:hidden] max-lg:max-h-[min(85dvh,900px)] lg:absolute lg:inset-0 lg:h-full lg:max-h-none lg:object-cover lg:object-[center_52%] ${
+                    isZoomed
+                      ? "scale-[2.5] transition-transform duration-200 ease-out"
+                      : ""
                   }`}
                   style={{
                     transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%`,
@@ -324,7 +345,7 @@ const ProductDetailPage = () => {
               <div className="relative">
                 <div
                   ref={thumbnailContainerRef}
-                  className={`flex gap-2 overflow-x-auto select-none px-2 py-3 ${
+                  className={`flex gap-2 overflow-x-auto scroll-px-2 select-none px-2  py-3 ${
                     isDragging ? "cursor-grabbing" : "cursor-grab"
                   }`}
                   style={{
@@ -350,12 +371,12 @@ const ProductDetailPage = () => {
                       key={`thumbnail-${index}`}
                       onClick={(e) => handleThumbnailClick(index, e)}
                       type="button"
-                      className={`flex-shrink-0 w-22 h-22 rounded-lg border-2 transition-all ${
+                      className={`flex-shrink-0 w-22 h-22 rounded-lg border-2 transition-colors ${
                         isDragging ? "cursor-grabbing" : "cursor-pointer"
                       } ${
                         selectedImageIndex === index
-                          ? "border-[#FF6600] ring-2 ring-[#FF6600] ring-offset-2"
-                          : "border-gray-200 hover:border-gray-300"
+                          ? "border-[#111111]"
+                          : "border-transparent"
                       }`}
                       aria-label={`View image ${index + 1} of ${
                         productImages.length
@@ -403,7 +424,7 @@ const ProductDetailPage = () => {
               product.compare_at_price > product.base_price ? (
                 <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-2">
-                    <span className="line-through text-gray-500">
+                    <span className="line-through text-gray-600 decoration-gray-600 decoration-2">
                       {formatPrice(product.compare_at_price)}
                     </span>
                     <span className="text-gray-900">
@@ -415,7 +436,7 @@ const ProductDetailPage = () => {
                     {Math.round(
                       ((product.compare_at_price - product.base_price) /
                         product.compare_at_price) *
-                        100
+                        100,
                     )}
                     %
                   </span>
