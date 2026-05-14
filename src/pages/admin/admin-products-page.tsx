@@ -339,9 +339,12 @@ export default function AdminProductsPage() {
         care_instructions: formData.care_instructions,
         weight: formData.weight ? parseFloat(formData.weight) : undefined,
         base_price: parseFloat(formData.base_price),
-        compare_at_price: formData.compare_at_price
-          ? parseFloat(formData.compare_at_price)
-          : undefined,
+        compare_at_price: (() => {
+          const t = formData.compare_at_price.trim();
+          if (t === "") return null;
+          const n = parseFloat(t);
+          return Number.isFinite(n) ? n : null;
+        })(),
         is_featured: formData.is_featured,
         requires_shipping: formData.requires_shipping,
         track_inventory: formData.track_inventory,
@@ -1096,6 +1099,25 @@ export default function AdminProductsPage() {
                   setFormData((prev) => ({
                     ...prev,
                     base_price: e.target.value,
+                  }))
+                }
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-compare_at_price" className="text-right">
+                Compare price
+              </Label>
+              <Input
+                id="edit-compare_at_price"
+                type="number"
+                step="0.01"
+                className="col-span-3"
+                placeholder="Optional — original / list price"
+                value={formData.compare_at_price}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    compare_at_price: e.target.value,
                   }))
                 }
               />

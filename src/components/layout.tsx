@@ -79,10 +79,10 @@ const Layout = () => {
   };
 
   const categoryNavLinkClass = (slug: string) =>
-    `text-sm xl:text-base font-medium whitespace-nowrap transition-colors ${
+    `inline-flex items-center text-sm xl:text-base font-medium whitespace-nowrap transition-colors border px-2 py-1 rounded-none ${
       isCategoryNavActive(slug)
-        ? "text-gray-900 border-b-2 border-gray-900 pb-0.5"
-        : "text-gray-700 hover:text-gray-900"
+        ? "text-gray-900 border-[#111111]"
+        : "text-gray-700 border-transparent hover:text-gray-900 hover:border-gray-300"
     }`;
 
   const handleSignOut = async () => {
@@ -132,16 +132,6 @@ const Layout = () => {
                     </Link>
                   ) : null,
                 )}
-                <Link
-                  to={APP_PATHS.about}
-                  className={`text-sm xl:text-base font-medium whitespace-nowrap transition-colors ${
-                    location.pathname === APP_PATHS.about
-                      ? "text-gray-900 border-b-2 border-gray-900 pb-0.5"
-                      : "text-gray-700 hover:text-gray-900"
-                  }`}
-                >
-                  About us
-                </Link>
               </nav>
             </div>
 
@@ -152,18 +142,18 @@ const Layout = () => {
                 onChange={setSearchQuery}
                 onSubmitSearch={handleSearchSubmit}
                 formClassName="hidden lg:block"
-                inputClassName="w-[200px] xl:w-[320px] h-[44px] rounded-full border-none bg-[#FAFAFA] pr-12 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-none focus-visible:bg-[#F3F3F3] focus-visible:shadow-[0px_4px_4px_0px_rgba(0,0,0,0.08)]"
+                inputClassName="w-[200px] xl:w-[320px] h-[44px] rounded-full border-2 border-gray-200 bg-white pr-12 pl-4 text-gray-900 shadow-sm placeholder:text-gray-600 focus-visible:border-[#111111] focus-visible:bg-white focus-visible:shadow-md focus-visible:ring-0 focus-visible:ring-offset-0"
               />
 
               {/* Cart */}
               <button
                 onClick={openCartPanel}
-                className="relative p-2 text-gray-400 hover:text-gray-500 cursor-pointer"
+                className="relative inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-gray-100 text-gray-700 transition-colors hover:bg-[#111111] hover:text-white"
                 aria-label="Open cart"
               >
                 <ShoppingBagIcon className="h-6 w-6" />
                 {cartItemCount > 0 && (
-                  <div className="absolute -top-1 -right-1 h-5 w-5 bg-orange-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                  <div className="absolute -top-1 -right-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#111111] px-1 text-[10px] font-semibold tabular-nums leading-none text-white ring-2 ring-white">
                     {cartItemCount}
                   </div>
                 )}
@@ -174,7 +164,9 @@ const Layout = () => {
                 <div className="relative" ref={userMenuRef}>
                   <button
                     onClick={toggleUserMenu}
-                    className="p-2 text-gray-400 hover:text-gray-500 cursor-pointer"
+                    className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-gray-100 text-gray-700 transition-colors hover:bg-[#111111] hover:text-white"
+                    aria-expanded={userMenuOpen}
+                    aria-haspopup="true"
                   >
                     <UserIcon className="h-6 w-6" />
                   </button>
@@ -240,7 +232,7 @@ const Layout = () => {
                 onSubmitSearch={handleSearchSubmit}
                 onAfterNavigate={closeMobileMenu}
                 formClassName="mb-4"
-                inputClassName="w-full h-[44px] rounded-full border-none bg-[#FAFAFA] pr-12 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-none focus-visible:bg-[#F3F3F3] focus-visible:shadow-[0px_4px_4px_0px_rgba(0,0,0,0.08)]"
+                inputClassName="w-full h-[44px] rounded-full border-2 border-gray-200 bg-white pr-12 pl-4 text-gray-900 shadow-sm placeholder:text-gray-600 focus-visible:border-[#111111] focus-visible:bg-white focus-visible:shadow-md focus-visible:ring-0 focus-visible:ring-offset-0"
               />
 
               {/* Mobile Navigation */}
@@ -250,27 +242,16 @@ const Layout = () => {
                     key={cat.id}
                     to={`${APP_PATHS.products}?category=${encodeURIComponent(cat.slug)}`}
                     onClick={closeMobileMenu}
-                    className={`block px-3 py-2 text-base font-medium ${
+                    className={`block px-3 py-2 text-base font-medium border rounded-none transition-colors ${
                       isCategoryNavActive(cat.slug)
-                        ? "text-gray-900 bg-gray-50 rounded-md"
-                        : ""
+                        ? "text-gray-900 border-[#111111]"
+                        : "text-gray-700 border-transparent hover:text-gray-900 hover:border-gray-300"
                     }`}
                   >
                     {cat.name}
                   </Link>
                 ) : null,
               )}
-              <Link
-                to={APP_PATHS.about}
-                onClick={closeMobileMenu}
-                className={`block px-3 py-2 text-base font-medium ${
-                  location.pathname === APP_PATHS.about
-                    ? "text-gray-900 bg-gray-50 rounded-md"
-                    : ""
-                }`}
-              >
-                About us
-              </Link>
 
               {/* Mobile User Menu */}
               {user ? (
