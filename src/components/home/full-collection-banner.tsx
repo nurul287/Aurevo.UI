@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
-const BANNER_BG = "/full-collection-banner.png";
+const BANNER_BG = "/full-collection-banner.webp";
 
 /** Source asset is 3840×640 (~6:1). At mobile width, intrinsic height is tiny; we use a floor height + object-cover so the band reads as a real banner. */
 const BANNER_SRC_W = 3840;

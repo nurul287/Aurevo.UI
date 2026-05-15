@@ -7,6 +7,7 @@
 #   CI / Lint
 #   CI / Typecheck
 #   CI / Build
+# When supabase/ changes, also require: Database / Validate migrations
 # Do NOT add a required check named only "CI" with source "Any source" — nothing
 # reports that context, so the PR will stay stuck on "Waiting for status".
 

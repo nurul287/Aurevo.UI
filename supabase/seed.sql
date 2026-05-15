@@ -1,0 +1,3 @@
+-- Local development seed (runs only on `supabase db reset`, not on remote `db push`).
+-- Catalog sample data is already applied via migration 003_sample_products.sql.
+-- Add dev-only rows below if needed.

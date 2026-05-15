@@ -1,0 +1,50 @@
+import { createClient } from "npm:@supabase/supabase-js@2.29.0";
+
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const client = createClient(supabaseUrl, supabaseKey);
+
+Deno.serve(async (req: Request) => {
+  try {
+    const url = new URL(req.url);
+    const params = url.searchParams;
+    const order_number = params.get('order_number');
+    const token = params.get('token');
+
+    if (!order_number || !token) {
+      return new Response(JSON.stringify({ error: 'order_number and token are required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    // Query order and items using service role
+    const { data: orderData, error: orderErr } = await client
+      .from('orders')
+      .select(`*, order_items(*)`)
+      .eq('order_number', order_number)
+      .eq('guest_token', token)
+      .filter('guest_token_expires', 'gt', new Date().toISOString())
+      .limit(1)
+      .single();
+
+    if (orderErr) {
+      // If no rows found or other error
+      return new Response(JSON.stringify({ error: 'Order not found or token invalid/expired' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    // Optionally mark token as used in background
+    const markUsed = client.from('orders').update({ guest_token_used: true }).eq('id', orderData.id);
+    // run in background
+    // @ts-ignore - EdgeRuntime.waitUntil available in Supabase Edge
+    EdgeRuntime.waitUntil(markUsed);
+
+    return new Response(JSON.stringify({ order: orderData }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  } catch (err) {
+    console.error(err);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+  }
+});
+
+
+
+api_url https://bwcbcmeftplyljgcacvr.supabase.co/functions/v1/track-order
+
+GET https://<project>.functions.supabase.co/track-order?order_number=ORD123&token=<TOKEN>
