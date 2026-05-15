@@ -24,7 +24,7 @@ const ProductsPage = () => {
   const matchedCategory = useMemo(() => {
     if (!categorySlug) return undefined;
     return categories.find(
-      (c) => c.slug?.toLowerCase() === categorySlug.toLowerCase()
+      (c) => c.slug?.toLowerCase() === categorySlug.toLowerCase(),
     );
   }, [categories, categorySlug]);
 
@@ -33,7 +33,7 @@ const ProductsPage = () => {
       categorySlug: categorySlug || null,
       search: searchParam || null,
     }),
-    [categorySlug, searchParam]
+    [categorySlug, searchParam],
   );
 
   const {
@@ -49,9 +49,7 @@ const ProductsPage = () => {
   const totalCount = data?.pages[0]?.count ?? 0;
 
   const unknownCategory =
-    Boolean(categorySlug) &&
-    !categoriesLoading &&
-    !matchedCategory;
+    Boolean(categorySlug) && !categoriesLoading && !matchedCategory;
 
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
@@ -60,7 +58,7 @@ const ProductsPage = () => {
         fetchNextPage();
       }
     },
-    [hasNextPage, isFetchingNextPage, fetchNextPage]
+    [hasNextPage, isFetchingNextPage, fetchNextPage],
   );
 
   useEffect(() => {
@@ -102,26 +100,10 @@ const ProductsPage = () => {
     );
   }
 
-  const pageTitle = unknownCategory
-    ? "Category not found"
-    : searchParam
-      ? `Search results`
-      : matchedCategory
-        ? matchedCategory.name
-        : "All Products";
-
-  const pageSubtitle = unknownCategory
-    ? `There is no active category matching “${categorySlug}”.`
-    : searchParam
-      ? `Showing matches for “${searchParam}”.`
-      : matchedCategory
-        ? `Browse every product in ${matchedCategory.name}.`
-        : "Discover our complete collection of premium footwear.";
-
   return (
     <div className="min-h-screen py-6 bg-gray-50">
       <div className="container-custom">
-        <Breadcrumb className="mb-4">
+        <Breadcrumb className="mb-6">
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
@@ -144,11 +126,6 @@ const ProductsPage = () => {
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">{pageTitle}</h1>
-          <p className="text-gray-600">{pageSubtitle}</p>
-        </div>
 
         {unknownCategory ? (
           <div className="rounded-lg border border-gray-200 bg-white px-6 py-12 text-center max-w-lg mx-auto">
@@ -227,15 +204,6 @@ const ProductsPage = () => {
                     Loading more products...
                   </span>
                 </div>
-              )}
-            </div>
-
-            <div className="mt-8 text-center">
-              <p className="text-sm text-gray-500 font-medium">
-                Showing {allProducts.length} of {totalCount} products
-              </p>
-              {!hasNextPage && allProducts.length > 0 && (
-                <p className="text-sm text-gray-400 mt-2">Showing all products.</p>
               )}
             </div>
           </>

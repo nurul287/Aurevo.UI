@@ -60,6 +60,12 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
+function compareCategoriesBySort(a: Category, b: Category) {
+  const order = (a.sort_order ?? 0) - (b.sort_order ?? 0);
+  if (order !== 0) return order;
+  return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+}
+
 function CategoryRowThumbnail({ category }: { category: Category }) {
   const [loadFailed, setLoadFailed] = useState(false);
   const url = category.image_url?.trim();
@@ -69,7 +75,7 @@ function CategoryRowThumbnail({ category }: { category: Category }) {
       <img
         src={url}
         alt=""
-        className="h-10 w-10 shrink-0 rounded-md border border-border object-cover bg-muted"
+        className="h-10 w-10 shrink-0 rounded-md border border-border bg-muted object-contain object-center p-0.5"
         loading="lazy"
         decoding="async"
         onError={() => setLoadFailed(true)}
@@ -159,11 +165,15 @@ export default function AdminCategoriesPage() {
     setCategoryImageFile(null);
   };
 
-  // Computed values
+  const sortedCategories = useMemo(() => {
+    if (!categories) return [];
+    return [...categories].sort(compareCategoriesBySort);
+  }, [categories]);
+
   const filteredCategories = useMemo(() => {
     if (!categories) return [];
 
-    return categories.filter((category) => {
+    return sortedCategories.filter((category) => {
       const matchesSearch =
         category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         category.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -176,7 +186,9 @@ export default function AdminCategoriesPage() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [categories, searchTerm, statusFilter]);
+  }, [sortedCategories, categories, searchTerm, statusFilter]);
+
+  const tableCategories = filteredCategories;
 
   // Helper functions
   const formatDate = (dateString: string) => {
@@ -213,7 +225,7 @@ export default function AdminCategoriesPage() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedCategories(filteredCategories.map((c) => c.id));
+      setSelectedCategories(tableCategories.map((c) => c.id));
     } else {
       setSelectedCategories([]);
     }
@@ -592,7 +604,7 @@ export default function AdminCategoriesPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Categories ({filteredCategories.length})</CardTitle>
+            <CardTitle>Categories ({tableCategories.length})</CardTitle>
             {selectedCategories.length > 0 && (
               <div className="text-sm text-muted-foreground">
                 {selectedCategories.length} selected
@@ -608,23 +620,22 @@ export default function AdminCategoriesPage() {
                   <TableHead className="w-[50px]">
                     <Checkbox
                       checked={
-                        selectedCategories.length ===
-                          filteredCategories.length &&
-                        filteredCategories.length > 0
+                        selectedCategories.length === tableCategories.length &&
+                        tableCategories.length > 0
                       }
                       onCheckedChange={handleSelectAll}
                     />
                   </TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Parent</TableHead>
-                  <TableHead>Sort Order</TableHead>
+                  <TableHead>Sort</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead className="w-[70px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCategories.length === 0 ? (
+                {tableCategories.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8">
                       <div className="flex flex-col items-center gap-2">
@@ -636,7 +647,7 @@ export default function AdminCategoriesPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredCategories.map((category) => {
+                  tableCategories.map((category) => {
                     const isSelected = selectedCategories.includes(category.id);
                     return (
                       <TableRow key={category.id}>
@@ -665,7 +676,9 @@ export default function AdminCategoriesPage() {
                         <TableCell>
                           {getParentCategoryName(category.parent_id)}
                         </TableCell>
-                        <TableCell>{category.sort_order || 0}</TableCell>
+                        <TableCell className="tabular-nums text-muted-foreground">
+                          {category.sort_order ?? 0}
+                        </TableCell>
                         <TableCell>
                           <Badge
                             className={
@@ -759,6 +772,24 @@ export default function AdminCategoriesPage() {
                 value={formData.slug}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, slug: e.target.value }))
+                }
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-sort_order" className="text-right">
+                Sort Order
+              </Label>
+              <Input
+                id="edit-sort_order"
+                type="number"
+                className="col-span-3"
+                placeholder="0"
+                value={formData.sort_order}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    sort_order: e.target.value,
+                  }))
                 }
               />
             </div>

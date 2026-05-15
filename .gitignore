@@ -64,3 +64,9 @@ pids
 tmp/
 temp/
 .vercel
+
+# Supabase CLI link state (use `pnpm db:link` per machine)
+.supabase/
+
+# Production DB snapshots under manual/ (PII; see supabase/README.md)
+supabase/manual/prod-*.sql

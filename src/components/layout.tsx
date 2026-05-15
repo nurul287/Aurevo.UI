@@ -120,7 +120,7 @@ const Layout = () => {
               </div>
 
               {/* Desktop Navigation */}
-              <nav className="hidden lg:flex items-center space-x-4 xl:space-x-6">
+              <nav className="hidden lg:flex items-center space-x-2">
                 {headerCategories.map((cat) =>
                   cat.slug ? (
                     <Link

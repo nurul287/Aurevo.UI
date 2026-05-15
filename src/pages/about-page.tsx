@@ -9,7 +9,7 @@ import {
 import { APP_PATHS } from "@/constants/app-paths";
 import { Link } from "react-router-dom";
 
-const COVER_SRC = "/cover-photo.png";
+const COVER_SRC = "/cover-photo.webp";
 
 const AboutPage = () => {
   return (
