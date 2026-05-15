@@ -132,7 +132,7 @@ export const ProductCard = ({
             >
               <HeartIcon
                 className={cn(
-                  "text-[#E1680B] fill-none stroke-2",
+                  "fill-none stroke-2 text-[#111111]",
                   isTeaser ? "h-5 w-5 sm:h-7 sm:w-7" : "h-7 w-7",
                 )}
               />
@@ -211,7 +211,7 @@ export const ProductCard = ({
             {hasDiscount && (
               <span
                 className={cn(
-                  "shrink-0 text-gray-400 line-through tabular-nums",
+                  "shrink-0 font-medium text-gray-600 line-through decoration-gray-600 decoration-2 tabular-nums",
                   isTeaser
                     ? "truncate text-[11px] sm:text-xs md:text-sm"
                     : "text-sm",

@@ -3,7 +3,7 @@ const GALLERY_COUNT = 8;
 const GALLERY_ITEMS = Array.from({ length: GALLERY_COUNT }, (_, i) => {
   const n = i + 1;
   return {
-    src: `/galary-${n}.jpg`,
+    src: `/galary-${n}.webp`,
     alt: `Aurevo sneaker gallery — image ${n}`,
   };
 });

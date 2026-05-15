@@ -202,6 +202,14 @@ const ProductDetailPage = () => {
   ];
 
   const productCode = product.sku || product.id.slice(0, 6).toUpperCase();
+  const shortDescription = product.short_description?.trim() ?? "";
+  const fullDescription = product.description?.trim() ?? "";
+  const summaryText =
+    shortDescription ||
+    fullDescription ||
+    "Premium quality product from our collection.";
+  const showFullDescription =
+    fullDescription.length > 0 && fullDescription !== shortDescription;
 
   // Drag-to-scroll handlers
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -403,19 +411,8 @@ const ProductDetailPage = () => {
               <h1 className="text-xl font-bold text-gray-900 mb-2">
                 {product.name}:
               </h1>
-              <p
-                className="text-gray-600 text-sm leading-relaxed overflow-hidden"
-                style={{
-                  height: "45px",
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {product.description ||
-                  product.short_description ||
-                  "Premium quality product from our collection."}
+              <p className="text-gray-600 text-sm leading-relaxed">
+                {summaryText}
               </p>
             </div>
             {/* Price */}
@@ -513,6 +510,17 @@ const ProductDetailPage = () => {
                 Add Cart
               </Button>
             </div>
+
+            {showFullDescription && (
+              <div className="border-t border-gray-200 pt-4">
+                <h2 className="mb-2 text-sm font-semibold text-gray-900">
+                  Description
+                </h2>
+                <p className="whitespace-pre-line text-sm leading-relaxed text-gray-600">
+                  {fullDescription}
+                </p>
+              </div>
+            )}
 
             {ENABLE_PRODUCT_VIDEO && (
               <div className="mt-2">

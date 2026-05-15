@@ -172,16 +172,17 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 ### **4. Database Setup**
 
-Run the database migrations in your Supabase dashboard:
+Use the Supabase CLI (migrations live in `supabase/migrations/`). See **[supabase/README.md](supabase/README.md)** for the full playbook.
 
-1. Go to your Supabase project dashboard
-2. Navigate to SQL Editor
-3. Run the migration files in order:
-   - `001_initial_schema.sql`
-   - `002_complete_rls_setup.sql`
-   - `003_sample_products.sql`
-   - `007_improved_create_order.sql`
-   - `008_update_payment_method_enum.sql`
+```bash
+pnpm install
+pnpm db:link          # one-time: link to your Supabase project
+pnpm db:start         # local Postgres (Docker)
+pnpm db:reset         # apply all migrations locally
+pnpm db:types:local   # regenerate src/types/database.ts
+```
+
+For remote: `pnpm db:push` after linking. CI applies migrations on push to `main` when GitHub secrets are configured.
 
 ### **5. Start Development Server**
 
@@ -202,10 +203,13 @@ pnpm build        # Build for production
 pnpm preview      # Preview production build
 pnpm lint         # Run ESLint
 
-# Database (if using Supabase CLI)
-supabase start    # Start local Supabase
-supabase db reset # Reset local database
-supabase gen types typescript --local > src/types/database.ts
+# Database (Supabase CLI)
+pnpm db:validate      # check migration file names
+pnpm db:start         # local stack (Docker)
+pnpm db:reset         # apply migrations + seed
+pnpm db:push          # apply pending migrations to linked remote
+pnpm db:types:local   # TypeScript types from local DB
+pnpm db:types         # TypeScript types from linked remote
 ```
 
 ## 🎨 Key Features Deep Dive
