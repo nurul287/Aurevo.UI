@@ -119,7 +119,7 @@ export const ProductCategorySection = () => {
   return (
     <section className="bg-white py-10 sm:py-12">
       <div className="container-custom">
-        <h2 className="mb-8 text-center text-xl font-bold uppercase tracking-tight text-slate-900 sm:mb-10 sm:text-2xl md:mb-12 md:text-4xl">
+        <h2 className="mb-8 text-center sm:text-3xl text-2xl font-bold uppercase tracking-tight text-slate-900 sm:mb-10 md:mb-12">
           Our product category
         </h2>
 

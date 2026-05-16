@@ -79,7 +79,7 @@ const Layout = () => {
   };
 
   const categoryNavLinkClass = (slug: string) =>
-    `inline-flex items-center text-sm xl:text-base font-medium whitespace-nowrap transition-colors border px-2 py-1 rounded-none ${
+    `inline-flex items-center text-sm xl:text-base font-semibold whitespace-nowrap transition-colors border px-2 py-1 rounded-none ${
       isCategoryNavActive(slug)
         ? "text-gray-900 border-[#111111]"
         : "text-gray-700 border-transparent hover:text-gray-900 hover:border-gray-300"
