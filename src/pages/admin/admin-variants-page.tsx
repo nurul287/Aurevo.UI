@@ -58,6 +58,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import GenerateVariantsDialog from "@/components/admin/generate-variants-dialog";
+import { sortAdminVariantRows } from "@/lib/variant-size-sort";
 import { formatPrice } from "@/lib/currency";
 
 const statusColors = {
@@ -136,7 +137,7 @@ export default function AdminVariantsPage() {
   const filteredVariants = useMemo(() => {
     if (!allVariants) return [];
 
-    return allVariants.filter((variant) => {
+    const filtered = allVariants.filter((variant) => {
       const matchesSearch =
         variant.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         variant.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -153,6 +154,8 @@ export default function AdminVariantsPage() {
 
       return matchesSearch && matchesStatus && matchesProduct;
     });
+
+    return sortAdminVariantRows(filtered);
   }, [allVariants, searchTerm, statusFilter, productFilter]);
 
   // Helper functions

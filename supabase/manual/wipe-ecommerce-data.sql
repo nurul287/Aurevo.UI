@@ -1,5 +1,7 @@
 -- ============================================================
--- 015_wipe_ecommerce_data.sql
+-- ONE-OFF ONLY — not run by `supabase db reset` / migrations.
+-- Run manually in Studio or psql when you intentionally want to
+-- clear catalog + orders while keeping auth + profiles + addresses.
 -- ============================================================
 -- Purpose : Reset all e-commerce data so it can be re-entered
 --           manually through the admin dashboard.
@@ -14,24 +16,20 @@
 
 BEGIN;
 
--- Disable triggers / RLS bypass for the wipe
 SET session_replication_role = replica;
 
--- 1) Order-related (children before parents)
 TRUNCATE TABLE
   public.payments,
   public.order_items,
   public.orders
 RESTART IDENTITY CASCADE;
 
--- 2) Cart, wishlist, reviews
 TRUNCATE TABLE
   public.cart_items,
   public.wishlist_items,
   public.product_reviews
 RESTART IDENTITY CASCADE;
 
--- 3) Inventory & product structure
 TRUNCATE TABLE
   public.inventory_movements,
   public.inventory,
@@ -40,13 +38,11 @@ TRUNCATE TABLE
   public.products
 RESTART IDENTITY CASCADE;
 
--- 4) Catalog metadata
 TRUNCATE TABLE
   public.categories,
   public.brands
 RESTART IDENTITY CASCADE;
 
--- Re-enable triggers
 SET session_replication_role = DEFAULT;
 
 COMMIT;

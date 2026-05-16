@@ -5,11 +5,15 @@
  *
  *   pnpm db:dump-prod
  *   pnpm db:restore-local
+ *   pnpm db:sync-from-prod   (dump + restore; restore clears local catalog first)
  *
  * Env (optional .env.local — never commit real URIs):
  *   SYNC_PROD_DATABASE_URL  — production Postgres URI (required for dump)
  *   SYNC_LOCAL_DATABASE_URL — local URI (default: postgres@127.0.0.1:54322)
  *   SYNC_DUMP_FILE          — dump path (default: supabase/manual/prod-data-snapshot.sql)
+ *
+ * restore-local sets session_replication_role=replica so public rows (e.g. profiles → auth.users)
+ * can load without matching auth.users rows (public-only dumps omit auth schema).
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
@@ -48,6 +52,7 @@ function run(bin, args) {
 }
 
 const DUMP_DEFAULT = join(ROOT, "supabase", "manual", "prod-data-snapshot.sql");
+const WIPE_SCRIPT = join(ROOT, "supabase", "manual", "wipe-ecommerce-data.sql");
 const LOCAL_URL_DEFAULT = "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 
 function ensureDumpDir(filePath) {
@@ -65,6 +70,32 @@ function assertNoWhitespaceInUri(url, label) {
     );
     process.exit(1);
   }
+}
+
+function restoreLocalData(url, file) {
+  if (!existsSync(WIPE_SCRIPT)) {
+    console.error(`Missing wipe script: ${WIPE_SCRIPT}`);
+    process.exit(1);
+  }
+  console.log(
+    "Clearing local catalog/orders (removes migration sample products like Test Product, Air Max 270)…",
+  );
+  run("psql", ["--dbname", url, "-v", "ON_ERROR_STOP=1", "-f", WIPE_SCRIPT]);
+  console.log(
+    "Importing prod snapshot (session_replication_role=replica for profiles → auth.users FKs)…",
+  );
+  run("psql", [
+    "--dbname",
+    url,
+    "-v",
+    "ON_ERROR_STOP=1",
+    "-c",
+    "SET session_replication_role = replica;",
+    "-f",
+    file,
+    "-c",
+    "SET session_replication_role = DEFAULT;",
+  ]);
 }
 
 const sub = process.argv[2];
@@ -112,9 +143,35 @@ if (sub === "dump-prod") {
     }
     process.exit(1);
   }
-  run("psql", ["--dbname", url, "-v", "ON_ERROR_STOP=1", "-f", file]);
+  restoreLocalData(url, file);
   console.log(`Restored into local database (${url.split("@").pop() ?? url})`);
+} else if (sub === "sync-from-prod") {
+  const prodUrl = process.env.SYNC_PROD_DATABASE_URL?.trim() ?? "";
+  if (!prodUrl) {
+    console.error("Missing SYNC_PROD_DATABASE_URL in .env.local");
+    process.exit(1);
+  }
+  assertNoWhitespaceInUri(prodUrl, "SYNC_PROD_DATABASE_URL");
+  const url = (process.env.SYNC_LOCAL_DATABASE_URL?.trim() || LOCAL_URL_DEFAULT).trim();
+  assertNoWhitespaceInUri(url, "SYNC_LOCAL_DATABASE_URL");
+  const out = process.env.SYNC_DUMP_FILE?.trim() || DUMP_DEFAULT;
+  ensureDumpDir(out);
+  run("pg_dump", [
+    "--dbname",
+    prodUrl,
+    "--schema=public",
+    "--data-only",
+    "--no-owner",
+    "--no-privileges",
+    "-f",
+    out,
+  ]);
+  console.log(`Wrote ${out}`);
+  restoreLocalData(url, out);
+  console.log("Local DB now matches prod public data (catalog/orders). Restart pnpm dev if it was running.");
 } else {
-  console.error("Usage: node scripts/db-sync.mjs dump-prod | restore-local");
+  console.error(
+    "Usage: node scripts/db-sync.mjs dump-prod | restore-local | sync-from-prod",
+  );
   process.exit(1);
 }

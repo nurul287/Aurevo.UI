@@ -6,14 +6,86 @@ import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice } from "@/lib/currency";
 import { getLeadImageUrl } from "@/lib/product-images";
+import { getUniqueSizesFromVariants } from "@/lib/variant-size-sort";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { HeartIcon, ShoppingCart } from "lucide-react";
-import { useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { Link } from "react-router-dom";
+
+function ProductCardTitle({
+  name,
+  className,
+  slotClassName,
+}: {
+  name: string;
+  className?: string;
+  slotClassName?: string;
+}) {
+  const ref = useRef<HTMLHeadingElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  const checkTruncation = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    setIsTruncated(el.scrollHeight > el.clientHeight + 1);
+  }, []);
+
+  useLayoutEffect(() => {
+    checkTruncation();
+  }, [name, checkTruncation]);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new ResizeObserver(checkTruncation);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [checkTruncation]);
+
+  const heading = (
+    <h3
+      ref={ref}
+      className={cn(
+        "line-clamp-2 overflow-hidden text-ellipsis break-words",
+        className,
+      )}
+    >
+      {name}
+    </h3>
+  );
+
+  const title = isTruncated ? (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="block w-full min-w-0 cursor-default">{heading}</span>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" sideOffset={6} align="start">
+        <span className="inline-block max-w-[min(20rem,calc(100vw-2rem))] text-left leading-snug break-words">
+          {name}
+        </span>
+      </TooltipContent>
+    </Tooltip>
+  ) : (
+    heading
+  );
+
+  return <div className={slotClassName}>{title}</div>;
+}
 
 interface ProductCardProps {
   product: any;
-  /** Landing sections: no size picker or add-to-cart; single “View Details” CTA. */
+  /** Landing sections: no size picker or add-to-cart; image/title link to PDP. */
   variant?: "default" | "teaser";
 }
 
@@ -34,19 +106,10 @@ export const ProductCard = ({
     ? Math.round(((comparePrice - basePrice) / comparePrice) * 100)
     : 0;
 
-  const rawSizes: string[] =
-    product.variants
-      ?.map((v: any) => v.size)
-      .filter((s: unknown): s is string => Boolean(s)) ?? [];
-  const uniqueSizes = Array.from(new Set(rawSizes));
+  const sizesFromVariants = getUniqueSizesFromVariants(product.variants);
   const availableSizes =
-    uniqueSizes.length > 0
-      ? uniqueSizes.sort((a, b) => {
-          const na = Number(a);
-          const nb = Number(b);
-          if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
-          return a.localeCompare(b);
-        })
+    sizesFromVariants.length > 0
+      ? sizesFromVariants
       : ["40", "41", "42", "43", "44"];
 
   const handleSizeSelect = (size: string) => {
@@ -91,7 +154,7 @@ export const ProductCard = ({
 
   return (
     <div className="group flex h-full min-h-0 flex-col">
-      <Card className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border-none bg-[#FDF7F3] shadow-md transition-all duration-300 hover:shadow-xl">
+      <Card className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border-none bg-[#FDF7F3] shadow-none">
         <Link
           to={APP_PATHS.productDetail(product.id)}
           className="block shrink-0"
@@ -157,30 +220,35 @@ export const ProductCard = ({
           className={cn(
             "flex min-h-0 flex-1 flex-col bg-[#FDF7F3]",
             isTeaser ? "p-3 sm:p-4" : "p-4",
+            isTeaser && "min-h-[5.5rem] sm:min-h-[6rem]",
           )}
         >
           <Link
             to={APP_PATHS.productDetail(product.id)}
-            className={cn(isTeaser && "block min-w-0")}
+            className="block min-w-0"
           >
-            <h3
+            <ProductCardTitle
+              name={product.name}
               className={cn(
                 "font-medium text-gray-900 transition-colors hover:text-gray-700",
                 isTeaser
-                  ? "mb-1 line-clamp-2 min-h-[2.75rem] text-xs leading-snug sm:mb-1.5 sm:min-h-[3.25rem] sm:text-sm sm:leading-snug md:text-base"
-                  : "mb-2 line-clamp-2 text-lg",
+                  ? "text-xs leading-snug sm:text-sm sm:leading-snug md:text-base md:leading-snug"
+                  : "text-lg leading-snug",
               )}
-            >
-              {product.name}
-            </h3>
+              slotClassName={cn(
+                isTeaser
+                  ? "mb-1 min-h-[2.125rem] sm:mb-1.5 sm:min-h-[2.5rem] md:min-h-[2.75rem]"
+                  : "mb-2 min-h-[3.125rem]",
+              )}
+            />
           </Link>
 
           <div
             className={cn(
-              "mb-3 flex items-center gap-x-2 gap-y-1",
+              "flex items-center gap-x-2 gap-y-1",
               isTeaser
-                ? "mb-2 min-w-0 flex-nowrap overflow-hidden sm:mb-3 sm:flex-wrap"
-                : "flex-wrap",
+                ? "mb-0 min-h-5 min-w-0 shrink-0 flex-nowrap overflow-hidden sm:min-h-6"
+                : "mb-3 flex-wrap",
             )}
           >
             <div
@@ -268,23 +336,7 @@ export const ProductCard = ({
                 Add Cart
               </Button>
             </div>
-          ) : (
-            <div className="mt-auto shrink-0 pt-1">
-              <Button
-                asChild
-                className={cn(
-                  "w-fit rounded bg-[#111111] font-normal text-white hover:bg-[#2A2A2A]",
-                  isTeaser
-                    ? "h-9 px-4 text-xs sm:h-10 sm:px-6 sm:text-sm"
-                    : "h-10 text-sm",
-                )}
-              >
-                <Link to={APP_PATHS.productDetail(product.id)}>
-                  View Details
-                </Link>
-              </Button>
-            </div>
-          )}
+          ) : null}
         </CardContent>
       </Card>
     </div>

@@ -12,6 +12,7 @@ import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice } from "@/lib/currency";
 import { sortProductImages } from "@/lib/product-images";
+import { getUniqueSizesFromVariants } from "@/lib/variant-size-sort";
 import { useProduct } from "@/services";
 import { ShoppingBagIcon } from "@heroicons/react/24/outline";
 import { ShoppingCart } from "lucide-react";
@@ -67,6 +68,11 @@ const ProductDetailPage = () => {
     [mainImage],
   );
 
+  const availableSizes = useMemo(
+    () => getUniqueSizesFromVariants(product?.variants),
+    [product?.variants],
+  );
+
   // Set default selections when product loads
   if (
     product &&
@@ -74,7 +80,10 @@ const ProductDetailPage = () => {
     product.variants.length > 0 &&
     !selectedSize
   ) {
-    const firstVariant = product.variants[0];
+    const defaultSize = availableSizes[0];
+    const firstVariant =
+      product.variants.find((v) => v.size === defaultSize) ??
+      product.variants[0];
     setSelectedSize(firstVariant.size || "");
     setSelectedColor(firstVariant.color || "");
   }
@@ -195,11 +204,6 @@ const ProductDetailPage = () => {
       </div>
     );
   }
-
-  // Get unique sizes from variants
-  const availableSizes = [
-    ...new Set(product.variants?.map((v) => v.size).filter(Boolean) || []),
-  ];
 
   const productCode = product.sku || product.id.slice(0, 6).toUpperCase();
   const shortDescription = product.short_description?.trim() ?? "";
@@ -409,7 +413,7 @@ const ProductDetailPage = () => {
             {/* Product Title */}
             <div>
               <h1 className="text-xl font-bold text-gray-900 mb-2">
-                {product.name}:
+                {product.name}
               </h1>
               <p className="text-gray-600 text-sm leading-relaxed">
                 {summaryText}
