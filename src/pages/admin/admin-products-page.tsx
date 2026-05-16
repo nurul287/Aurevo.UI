@@ -104,6 +104,32 @@ interface ProductFormData {
   is_active: boolean;
 }
 
+const EMPTY_PRODUCT_FORM_DATA: ProductFormData = {
+  name: "",
+  slug: "",
+  description: "",
+  short_description: "",
+  sku: "",
+  category_id: "",
+  brand_id: "",
+  gender: "unisex",
+  material: "",
+  care_instructions: "",
+  weight: "",
+  base_price: "",
+  compare_at_price: "",
+  is_featured: false,
+  requires_shipping: true,
+  track_inventory: true,
+  allow_backorder: false,
+  min_order_quantity: "1",
+  max_order_quantity: "",
+  meta_title: "",
+  meta_description: "",
+  tags: "",
+  is_active: true,
+};
+
 function variantAvailableUnits(variant: ProductVariant): number {
   const inv = variant.inventory;
   if (inv == null) return 0;
@@ -136,32 +162,29 @@ export default function AdminProductsPage() {
     "activate" | "deactivate" | "delete"
   >("activate");
 
-  // Form state
   const [formData, setFormData] = useState<ProductFormData>({
-    name: "",
-    slug: "",
-    description: "",
-    short_description: "",
-    sku: "",
-    category_id: "",
-    brand_id: "",
-    gender: "unisex",
-    material: "",
-    care_instructions: "",
-    weight: "",
-    base_price: "",
-    compare_at_price: "",
-    is_featured: false,
-    requires_shipping: true,
-    track_inventory: true,
-    allow_backorder: false,
-    min_order_quantity: "1",
-    max_order_quantity: "",
-    meta_title: "",
-    meta_description: "",
-    tags: "",
-    is_active: true,
+    ...EMPTY_PRODUCT_FORM_DATA,
   });
+
+  const resetProductForm = () => {
+    setFormData({ ...EMPTY_PRODUCT_FORM_DATA });
+  };
+
+  const handleAddDialogOpenChange = (open: boolean) => {
+    setIsAddDialogOpen(open);
+    if (open) {
+      setEditingProduct(null);
+      resetProductForm();
+    }
+  };
+
+  const handleEditDialogOpenChange = (open: boolean) => {
+    setIsEditDialogOpen(open);
+    if (!open) {
+      setEditingProduct(null);
+      resetProductForm();
+    }
+  };
 
   // Hooks
   const { data: productsData, isLoading: productsLoading } = useProducts({
@@ -314,7 +337,7 @@ export default function AdminProductsPage() {
     setIsBulkActionDialogOpen(false);
   };
 
-  const handleSubmitProduct = () => {
+  const handleCreateProduct = () => {
     if (!formData.category_id || !formData.brand_id) {
       showError(
         "Missing required fields",
@@ -323,9 +346,59 @@ export default function AdminProductsPage() {
       return;
     }
 
-    if (editingProduct) {
-      // Update existing product
-      const updateData: UpdateProductParams = {
+    const createData: CreateProductParams = {
+      name: formData.name,
+      slug: formData.slug,
+      description: formData.description,
+      short_description: formData.short_description,
+      sku: formData.sku,
+      category_id: formData.category_id,
+      brand_id: formData.brand_id,
+      gender: formData.gender,
+      material: formData.material,
+      care_instructions: formData.care_instructions,
+      weight: formData.weight ? parseFloat(formData.weight) : undefined,
+      base_price: parseFloat(formData.base_price),
+      compare_at_price: formData.compare_at_price
+        ? parseFloat(formData.compare_at_price)
+        : undefined,
+      is_featured: formData.is_featured,
+      requires_shipping: formData.requires_shipping,
+      track_inventory: formData.track_inventory,
+      allow_backorder: formData.allow_backorder,
+      min_order_quantity: formData.min_order_quantity
+        ? parseInt(formData.min_order_quantity)
+        : undefined,
+      max_order_quantity: formData.max_order_quantity
+        ? parseInt(formData.max_order_quantity)
+        : undefined,
+      meta_title: formData.meta_title,
+      meta_description: formData.meta_description,
+      tags: formData.tags
+        ? formData.tags
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter(Boolean)
+        : undefined,
+    };
+
+    createProductMutation.mutate(createData);
+    setIsAddDialogOpen(false);
+    resetProductForm();
+  };
+
+  const handleUpdateProduct = () => {
+    if (!editingProduct) return;
+
+    if (!formData.category_id || !formData.brand_id) {
+      showError(
+        "Missing required fields",
+        "Please select both a category and a brand.",
+      );
+      return;
+    }
+
+    const updateData: UpdateProductParams = {
         id: editingProduct.id,
         name: formData.name,
         slug: formData.slug,
@@ -365,77 +438,10 @@ export default function AdminProductsPage() {
           : undefined,
       };
 
-      updateProductMutation.mutate(updateData);
-      setIsEditDialogOpen(false);
-      setEditingProduct(null);
-    } else {
-      // Create new product
-      const createData: CreateProductParams = {
-        name: formData.name,
-        slug: formData.slug,
-        description: formData.description,
-        short_description: formData.short_description,
-        sku: formData.sku,
-        category_id: formData.category_id,
-        brand_id: formData.brand_id,
-        gender: formData.gender,
-        material: formData.material,
-        care_instructions: formData.care_instructions,
-        weight: formData.weight ? parseFloat(formData.weight) : undefined,
-        base_price: parseFloat(formData.base_price),
-        compare_at_price: formData.compare_at_price
-          ? parseFloat(formData.compare_at_price)
-          : undefined,
-        is_featured: formData.is_featured,
-        requires_shipping: formData.requires_shipping,
-        track_inventory: formData.track_inventory,
-        allow_backorder: formData.allow_backorder,
-        min_order_quantity: formData.min_order_quantity
-          ? parseInt(formData.min_order_quantity)
-          : undefined,
-        max_order_quantity: formData.max_order_quantity
-          ? parseInt(formData.max_order_quantity)
-          : undefined,
-        meta_title: formData.meta_title,
-        meta_description: formData.meta_description,
-        tags: formData.tags
-          ? formData.tags
-              .split(",")
-              .map((tag) => tag.trim())
-              .filter(Boolean)
-          : undefined,
-      };
-
-      createProductMutation.mutate(createData);
-      setIsAddDialogOpen(false);
-    }
-
-    // Reset form
-    setFormData({
-      name: "",
-      slug: "",
-      description: "",
-      short_description: "",
-      sku: "",
-      category_id: "",
-      brand_id: "",
-      gender: "unisex",
-      material: "",
-      care_instructions: "",
-      weight: "",
-      base_price: "",
-      compare_at_price: "",
-      is_featured: false,
-      requires_shipping: true,
-      track_inventory: true,
-      allow_backorder: false,
-      min_order_quantity: "1",
-      max_order_quantity: "",
-      meta_title: "",
-      meta_description: "",
-      tags: "",
-      is_active: true,
-    });
+    updateProductMutation.mutate(updateData);
+    setIsEditDialogOpen(false);
+    setEditingProduct(null);
+    resetProductForm();
   };
 
   const handleNameChange = (name: string) => {
@@ -478,7 +484,7 @@ export default function AdminProductsPage() {
               Bulk Actions ({selectedProducts.length})
             </Button>
           )}
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <Dialog open={isAddDialogOpen} onOpenChange={handleAddDialogOpenChange}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
@@ -750,7 +756,7 @@ export default function AdminProductsPage() {
               <DialogFooter>
                 <Button
                   type="submit"
-                  onClick={handleSubmitProduct}
+                  onClick={handleCreateProduct}
                   disabled={createProductMutation.isPending}
                 >
                   {createProductMutation.isPending
@@ -1005,7 +1011,7 @@ export default function AdminProductsPage() {
       </Card>
 
       {/* Edit Product Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isEditDialogOpen} onOpenChange={handleEditDialogOpenChange}>
         <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
@@ -1154,7 +1160,7 @@ export default function AdminProductsPage() {
           <DialogFooter>
             <Button
               type="submit"
-              onClick={handleSubmitProduct}
+              onClick={handleUpdateProduct}
               disabled={updateProductMutation.isPending}
             >
               {updateProductMutation.isPending
