@@ -1,5 +1,11 @@
 import { supabase } from "@/lib/supabase";
 import {
+  sortAdminVariantRows,
+  sortProductVariants,
+  withSortedVariants,
+  withSortedVariantsOnProducts,
+} from "@/lib/variant-size-sort";
+import {
   Brand,
   Category,
   PaginatedResponse,
@@ -10,12 +16,53 @@ import {
   ProductWithVariants,
   PublicProductWithVariants,
 } from "@/services/types";
+import {
+  productMatchesPromoColorRole,
+  PROMOTIONAL_BANNER_PRODUCT_SLUGS,
+  type PromotionalBannerColor,
+} from "@/constants/promotional-banners";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 
 // Query keys for consistent cache management
+const publicProductDetailSelect = `
+          id,
+          name,
+          slug,
+          description,
+          short_description,
+          sku,
+          category_id,
+          brand_id,
+          gender,
+          material,
+          care_instructions,
+          weight,
+          dimensions,
+          base_price,
+          compare_at_price,
+          is_active,
+          is_featured,
+          is_digital,
+          requires_shipping,
+          track_inventory,
+          allow_backorder,
+          min_order_quantity,
+          max_order_quantity,
+          meta_title,
+          meta_description,
+          tags,
+          created_at,
+          updated_at,
+          category:categories!category_id(*),
+          brand:brands!brand_id(*),
+          variants:product_variants(id, product_id, sku, name, size, color, color_code, material, weight, price, compare_at_price, barcode, is_active, sort_order, created_at, updated_at, inventory(*)),
+          images:product_images(*)
+        `;
+
 export const productQueryKeys = {
   products: (params: PaginationParams) => ["products", "list", params] as const,
   product: (id: string) => ["products", "detail", id] as const,
+  productBySlug: (slug: string) => ["products", "detail", "slug", slug] as const,
   productsByCategory: (categoryId: string, params: PaginationParams) =>
     ["products", "category", categoryId, params] as const,
   searchProducts: (query: string, params: PaginationParams) =>
@@ -29,7 +76,60 @@ export const productQueryKeys = {
   productImage: (imageId: string) => ["products", "image", imageId] as const,
   categories: ["products", "categories"] as const,
   brands: ["products", "brands"] as const,
+  promotionalBannerProducts: ["products", "promotional-banners"] as const,
 } as const;
+
+async function fetchPublicProductBySlug(
+  slug: string,
+): Promise<PublicProductWithVariants | null> {
+  const { data, error } = await supabase
+    .from("products")
+    .select(publicProductDetailSelect)
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === "PGRST116") return null;
+    throw error;
+  }
+
+  if (!data) return null;
+
+  return withSortedVariants(data as unknown as PublicProductWithVariants);
+}
+
+async function resolvePromotionalBannerProduct(
+  role: PromotionalBannerColor,
+  excludeProductIds: string[] = [],
+): Promise<PublicProductWithVariants | null> {
+  for (const slug of PROMOTIONAL_BANNER_PRODUCT_SLUGS[role]) {
+    const product = await fetchPublicProductBySlug(slug);
+    if (product && !excludeProductIds.includes(product.id)) {
+      return product;
+    }
+  }
+
+  const { data, error } = await supabase
+    .from("products")
+    .select(publicProductDetailSelect)
+    .ilike("name", "%vomero%")
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+
+  const products = withSortedVariantsOnProducts(
+    (data ?? []) as unknown as PublicProductWithVariants[],
+  ).filter((p) => !excludeProductIds.includes(p.id));
+
+  const byColor = products.filter((p) =>
+    productMatchesPromoColorRole(p.variants, role),
+  );
+  if (byColor[0]) return byColor[0];
+
+  if (products.length === 1) return products[0];
+
+  return null;
+}
 
 /**
  * Hook to get all products with pagination
@@ -78,7 +178,7 @@ export function useProducts(params: PaginationParams = {}) {
       });
 
       return {
-        data: data || [],
+        data: withSortedVariantsOnProducts(data || []),
         count: count || 0,
         page,
         limit,
@@ -182,7 +282,7 @@ export function useInfiniteProducts(
       const totalPages = Math.ceil((count || 0) / limit);
 
       return {
-        data: data || [],
+        data: withSortedVariantsOnProducts(data || []),
         count: count || 0,
         page: pageParam,
         limit,
@@ -209,42 +309,7 @@ export function useProduct(id: string) {
     queryFn: async (): Promise<PublicProductWithVariants | null> => {
       const { data, error } = await supabase
         .from("products")
-        .select(
-          `
-          id,
-          name,
-          slug,
-          description,
-          short_description,
-          sku,
-          category_id,
-          brand_id,
-          gender,
-          material,
-          care_instructions,
-          weight,
-          dimensions,
-          base_price,
-          compare_at_price,
-          is_active,
-          is_featured,
-          is_digital,
-          requires_shipping,
-          track_inventory,
-          allow_backorder,
-          min_order_quantity,
-          max_order_quantity,
-          meta_title,
-          meta_description,
-          tags,
-          created_at,
-          updated_at,
-          category:categories!category_id(*),
-          brand:brands!brand_id(*),
-          variants:product_variants(id, product_id, sku, name, size, color, color_code, material, weight, price, compare_at_price, barcode, is_active, sort_order, created_at, updated_at, inventory(*)),
-          images:product_images(*)
-        `
-        )
+        .select(publicProductDetailSelect)
         .eq("id", id)
         .single();
 
@@ -253,11 +318,43 @@ export function useProduct(id: string) {
         throw error;
       }
 
-      // Supabase returns foreign key relations as arrays, normalize to single objects
-      return data as unknown as PublicProductWithVariants;
+      return withSortedVariants(
+        data as unknown as PublicProductWithVariants,
+      );
     },
     enabled: !!id,
     staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+}
+
+/**
+ * Hook to get a single active product by slug (e.g. home promotional banners).
+ */
+export function useProductBySlug(slug: string) {
+  return useQuery({
+    queryKey: productQueryKeys.productBySlug(slug),
+    queryFn: () => fetchPublicProductBySlug(slug),
+    enabled: !!slug,
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
+/** Resolves orange + white Vomero products for home promotional banners. */
+export function usePromotionalBannerProducts() {
+  return useQuery({
+    queryKey: productQueryKeys.promotionalBannerProducts,
+    queryFn: async (): Promise<{
+      orange: PublicProductWithVariants | null;
+      white: PublicProductWithVariants | null;
+    }> => {
+      const orange = await resolvePromotionalBannerProduct("orange");
+      const white = await resolvePromotionalBannerProduct(
+        "white",
+        orange ? [orange.id] : [],
+      );
+      return { orange, white };
+    },
+    staleTime: 10 * 60 * 1000,
   });
 }
 
@@ -344,7 +441,9 @@ export function useProductsByCategory(
       });
 
       return {
-        data: (data || []) as unknown as PublicProductWithVariants[],
+        data: withSortedVariantsOnProducts(
+          (data || []) as unknown as PublicProductWithVariants[],
+        ),
         count: count || 0,
         page,
         limit,
@@ -439,7 +538,9 @@ export function useSearchProducts(
       });
 
       return {
-        data: (data || []) as unknown as PublicProductWithVariants[],
+        data: withSortedVariantsOnProducts(
+          (data || []) as unknown as PublicProductWithVariants[],
+        ),
         count: count || 0,
         page,
         limit,
@@ -462,10 +563,8 @@ export function useProductVariants(productId: string) {
         .from("product_variants")
         .select("*")
         .eq("product_id", productId)
-        .order("size", { ascending: true });
-
       if (error) throw error;
-      return data || [];
+      return sortProductVariants(data || []);
     },
     enabled: !!productId,
     staleTime: 15 * 60 * 1000, // 15 minutes
@@ -490,7 +589,7 @@ export function useAllVariants() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return sortAdminVariantRows(data || []);
     },
     staleTime: 15 * 60 * 1000, // 15 minutes
   });
