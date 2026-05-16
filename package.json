@@ -22,7 +22,8 @@
     "db:types": "pnpm dlx supabase@2.98.2 gen types typescript --linked > src/types/database.ts",
     "db:types:local": "pnpm dlx supabase@2.98.2 gen types typescript --local > src/types/database.ts",
     "db:dump-prod": "node scripts/db-sync.mjs dump-prod",
-    "db:restore-local": "node scripts/db-sync.mjs restore-local"
+    "db:restore-local": "node scripts/db-sync.mjs restore-local",
+    "db:sync-from-prod": "node scripts/db-sync.mjs sync-from-prod"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",

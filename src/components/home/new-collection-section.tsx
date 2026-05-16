@@ -57,9 +57,11 @@ export const NewCollectionSection = () => {
               {products.map((product: any) => (
                 <CarouselItem
                   key={product.id}
-                  className="flex h-full pl-4 md:basis-1/2 lg:basis-1/3"
+                  className="flex pl-4 md:basis-1/2 lg:basis-1/3"
                 >
-                  <ProductCard product={product} variant="teaser" />
+                  <div className="flex w-full min-h-0 flex-1 flex-col">
+                    <ProductCard product={product} variant="teaser" />
+                  </div>
                 </CarouselItem>
               ))}
             </CarouselContent>

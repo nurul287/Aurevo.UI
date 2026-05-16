@@ -19,6 +19,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice } from "@/lib/currency";
 import { getLeadImageUrl } from "@/lib/product-images";
+import { getUniqueSizesFromVariants } from "@/lib/variant-size-sort";
 
 const CartSidePanel = () => {
   const { isCartPanelOpen, closeCartPanel } = useGuestCart();
@@ -327,10 +328,7 @@ function CartItemSizeSelector({
     return null;
   }
 
-  // Get unique sizes from variants
-  const availableSizes = [
-    ...new Set(product.variants.map((v) => v.size).filter(Boolean) || []),
-  ];
+  const availableSizes = getUniqueSizesFromVariants(product.variants);
 
   if (availableSizes.length <= 1) {
     return (

@@ -1,4 +1,5 @@
 import { ProductCard } from "@/components/product-card";
+import { LoadingIndicator, LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -81,7 +82,7 @@ const ProductsPage = () => {
   if (showInitialSpinner) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-gray-300 border-t-gray-900 rounded-full animate-spin"></div>
+        <LoadingSpinner size="lg" className="text-gray-900" />
       </div>
     );
   }
@@ -198,12 +199,11 @@ const ProductsPage = () => {
 
             <div ref={loadMoreRef} className="mt-8 flex justify-center">
               {isFetchingNextPage && (
-                <div className="flex items-center gap-3 py-4">
-                  <div className="w-6 h-6 border-3 border-gray-300 border-t-gray-900 rounded-full animate-spin"></div>
-                  <span className="text-sm text-gray-500">
-                    Loading more products...
-                  </span>
-                </div>
+                <LoadingIndicator
+                  size="sm"
+                  className="py-4"
+                  label="Loading more products"
+                />
               )}
             </div>
           </>
