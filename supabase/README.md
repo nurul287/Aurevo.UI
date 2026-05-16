@@ -113,7 +113,7 @@ supabase/
   config.toml          # CLI config (local ports, Postgres 17)
   migrations/          # Versioned SQL only (*.sql)
   seed.sql             # Dev seed after reset (optional rows)
-  manual/              # One-off ops scripts (not auto-applied)
+  manual/              # One-off ops scripts (not auto-applied); e.g. wipe-ecommerce-data.sql
   docs/                # References (edge functions, notes)
   memory-bank/         # Historical notes (not applied by CLI)
 ```
@@ -166,7 +166,13 @@ Requires **PostgreSQL client tools** (`pg_dump`, `psql`) on your `PATH`.
 
 1. Add **`SYNC_PROD_DATABASE_URL`** to `.env.local` (see `env.example`). Never commit it.
 2. `pnpm db:dump-prod` → writes `supabase/manual/prod-data-snapshot.sql` (or `SYNC_DUMP_FILE`).
-3. `pnpm db:restore-local` → loads that file into local Postgres (`SYNC_LOCAL_DATABASE_URL` defaults to `postgresql://postgres:postgres@127.0.0.1:54322/postgres`).
+3. `pnpm db:restore-local` → **wipes** local catalog/orders first (`manual/wipe-ecommerce-data.sql`), then loads the snapshot into local Postgres.
+
+Or run **`pnpm db:sync-from-prod`** once (dump + wipe + restore).
+
+**Why local showed “Test Product” / Air Max 270 while prod had Nike Vomero:** `pnpm db:reset` applies migration **`003_sample_products`** and **`012_test_inventory_functions`** (demo rows). An older restore only **added** prod rows on top, or never ran — so the UI still listed sample products. `restore-local` now clears those tables before import.
+
+`restore-local` uses **`session_replication_role = replica`** during import so foreign keys to **`auth.users`** (for example `public.profiles`) do not block the restore. Auth users are not copied from prod; use local sign-up for login tests.
 
 ### 3. Images (S3 / Supabase Storage)
 
@@ -189,6 +195,48 @@ Requires **PostgreSQL client tools** (`pg_dump`, `psql`) on your `PATH`.
 - Put dumps under `supabase/manual/` with a **`prod-` prefix** (ignored by git via `supabase/manual/prod-*.sql`).
 - Never commit **service role** keys or production connection strings.
 
-## Dangerous migrations
+### 6. Re-sync when production has moved ahead
 
-- `015_wipe_ecommerce_data.sql` — destructive; never run on production without explicit intent.
+Treat **schema** and **data** separately.
+
+**A — Production has new migrations (tables/columns changed)**  
+Those changes should live in **`supabase/migrations/`** in git (your team applies them to prod via `db push` / CI). Locally:
+
+1. `git pull` (get the new migration files).
+2. `pnpm db:start` (if not already running).
+3. `pnpm db:reset` — reapplies **all** migrations (+ `seed.sql`) so local structure matches the repo.
+4. `pnpm db:sync-from-prod` (or `db:dump-prod` then `db:restore-local`) — refresh **public** data from current prod.
+
+**B — Only production *data* changed (same schema)**  
+
+1. `pnpm db:sync-from-prod` (recommended), **or** `pnpm db:dump-prod` then `pnpm db:restore-local`.
+
+You do **not** need `db:reset` every time unless migrations changed; `restore-local` wipes catalog/orders before import.
+
+**C — Prod schema was edited only in the dashboard (no migration in git)**  
+Your local (from migrations) and prod will **diverge** until someone captures the change in a new migration and deploys it. Fix that in git/CI first; dumping data alone will not add missing columns on local.
+
+**Images** — If prod uses the same Storage/S3 URLs in the DB, a data refresh is often enough. If you mirror files into **local** Storage, re-run your sync/upload step when you need offline copies.
+
+## Local admin user (prod logins do not work here)
+
+Production **auth** is not copied when you sync catalog data. Create a **new** user against **local** Supabase only.
+
+1. **`.env.local`** must use local API (`pnpm db:status` → `http://127.0.0.1:54321` + Publishable key).
+2. Open **local Studio**: http://127.0.0.1:54323 → **Authentication** → **Users** → **Add user**.
+   - Email / password of your choice (e.g. `admin@localhost.test`).
+   - Enable **Auto Confirm User** if shown (local `config.toml` has `enable_confirmations = false`, so sign-in usually works immediately).
+3. **Grant admin** (app checks `profiles.preferences.role`):
+   - **Option A — SQL:** edit email in `supabase/manual/grant-local-admin.sql`, run in **SQL Editor**.
+   - **Option B — Table Editor:** open `profiles` → row for that user’s `id` (same UUID as in Authentication) → set `preferences` to `{"role": "super_admin"}` or `{"role": "admin"}`.
+4. Sign in on the app (`pnpm dev`) with that email/password. Admin routes use `isAdmin` when role is `admin` or `super_admin`.
+
+If there is no `profiles` row yet, sign in once in the app (it creates a profile), then run step 3.
+
+**Do not** use your production email/password expecting it to exist locally unless you created the same user in local Auth.
+
+## Destructive / one-off SQL
+
+Bulk catalog + order wipes are **not** in `migrations/` (they ran on every `db reset` and were risky to keep in versioned history). If you need the same behavior, run **`supabase/manual/wipe-ecommerce-data.sql`** manually in local Studio or `psql` when you intend to clear data.
+
+If a remote project still lists migration `015_wipe_ecommerce_data` in its history but you pulled this repo after removal, use the Supabase CLI **`migration repair`** docs for your version to reconcile, or leave the remote history as-is (new environments use the current file set only).
