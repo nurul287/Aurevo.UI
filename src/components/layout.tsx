@@ -8,6 +8,7 @@ import {
   UserIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import MessengerIcon from "@/assets/icon/messenger-icon";
 import { useEffect, useRef, useState } from "react";
 import { APP_PATHS } from "@/constants/app-paths";
 import { useCategories } from "@/services";
@@ -487,6 +488,21 @@ const Layout = () => {
                   >
                     <FacebookSquareIcon width={22} height={22} />
                   </a>
+                  {import.meta.env.VITE_FACEBOOK_PAGE_ID ? (
+                    <a
+                      href={`https://m.me/${import.meta.env.VITE_FACEBOOK_PAGE_ID}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:opacity-90 transition-opacity"
+                      title="Message us on Messenger"
+                      aria-label="Message us on Messenger"
+                    >
+                      <MessengerIcon
+                        className="h-[22px] w-[22px]"
+                        gradientId="messenger-footer-gradient"
+                      />
+                    </a>
+                  ) : null}
                   <a
                     href="https://instagram.com/aurevofashion88"
                     target="_blank"

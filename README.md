@@ -168,6 +168,9 @@ Update `.env.local` with your Supabase credentials:
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
+# Facebook Messenger button (optional — hidden until set; opens m.me chat)
+VITE_FACEBOOK_PAGE_ID=your_facebook_page_id
+
 ```
 
 ### **4. Database Setup**
