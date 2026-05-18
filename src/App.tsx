@@ -1,3 +1,4 @@
+import { MessengerChat } from "@/components/messenger-chat";
 import { OAuthErrorRouteHandler } from "@/components/oauth-error-route-handler";
 import { OAuthSuccessLandingRedirect } from "@/components/oauth-success-landing-redirect";
 import { useEffect } from "react";
@@ -28,6 +29,7 @@ function App() {
         <OAuthSuccessLandingRedirect />
         <GuestCartProvider>
           <AppRoutes />
+          <MessengerChat />
           <Toaster richColors position="top-center" />
         </GuestCartProvider>
       </AuthProvider>
