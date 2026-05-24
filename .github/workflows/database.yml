@@ -67,6 +67,6 @@ jobs:
             exit 0
           fi
           supabase link --project-ref "$SUPABASE_DB_PROJECT_ID" --yes
-          # Lint needs a live DB; use linked project after link (local lint fails in CI with no Docker stack).
-          supabase db lint --linked --level warning --fail-on error
+          # Push first so new migrations fix functions on remote, then lint the live schema.
           supabase db push
+          supabase db lint --linked --level warning --fail-on error
