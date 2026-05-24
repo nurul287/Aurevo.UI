@@ -2,6 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { APP_PATHS } from "@/constants/app-paths";
 import { formatPrice } from "@/lib/currency";
+import { getLeadImageUrl } from "@/lib/product-images";
+import { trackMetaPixelPurchase } from "@/lib/meta-pixel";
 import { useFetchOrderWithGuestToken } from "@/services/order/use-order-query";
 import {
   CheckCircle2,
@@ -10,7 +12,7 @@ import {
   Package,
   Sparkles,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 /** Set to true when order tracking is integrated. */
@@ -36,6 +38,7 @@ const OrderConfirmationPage = () => {
   } | null>(null);
   const [fullOrderData, setFullOrderData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const purchaseTrackedOrderId = useRef<string | null>(null);
 
   const {
     data: orderData,
@@ -64,6 +67,35 @@ const OrderConfirmationPage = () => {
     if (orderData) {
       setFullOrderData(orderData);
       setLoading(false);
+
+      if (purchaseTrackedOrderId.current !== orderData.id) {
+        purchaseTrackedOrderId.current = orderData.id;
+
+        const items =
+          (
+            orderData as {
+              order_items?: Array<{
+                variant_id?: string;
+                product_id?: string;
+                quantity?: number;
+              }>;
+            }
+          ).order_items ?? [];
+        const contentIds = items
+          .map((item) => item.variant_id ?? item.product_id)
+          .filter((id): id is string => Boolean(id));
+
+        trackMetaPixelPurchase({
+          orderId: orderData.id,
+          value: Number(orderData.total_amount) || 0,
+          numItems: items.reduce(
+            (sum: number, item: { quantity?: number }) =>
+              sum + (item.quantity ?? 1),
+            0,
+          ),
+          contentIds,
+        });
+      }
     } else if (orderError) {
       console.error("Failed to fetch order details:", orderError);
       setLoading(false);
@@ -164,13 +196,25 @@ const OrderConfirmationPage = () => {
                         Items
                       </h2>
                       <ul className="space-y-1.5">
-                        {orderItems.map((item: any, index: number) => (
+                        {orderItems.map((item: any, index: number) => {
+                          const imageUrl = getLeadImageUrl(
+                            item.product?.images,
+                          );
+                          return (
                           <li
                             key={item.id ?? index}
                             className="flex gap-2.5 rounded-lg border border-gray-100 bg-[#FDFCFA] px-2.5 py-2"
                           >
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white border border-gray-100">
-                              <Package className="h-3.5 w-3.5 text-[#E1680B]" />
+                            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white border border-gray-100">
+                              {imageUrl ? (
+                                <img
+                                  src={imageUrl}
+                                  alt={item.product_name || "Product"}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <Package className="h-5 w-5 text-[#E1680B]" />
+                              )}
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className="font-medium text-gray-900 text-sm leading-snug">
@@ -189,7 +233,8 @@ const OrderConfirmationPage = () => {
                               {formatPrice(item.total_price)}
                             </p>
                           </li>
-                        ))}
+                          );
+                        })}
                       </ul>
                     </div>
                   )}

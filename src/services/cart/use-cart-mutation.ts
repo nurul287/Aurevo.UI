@@ -1,7 +1,9 @@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import type { CartItem } from "@/services/types";
+import { getCartLineUnitPrice } from "./cart-totals";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { cartQueryKeys } from "./use-cart-query";
+import { cartQueryKeys, type CartData } from "./use-cart-query";
 
 /**
  * Hook for adding item to cart
@@ -159,11 +161,11 @@ export function useAddToCart() {
 
       // Show success toast only if not suppressed
       if (!variables.suppressToast) {
-      const productName = data?.product?.name || "Product";
-      showSuccess(
-        "Added to cart!",
-        `${productName} has been added to your cart`
-      );
+        const productName = data?.product?.name || "Product";
+        showSuccess(
+          "Added to cart!",
+          `${productName} has been added to your cart`,
+        );
       }
     },
     onError: (error) => {
@@ -229,8 +231,8 @@ export function useUpdateCartItemQuantity() {
       });
 
       // Snapshot the previous value
-      const previousCartData = queryClient.getQueryData(
-        cartQueryKeys.all(userId || "", sessionId)
+      const previousCartData = queryClient.getQueryData<CartData>(
+        cartQueryKeys.all(userId || "", sessionId),
       );
 
       // Optimistically update the cart data
@@ -244,14 +246,12 @@ export function useUpdateCartItemQuantity() {
           );
 
           // Recalculate totals
-          const total = updatedItems.reduce((sum: number, item: any) => {
-            const variantPrice = item.variant?.price;
-            const productPrice = item.product?.base_price;
-            const price = variantPrice || productPrice || item.price || 0;
-            return sum + price * item.quantity;
-          }, 0);
+          const total = updatedItems.reduce(
+            (sum: number, item: CartItem) =>
+              sum + getCartLineUnitPrice(item) * item.quantity,
+            0,
+          );
 
-          // Count unique products instead of total quantity
           const itemCount = updatedItems.length;
 
           return {
@@ -266,8 +266,7 @@ export function useUpdateCartItemQuantity() {
       // Return a context object with the snapshotted value
       return { previousCartData };
     },
-    onSuccess: (data, _variables) => {
-      // Show success toast for quantity update
+    onSuccess: (data) => {
       if (data) {
         const productName = data?.product?.name || "Item";
         showSuccess(

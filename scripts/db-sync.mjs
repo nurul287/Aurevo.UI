@@ -9,7 +9,7 @@
  *
  * Env (optional .env.local — never commit real URIs):
  *   SYNC_PROD_DATABASE_URL  — production Postgres URI (required for dump)
- *   SYNC_LOCAL_DATABASE_URL — local URI (default: postgres@127.0.0.1:54322)
+ *   SYNC_LOCAL_DATABASE_URL — local URI (default: postgres@127.0.0.1:55322)
  *   SYNC_DUMP_FILE          — dump path (default: supabase/manual/prod-data-snapshot.sql)
  *
  * restore-local sets session_replication_role=replica so public rows (e.g. profiles → auth.users)
@@ -53,7 +53,7 @@ function run(bin, args) {
 
 const DUMP_DEFAULT = join(ROOT, "supabase", "manual", "prod-data-snapshot.sql");
 const WIPE_SCRIPT = join(ROOT, "supabase", "manual", "wipe-ecommerce-data.sql");
-const LOCAL_URL_DEFAULT = "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
+const LOCAL_URL_DEFAULT = "postgresql://postgres:postgres@127.0.0.1:55322/postgres";
 
 function ensureDumpDir(filePath) {
   const dir = dirname(filePath);

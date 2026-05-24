@@ -15,6 +15,7 @@
     "db:reset": "pnpm dlx supabase@2.98.2 db reset",
     "db:status": "pnpm dlx supabase@2.98.2 status",
     "db:push": "pnpm dlx supabase@2.98.2 db push",
+    "db:migrate:local": "pnpm dlx supabase@2.98.2 migration up --local",
     "db:diff": "pnpm dlx supabase@2.98.2 db diff",
     "db:lint": "pnpm dlx supabase@2.98.2 db lint",
     "db:link": "pnpm dlx supabase@2.98.2 link",
