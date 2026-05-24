@@ -171,6 +171,13 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 # Facebook Messenger button (optional — hidden until set; opens m.me chat)
 VITE_FACEBOOK_PAGE_ID=your_facebook_page_id
 
+# Meta Pixel for ads / remarketing (optional — omit locally to skip tracking)
+VITE_META_PIXEL_ID=your_meta_pixel_id
+
+```
+
+**Production (Vercel):** Add `VITE_META_PIXEL_ID` under Project → Settings → Environment Variables for **Production** (and Preview if needed), then redeploy. Vite bakes env vars at build time — changing them without redeploying has no effect.
+
 ```
 
 ### **4. Database Setup**
