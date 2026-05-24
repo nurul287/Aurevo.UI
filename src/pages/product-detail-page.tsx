@@ -13,11 +13,12 @@ import { useToast } from "@/hooks/use-toast";
 import { formatPrice } from "@/lib/currency";
 import { sortProductImages } from "@/lib/product-images";
 import { getUniqueSizesFromVariants } from "@/lib/variant-size-sort";
-import { useProduct } from "@/services";
+import { useProduct, useVariantAvailableQuantity } from "@/services";
 import { ShoppingBagIcon } from "@heroicons/react/24/outline";
 import { ShoppingCart } from "lucide-react";
 import { getProductHeroImageUrl } from "@/lib/product-hero-image-url";
-import { useMemo, useRef, useState } from "react";
+import { trackMetaPixelViewContent } from "@/lib/meta-pixel";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { APP_PATHS } from "@/constants/app-paths";
 import NumberStepper from "@/components/NumberStepper";
@@ -48,6 +49,38 @@ const ProductDetailPage = () => {
 
   const { data: product, isLoading, error } = useProduct(id || "");
   const { addItem, isAddingToCart } = useCart();
+
+  useEffect(() => {
+    if (!product?.id) return;
+    trackMetaPixelViewContent({
+      productId: product.id,
+      productName: product.name,
+      value: product.base_price ?? undefined,
+    });
+  }, [product?.id, product?.name, product?.base_price]);
+
+  const selectedVariant = useMemo(
+    () =>
+      product?.variants?.find(
+        (v) => v.size === selectedSize && v.color === selectedColor,
+      ),
+    [product?.variants, selectedSize, selectedColor],
+  );
+
+  const tracksInventory = product?.track_inventory !== false;
+  const { data: variantAvailable } = useVariantAvailableQuantity(
+    selectedVariant?.id,
+    { trackInventory: tracksInventory },
+  );
+
+  const maxPurchaseQuantity =
+    !tracksInventory || variantAvailable == null ? 99 : variantAvailable;
+
+  useEffect(() => {
+    if (variantAvailable != null && quantity > variantAvailable) {
+      setQuantity(Math.max(1, variantAvailable));
+    }
+  }, [variantAvailable, quantity]);
 
   const productImages = useMemo(
     () => (product?.images ? sortProductImages(product.images) : []),
@@ -103,10 +136,7 @@ const ProductDetailPage = () => {
     }
 
     try {
-      // Find the variant that matches the selected size and color
-      const variant = product.variants?.find(
-        (v) => v.size === selectedSize && v.color === selectedColor,
-      );
+      const variant = selectedVariant;
 
       if (!variant) {
         showWarning(
@@ -490,7 +520,7 @@ const ProductDetailPage = () => {
                 onChange={(_e, newValue) => {
                   setQuantity(newValue);
                 }}
-                maxValue={99}
+                maxValue={Math.max(1, maxPurchaseQuantity)}
               />
             </div>
 

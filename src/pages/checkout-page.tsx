@@ -26,13 +26,14 @@ import {
   DropDownListOption,
 } from "@/components/ui/dropdown-list";
 import { APP_PATHS } from "@/constants/app-paths";
+import { trackMetaPixelInitiateCheckout } from "@/lib/meta-pixel";
 import { useAuth } from "@/contexts/auth-context";
 import { useGuestCart } from "@/contexts/guest-cart-context";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateGuestOrder } from "@/services/order/use-order-mutation";
 import { CheckCircle2 } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { BANGLADESH_DISTRICTS, upazilasForDistrictName } from "@/lib/bangladesh-locations";
 import { useProduct } from "@/services";
@@ -141,6 +142,26 @@ const CheckoutPage = () => {
   useEffect(() => {
     setShippingZone(shippingZoneForDistrict(formData.district));
   }, [formData.district]);
+
+  const initiateCheckoutTracked = useRef(false);
+  useEffect(() => {
+    if (initiateCheckoutTracked.current || checkoutItems.length === 0) return;
+
+    if (shippingZone === null) return;
+
+    const contentIds = checkoutItems
+      .map((item) => item.variant?.id ?? item.product?.id)
+      .filter((id): id is string => Boolean(id));
+
+    if (contentIds.length === 0) return;
+
+    trackMetaPixelInitiateCheckout({
+      value: checkoutTotal > 0 ? checkoutTotal : checkoutSubtotal,
+      numItems: itemCount,
+      contentIds,
+    });
+    initiateCheckoutTracked.current = true;
+  }, [checkoutItems, checkoutSubtotal, checkoutTotal, itemCount, shippingZone]);
 
   const districtOptions: DropDownListOption[] = useMemo(
     () =>
