@@ -1,12 +1,18 @@
 import { useAuth } from "@/contexts/auth-context";
 import { useGuestCart } from "@/contexts/guest-cart-context";
+import { useToast } from "@/hooks/use-toast";
+import { trackMetaPixelAddToCartAfterChange } from "@/lib/meta-pixel";
 import {
+  cartQueryKeys,
+  fetchVariantAvailableQuantity,
   useAddToCart,
   useCartData,
   useClearCart,
   useRemoveFromCart,
   useUpdateCartItemQuantity,
+  type CartData,
 } from "@/services";
+import { useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 /**
@@ -15,6 +21,8 @@ import { useMemo } from "react";
 export function useCart() {
   const { user } = useAuth();
   const { sessionId, openCartPanel } = useGuestCart();
+  const queryClient = useQueryClient();
+  const { showError } = useToast();
 
   // Memoize query parameters to prevent unnecessary re-renders
   const queryParams = useMemo(
@@ -47,8 +55,29 @@ export function useCart() {
     productId: string,
     variantId: string,
     quantity: number = 1,
-    suppressToast: boolean = false
+    options: { suppressToast?: boolean; trackPixel?: boolean } = {},
   ) => {
+    const { suppressToast = false, trackPixel = true } = options;
+
+    const prevCart = queryClient.getQueryData<CartData>(
+      cartQueryKeys.all(queryParams.userId || "", queryParams.sessionId),
+    );
+    const existingQty =
+      prevCart?.items.find((item) => item.variant_id === variantId)
+        ?.quantity ?? 0;
+
+    const available = await fetchVariantAvailableQuantity(variantId);
+    if (available !== null && existingQty + quantity > available) {
+      const remaining = Math.max(0, available - existingQty);
+      showError(
+        "Not enough stock",
+        remaining > 0
+          ? `Only ${remaining} more can be added (${available} in stock).`
+          : `Only ${available} in stock for this size.`,
+      );
+      throw new Error("Insufficient inventory");
+    }
+
     const result = await addToCartMutation.mutateAsync({
       userId: user?.id,
       sessionId: user?.id ? undefined : sessionId,
@@ -57,7 +86,14 @@ export function useCart() {
       quantity,
       suppressToast,
     });
-    // Open the cart side panel after adding item
+
+    if (trackPixel) {
+      await trackMetaPixelAddToCartAfterChange(
+        queryParams.userId,
+        queryParams.sessionId,
+      );
+    }
+
     openCartPanel();
     return result;
   };
@@ -67,12 +103,41 @@ export function useCart() {
       return removeItem(itemId);
     }
 
-    return updateQuantityMutation.mutateAsync({
+    const prevCart = queryClient.getQueryData<CartData>(
+      cartQueryKeys.all(queryParams.userId || "", queryParams.sessionId),
+    );
+    const prevQty =
+      prevCart?.items.find((item) => item.id === itemId)?.quantity ?? 0;
+
+    if (quantity > prevQty) {
+      const line = prevCart?.items.find((item) => item.id === itemId);
+      if (line?.variant_id) {
+        const available = await fetchVariantAvailableQuantity(line.variant_id);
+        if (available !== null && quantity > available) {
+          showError(
+            "Not enough stock",
+            `Only ${available} available for this item.`,
+          );
+          throw new Error("Insufficient inventory");
+        }
+      }
+    }
+
+    const result = await updateQuantityMutation.mutateAsync({
       userId: user?.id,
       sessionId: user?.id ? undefined : sessionId,
       itemId,
       quantity,
     });
+
+    if (quantity > prevQty) {
+      await trackMetaPixelAddToCartAfterChange(
+        queryParams.userId,
+        queryParams.sessionId,
+      );
+    }
+
+    return result;
   };
 
   const removeItem = async (itemId: string) => {

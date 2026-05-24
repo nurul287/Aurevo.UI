@@ -9,13 +9,13 @@ import {
 } from "@/components/ui/sheet";
 import { useCart } from "@/hooks/use-cart";
 import { useGuestCart } from "@/contexts/guest-cart-context";
-import { useProduct } from "@/services";
+import { useProduct, useVariantsAvailableQuantities } from "@/services";
 import { ShoppingBagIcon } from "@heroicons/react/24/outline";
 import { ShoppingCart, Trash2, ChevronDown, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { APP_PATHS } from "@/constants/app-paths";
 import NumberStepper from "@/components/NumberStepper";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice } from "@/lib/currency";
 import { getLeadImageUrl } from "@/lib/product-images";
@@ -34,6 +34,19 @@ const CartSidePanel = () => {
     isUpdatingQuantity,
     isRemovingItem,
   } = useCart();
+
+  const cartVariantIds = useMemo(
+    () => cartItems.map((item) => item.variant_id).filter(Boolean),
+    [cartItems],
+  );
+  const { data: variantAvailability = {} } =
+    useVariantsAvailableQuantities(cartVariantIds);
+
+  const maxQuantityForCartItem = (item: (typeof cartItems)[number]) => {
+    if (item.product?.track_inventory === false) return 99;
+    const available = variantAvailability[item.variant_id];
+    return available === undefined ? 99 : available;
+  };
 
   // Track which item is being updated (for loading state)
   const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
@@ -68,7 +81,10 @@ const CartSidePanel = () => {
       // Remove old item and add new item with new variant
       await removeItem(item.id!);
       // Add the new variant with the same quantity (suppress the "Added to cart" toast)
-      await addItem(item.product_id, newVariantId, item.quantity, true);
+      await addItem(item.product_id, newVariantId, item.quantity, {
+        suppressToast: true,
+        trackPixel: false,
+      });
       // Show custom success toast for size update
       const productName = item.product?.name || "Item";
       showSuccess("Size updated", `${productName} size has been updated`);
@@ -245,7 +261,7 @@ const CartSidePanel = () => {
                               onChange={(_e, newValue) =>
                                 handleUpdateQuantity(item.id!, newValue)
                               }
-                              maxValue={99}
+                              maxValue={maxQuantityForCartItem(item)}
                               disabled={
                                 isUpdatingQuantity ||
                                 isRemovingItem ||
