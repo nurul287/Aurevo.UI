@@ -332,6 +332,25 @@ export function useFetchOrderWithGuestToken(
         guestToken,
       });
 
+      if (guestToken) {
+        const { data, error } = await supabase.rpc("get_guest_order", {
+          p_order_id: orderId,
+          p_guest_token: guestToken,
+        });
+
+        if (error) {
+          console.error("❌ Error fetching guest order:", error);
+          throw error;
+        }
+
+        if (!data) {
+          throw new Error("Order not found or guest link has expired");
+        }
+
+        console.log("✅ Guest order fetched:", data);
+        return data as Order & { order_items?: any[] };
+      }
+
       const { data, error } = await supabase
         .from("orders")
         .select(
@@ -340,7 +359,12 @@ export function useFetchOrderWithGuestToken(
           user:profiles(id, first_name, last_name, phone),
           order_items:order_items(
             *,
-            product:products(id, name, slug),
+            product:products(
+              id,
+              name,
+              slug,
+              images:product_images(id, url, alt_text, is_primary, sort_order)
+            ),
             variant:product_variants(id, name, size, color)
           )
         `
@@ -349,15 +373,16 @@ export function useFetchOrderWithGuestToken(
         .single();
 
       if (error) {
-        console.error("❌ Error fetching order with guest token:", error);
+        console.error("❌ Error fetching order:", error);
         throw error;
       }
 
-      console.log("✅ Order with guest token fetched:", data);
+      console.log("✅ Order fetched:", data);
       return data;
     },
     enabled: !!orderId,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: false,
   });
 }
 
