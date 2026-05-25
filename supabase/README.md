@@ -1,6 +1,6 @@
 # Aurevo database (Supabase)
 
-Schema, RLS, storage policies, and RPCs are versioned in **`migrations/`**.  
+Schema, RLS, storage policies, and RPCs are versioned in **`migrations/`**.
 The app (`src/`) reads/writes via `@supabase/supabase-js`; this folder is the **source of truth** for Postgres.
 
 ## Rules
@@ -12,6 +12,8 @@ The app (`src/`) reads/writes via `@supabase/supabase-js`; this folder is the **
 5. After merge to `main`, CI applies pending migrations with `supabase db push` (when GitHub secrets are set).
 
 Non-migration SQL/snippets go in `manual/` or `docs/`, not `migrations/`.
+
+**Meta Conversions API (server-side Purchase):** see [docs/META_CONVERSIONS_API.md](docs/META_CONVERSIONS_API.md).
 
 ## First-time setup (developer)
 
@@ -51,19 +53,19 @@ VITE_SUPABASE_ANON_KEY=<anon-key>
 
 ## Scripts (from repo root)
 
-| Command | Purpose |
-|---------|---------|
-| `pnpm db:validate` | Check migration file names and layout |
-| `pnpm db:start` | Start local Supabase stack |
-| `pnpm db:stop` | Stop local stack |
-| `pnpm db:reset` | Reapply all migrations + seed (local only) |
-| `pnpm db:status` | Show local URLs and keys |
-| `pnpm db:push` | Apply pending migrations to **linked** remote project |
-| `pnpm db:diff -f name` | Generate migration from local schema drift |
-| `pnpm db:types` | Generate TypeScript types from **linked** remote |
-| `pnpm db:types:local` | Generate types from **local** DB |
-| `pnpm db:link` | Link CLI to a Supabase project |
-| `pnpm db:migration:list` | Show applied vs pending migrations |
+| Command                  | Purpose                                               |
+| ------------------------ | ----------------------------------------------------- |
+| `pnpm db:validate`       | Check migration file names and layout                 |
+| `pnpm db:start`          | Start local Supabase stack                            |
+| `pnpm db:stop`           | Stop local stack                                      |
+| `pnpm db:reset`          | Reapply all migrations + seed (local only)            |
+| `pnpm db:status`         | Show local URLs and keys                              |
+| `pnpm db:push`           | Apply pending migrations to **linked** remote project |
+| `pnpm db:diff -f name`   | Generate migration from local schema drift            |
+| `pnpm db:types`          | Generate TypeScript types from **linked** remote      |
+| `pnpm db:types:local`    | Generate types from **local** DB                      |
+| `pnpm db:link`           | Link CLI to a Supabase project                        |
+| `pnpm db:migration:list` | Show applied vs pending migrations                    |
 
 ## CI / GitHub Actions
 
@@ -71,13 +73,18 @@ Workflow: `.github/workflows/database.yml`
 
 **On every PR** (when `supabase/` changes): validate migrations.
 
-**On push to `main`** (when `supabase/` changes): `supabase db push` to the linked project.
+**On push to `main`** (when `supabase/` changes):
+
+1. `supabase db push` + `db lint` on the linked project
+2. `supabase functions deploy` for all functions under `supabase/functions/` (e.g. `meta-conversions`)
+
+Function **secrets** (`META_PIXEL_ID`, `META_CONVERSIONS_API_TOKEN`, …) stay in Supabase Dashboard — CI only deploys code.
 
 ### Required repository secrets
 
-| Secret | Description |
-|--------|-------------|
-| `SUPABASE_ACCESS_TOKEN` | Personal access token with project access |
+| Secret                   | Description                               |
+| ------------------------ | ----------------------------------------- |
+| `SUPABASE_ACCESS_TOKEN`  | Personal access token with project access |
 | `SUPABASE_DB_PROJECT_ID` | Project ref (e.g. `bwcbcmeftplyljgcacvr`) |
 
 Optional: use GitHub **Environments** (`staging`, `production`) with different `SUPABASE_DB_PROJECT_ID` per environment.
@@ -98,11 +105,11 @@ Then use only new numbered migrations + `db push` going forward.
 
 ## Environments (recommended)
 
-| Environment | Supabase project | Apply migrations |
-|-------------|------------------|----------------|
-| Local | `supabase start` | `db reset` |
-| Staging | Separate project (optional) | `db push` on `dev` branch (optional) |
-| Production | Main project | `db push` on `main` via CI |
+| Environment | Supabase project            | Apply migrations                     |
+| ----------- | --------------------------- | ------------------------------------ |
+| Local       | `supabase start`            | `db reset`                           |
+| Staging     | Separate project (optional) | `db push` on `dev` branch (optional) |
+| Production  | Main project                | `db push` on `main` via CI           |
 
 Keep **project IDs and keys** in team password manager / GitHub secrets — not in git.
 
@@ -199,7 +206,7 @@ Or run **`pnpm db:sync-from-prod`** once (dump + wipe + restore).
 
 Treat **schema** and **data** separately.
 
-**A — Production has new migrations (tables/columns changed)**  
+**A — Production has new migrations (tables/columns changed)**
 Those changes should live in **`supabase/migrations/`** in git (your team applies them to prod via `db push` / CI). Locally:
 
 1. `git pull` (get the new migration files).
@@ -207,13 +214,13 @@ Those changes should live in **`supabase/migrations/`** in git (your team applie
 3. `pnpm db:reset` — reapplies **all** migrations (+ `seed.sql`) so local structure matches the repo.
 4. `pnpm db:sync-from-prod` (or `db:dump-prod` then `db:restore-local`) — refresh **public** data from current prod.
 
-**B — Only production *data* changed (same schema)**  
+**B — Only production _data_ changed (same schema)**
 
 1. `pnpm db:sync-from-prod` (recommended), **or** `pnpm db:dump-prod` then `pnpm db:restore-local`.
 
 You do **not** need `db:reset` every time unless migrations changed; `restore-local` wipes catalog/orders before import.
 
-**C — Prod schema was edited only in the dashboard (no migration in git)**  
+**C — Prod schema was edited only in the dashboard (no migration in git)**
 Your local (from migrations) and prod will **diverge** until someone captures the change in a new migration and deploys it. Fix that in git/CI first; dumping data alone will not add missing columns on local.
 
 **Images** — If prod uses the same Storage/S3 URLs in the DB, a data refresh is often enough. If you mirror files into **local** Storage, re-run your sync/upload step when you need offline copies.
