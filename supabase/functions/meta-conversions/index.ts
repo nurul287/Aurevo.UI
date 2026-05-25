@@ -1,4 +1,11 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import {
+  createClient,
+  type SupabaseClient,
+} from "https://esm.sh/@supabase/supabase-js@2.58.0";
+
+/** Loose client — Edge Function has no generated Database types in CI `deno check`. */
+// deno-lint-ignore no-explicit-any
+type AdminClient = SupabaseClient<any, "public", any>;
 import {
   addressHintsFromOrder,
   DEFAULT_SITE_URL,
@@ -54,11 +61,17 @@ function requireEnv(name: string): string {
   return value;
 }
 
+function createAdminClient(): AdminClient {
+  const supabaseUrl = requireEnv("SUPABASE_URL");
+  const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+  return createClient(supabaseUrl, serviceRoleKey) as unknown as AdminClient;
+}
+
 async function loadOrderContext(
-  supabase: ReturnType<typeof createClient>,
+  supabase: AdminClient,
   orderId: string,
 ): Promise<MetaPurchasePayload | null> {
-  const { data: order, error: orderError } = await supabase
+  const { data: orderData, error: orderError } = await supabase
     .from("orders")
     .select(
       "id, email, phone, total_amount, created_at, shipping_address, billing_address",
@@ -67,6 +80,7 @@ async function loadOrderContext(
     .maybeSingle();
 
   if (orderError) throw orderError;
+  const order = orderData as OrderRow | null;
   if (!order) return null;
 
   const { data: items, error: itemsError } = await supabase
@@ -86,7 +100,7 @@ async function loadOrderContext(
     0,
   );
 
-  const hints = addressHintsFromOrder(order as OrderRow);
+  const hints = addressHintsFromOrder(order);
 
   return {
     orderId: order.id,
@@ -101,7 +115,7 @@ async function loadOrderContext(
 }
 
 async function wasAlreadySent(
-  supabase: ReturnType<typeof createClient>,
+  supabase: AdminClient,
   orderId: string,
 ): Promise<boolean> {
   const { data: existing } = await supabase
@@ -110,11 +124,11 @@ async function wasAlreadySent(
     .eq("order_id", orderId)
     .maybeSingle();
 
-  return Boolean(existing);
+  return Boolean(existing as { order_id: string } | null);
 }
 
 async function recordSent(
-  supabase: ReturnType<typeof createClient>,
+  supabase: AdminClient,
   orderId: string,
 ): Promise<void> {
   const { error } = await supabase
@@ -133,9 +147,7 @@ async function handlePurchase(
   const testEventCode = getEnv("META_TEST_EVENT_CODE");
   const siteUrl = getEnv("META_SITE_URL") ?? DEFAULT_SITE_URL;
 
-  const supabaseUrl = requireEnv("SUPABASE_URL");
-  const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const supabase = createAdminClient();
 
   if (await wasAlreadySent(supabase, orderId)) {
     return jsonResponse({
