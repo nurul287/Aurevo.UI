@@ -24,7 +24,9 @@
     "db:types:local": "pnpm dlx supabase@2.98.2 gen types typescript --local > src/types/database.ts",
     "db:dump-prod": "node scripts/db-sync.mjs dump-prod",
     "db:restore-local": "node scripts/db-sync.mjs restore-local",
-    "db:sync-from-prod": "node scripts/db-sync.mjs sync-from-prod"
+    "db:sync-from-prod": "node scripts/db-sync.mjs sync-from-prod",
+    "db:functions:deploy": "pnpm dlx supabase@2.98.2 functions deploy meta-conversions",
+    "db:functions:serve": "pnpm dlx supabase@2.98.2 functions serve meta-conversions --no-verify-jwt"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
