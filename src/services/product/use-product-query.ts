@@ -102,12 +102,13 @@ async function resolvePromotionalBannerProduct(
   role: PromotionalBannerColor,
   excludeProductIds: string[] = [],
 ): Promise<PublicProductWithVariants | null> {
-  for (const slug of PROMOTIONAL_BANNER_PRODUCT_SLUGS[role]) {
-    const product = await fetchPublicProductBySlug(slug);
-    if (product && !excludeProductIds.includes(product.id)) {
-      return product;
-    }
-  }
+  // Fetch all candidate slugs in parallel instead of sequentially.
+  const slugs = PROMOTIONAL_BANNER_PRODUCT_SLUGS[role];
+  const results = await Promise.all(slugs.map(fetchPublicProductBySlug));
+  const match = results.find(
+    (p) => p !== null && !excludeProductIds.includes(p.id),
+  );
+  if (match) return match;
 
   const { data, error } = await supabase
     .from("products")
@@ -147,7 +148,9 @@ export function useProducts(params: PaginationParams = {}) {
         offset,
       });
 
-      // Single optimized query that gets both count and data
+      // Single optimized query that gets both count and data.
+      // inventory(*) is omitted — listing pages only need price/image/variants
+      // for cards; stock levels are fetched on-demand in the PDP.
       const { data, error, count } = await supabase
         .from("products")
         .select(
@@ -155,7 +158,7 @@ export function useProducts(params: PaginationParams = {}) {
           *,
           category:categories!category_id(*),
           brand:brands!brand_id(*),
-          variants:product_variants(*, inventory(*)),
+          variants:product_variants(id, product_id, sku, name, size, color, color_code, material, weight, price, compare_at_price, barcode, is_active, sort_order, created_at, updated_at),
           images:product_images(*)
         `,
           { count: "exact" }
