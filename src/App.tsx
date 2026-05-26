@@ -1,4 +1,6 @@
 import { MetaPixelTracker } from "@/components/meta-pixel-tracker";
+import { SpeedInsightsTracker } from "@/components/speed-insights-tracker";
+import { VercelAnalyticsTracker } from "@/components/vercel-analytics-tracker";
 import { MessengerChat } from "@/components/messenger-chat";
 import { OAuthErrorRouteHandler } from "@/components/oauth-error-route-handler";
 import { OAuthSuccessLandingRedirect } from "@/components/oauth-success-landing-redirect";
@@ -26,6 +28,8 @@ function App() {
     <Router>
       <ScrollToTop />
       <MetaPixelTracker />
+      <SpeedInsightsTracker />
+      <VercelAnalyticsTracker />
       <AuthProvider>
         <OAuthErrorRouteHandler />
         <OAuthSuccessLandingRedirect />
