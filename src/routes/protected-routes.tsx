@@ -1,7 +1,9 @@
+import { lazy } from "react";
 import AuthGuard from "@/components/guards/auth-guard";
-import DashboardPage from "@/pages/dashboard-page";
-import DashboardProfilePage from "@/pages/dashboard-profile-page";
 import { APP_PATHS } from "../constants/app-paths";
+
+const DashboardPage = lazy(() => import("@/pages/dashboard-page"));
+const DashboardProfilePage = lazy(() => import("@/pages/dashboard-profile-page"));
 
 export const protectedRoutes = [
   {
@@ -9,10 +11,7 @@ export const protectedRoutes = [
     element: <AuthGuard />,
     children: [
       { path: APP_PATHS.dashboard, element: <DashboardPage /> },
-      {
-        path: APP_PATHS.dashboardProfile,
-        element: <DashboardProfilePage />,
-      },
+      { path: APP_PATHS.dashboardProfile, element: <DashboardProfilePage /> },
     ],
   },
 ];

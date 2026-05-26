@@ -1,9 +1,16 @@
 import Layout from "@/components/layout";
+import { Suspense } from "react";
 import { useRoutes } from "react-router-dom";
 import { adminRoutes } from "./admin-routes";
 import { guestRoutes } from "./guest-routes";
 import { protectedRoutes } from "./protected-routes";
 import { publicRoutes } from "./public-routes";
+
+const PageFallback = () => (
+  <div className="flex min-h-[50vh] items-center justify-center">
+    <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900" />
+  </div>
+);
 
 const AppRoutes = () => {
   const routes = useRoutes([
@@ -11,19 +18,14 @@ const AppRoutes = () => {
       path: "",
       element: <Layout />,
       children: [
-        // Public routes (no guards needed)
         ...publicRoutes,
-
-        // Protected routes (require authentication)
         ...protectedRoutes,
       ],
     },
-    // Admin routes with their own layout (no main site navigation)
     ...adminRoutes,
-    // Guest routes (redirect if authenticated)
     ...guestRoutes,
   ]);
-  return routes;
+  return <Suspense fallback={<PageFallback />}>{routes}</Suspense>;
 };
 
 export default AppRoutes;

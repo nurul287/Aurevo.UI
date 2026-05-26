@@ -1,15 +1,18 @@
-import AdminBrandsPage from "@/pages/admin/admin-brands-page";
-import AdminCategoriesPage from "@/pages/admin/admin-categories-page";
-import AdminDashboardPage from "@/pages/admin/admin-dashboard-page";
-import AdminImagesPage from "@/pages/admin/admin-images-page";
-import AdminInventoryPage from "@/pages/admin/admin-inventory-page";
-import AdminOrderDetailPage from "@/pages/admin/admin-order-detail-page";
-import AdminOrdersPage from "@/pages/admin/admin-orders-page";
-import AdminProductsPage from "@/pages/admin/admin-products-page";
-import AdminVariantsPage from "@/pages/admin/admin-variants-page";
+import { lazy } from "react";
 import { AdminLayout } from "../components/admin/admin-layout";
 import AdminGuard from "../components/guards/admin-guard";
 import { APP_PATHS } from "../constants/app-paths";
+
+// All admin pages are lazy-loaded — they are never needed on the storefront.
+const AdminDashboardPage = lazy(() => import("@/pages/admin/admin-dashboard-page"));
+const AdminProductsPage = lazy(() => import("@/pages/admin/admin-products-page"));
+const AdminVariantsPage = lazy(() => import("@/pages/admin/admin-variants-page"));
+const AdminImagesPage = lazy(() => import("@/pages/admin/admin-images-page"));
+const AdminCategoriesPage = lazy(() => import("@/pages/admin/admin-categories-page"));
+const AdminBrandsPage = lazy(() => import("@/pages/admin/admin-brands-page"));
+const AdminOrdersPage = lazy(() => import("@/pages/admin/admin-orders-page"));
+const AdminOrderDetailPage = lazy(() => import("@/pages/admin/admin-order-detail-page"));
+const AdminInventoryPage = lazy(() => import("@/pages/admin/admin-inventory-page"));
 
 export const adminRoutes = [
   {
@@ -31,10 +34,6 @@ export const adminRoutes = [
           { path: "orders/:orderId", element: <AdminOrderDetailPage /> },
           { path: "inventory", element: <AdminInventoryPage /> },
           { path: "inventory/products", element: <AdminProductsPage /> },
-          // Add more admin routes here as needed
-          // { path: 'analytics', element: <AdminAnalytics /> },
-          // { path: 'users', element: <AdminUsers /> },
-          // { path: 'settings', element: <AdminSettings /> },
         ],
       },
     ],
