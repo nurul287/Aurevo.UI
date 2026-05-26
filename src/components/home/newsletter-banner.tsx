@@ -21,6 +21,8 @@ export const NewsletterBanner = () => {
             src={subscriptionBannerImage}
             alt="Newsletter Banner"
             className="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
           />
 
           {/* Content */}
