@@ -8,6 +8,34 @@ A modern, full-stack e-commerce application built with React, TypeScript, and Su
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1.13-cyan)
 ![Vite](https://img.shields.io/badge/Vite-7.1.7-purple)
 
+## 📸 Screenshots
+
+### Storefront
+
+![Aurevo Fashion – Storefront](public/aurevo-fashion-ui.png)
+
+> Hero section, product categories, new collection grid, promotional banners, and newsletter — all in one scrollable home page.
+
+### Admin Dashboard
+
+![Aurevo Fashion – Admin Dashboard](public/aurevo-fahion-dashboard.png)
+
+> Live overview of orders, revenue, active products, customers, and inventory status — powered by real Supabase data.
+
+### Admin – Products Management
+
+![Aurevo Fashion – Products Management](public/aurevo-fashion-admin.png)
+
+> Full product catalog with search, filters by status/category/brand, stock level badges, and inline actions — add, edit, or manage variants in one place.
+
+### Admin – Categories Management
+
+![Aurevo Fashion – Categories Management](public/aurevo-fashion-admin-categories.png)
+
+> Create and manage product categories with images, slugs, and sort order — each category links directly to the storefront navigation.
+
+---
+
 ## ✨ Features
 
 ### 🎨 **Premium UI/UX**
@@ -178,7 +206,7 @@ VITE_META_PIXEL_ID=your_meta_pixel_id
 
 **Production (Vercel):** Add `VITE_META_PIXEL_ID` under Project → Settings → Environment Variables for **Production** (and Preview if needed), then redeploy. Vite bakes env vars at build time — changing them without redeploying has no effect.
 
-```
+````
 
 ### **4. Database Setup**
 
@@ -190,7 +218,7 @@ pnpm db:link          # one-time: link to your Supabase project
 pnpm db:start         # local Postgres (Docker)
 pnpm db:reset         # apply all migrations locally
 pnpm db:types:local   # regenerate src/types/database.ts
-```
+````
 
 For remote: `pnpm db:push` after linking. CI applies migrations on push to `main` when GitHub secrets are configured.
 
