@@ -1,8 +1,7 @@
-import { supabase } from "@/lib/supabase";
+import { api, apiFetchList } from "@/lib/api";
 import { Order } from "@/services/types";
 import { useQuery } from "@tanstack/react-query";
 
-// Query keys for consistent cache management
 export const userQueryKeys = {
   orders: (userId: string) => ["user", "orders", userId] as const,
   order: (userId: string, orderId: string) =>
@@ -10,70 +9,30 @@ export const userQueryKeys = {
   profile: (userId: string) => ["user", "profile", userId] as const,
 } as const;
 
-// Note: useUserProfile is available from auth service
-// Use: import { useUserProfile } from "@/services/auth"
-
-/**
- * Hook to get user orders
- */
 export function useUserOrders(userId: string) {
   return useQuery({
     queryKey: userQueryKeys.orders(userId),
     queryFn: async (): Promise<Order[]> => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select(
-          `
-          *,
-          order_items(
-            *,
-            product:products(*),
-            variant:product_variants(*)
-          )
-        `
-        )
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data || [];
+      const { data } = await apiFetchList<Order>("/orders?limit=100");
+      return data;
     },
     enabled: !!userId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 }
 
-/**
- * Hook to get a specific user order
- */
 export function useUserOrder(userId: string, orderId: string) {
   return useQuery({
     queryKey: userQueryKeys.order(userId, orderId),
     queryFn: async (): Promise<Order | null> => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select(
-          `
-          *,
-          order_items(
-            *,
-            product:products(*),
-            variant:product_variants(*)
-          )
-        `
-        )
-        .eq("id", orderId)
-        .eq("user_id", userId)
-        .single();
-
-      if (error) {
-        if (error.code === "PGRST116") return null; // Order doesn't exist
-        throw error;
+      try {
+        return await api.get<Order>(`/orders/${orderId}`);
+      } catch (err: unknown) {
+        if ((err as { status?: number }).status === 404) return null;
+        throw err;
       }
-
-      return data;
     },
     enabled: !!userId && !!orderId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 }

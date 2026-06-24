@@ -1,3 +1,4 @@
+import { api } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { UserProfile } from "@/services/types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -68,20 +69,12 @@ export function useUserProfile(userId?: string) {
     queryKey: authQueryKeys.userProfile(targetUserId!),
     queryFn: async (): Promise<UserProfile | null> => {
       if (!targetUserId) return null;
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", targetUserId)
-        .single();
-
-      if (error) {
-        // If profile doesn't exist, return null instead of throwing
-        if (error.code === "PGRST116") return null;
-        throw error;
+      try {
+        return await api.get<UserProfile>("/auth/me");
+      } catch (err: unknown) {
+        if ((err as { status?: number }).status === 404) return null;
+        throw err;
       }
-
-      return data;
     },
     enabled: !!targetUserId,
     staleTime: 10 * 60 * 1000, // 10 minutes
