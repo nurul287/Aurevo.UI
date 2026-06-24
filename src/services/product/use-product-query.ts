@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { apiFetchList } from "@/lib/api";
 import {
   sortAdminVariantRows,
   sortProductVariants,
@@ -632,16 +633,10 @@ export function useCategories() {
   return useQuery({
     queryKey: productQueryKeys.categories,
     queryFn: async (): Promise<Category[]> => {
-      const { data, error } = await supabase
-        .from("categories")
-        .select("*")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true });
-
-      if (error) throw error;
-      return data || [];
+      const { data } = await apiFetchList<Category>("/categories?limit=100", { skipAuth: true });
+      return data;
     },
-    staleTime: 30 * 60 * 1000, // 30 minutes
+    staleTime: 30 * 60 * 1000,
   });
 }
 
@@ -652,15 +647,9 @@ export function useBrands() {
   return useQuery({
     queryKey: productQueryKeys.brands,
     queryFn: async (): Promise<Brand[]> => {
-      const { data, error } = await supabase
-        .from("brands")
-        .select("*")
-        .eq("is_active", true)
-        .order("name", { ascending: true });
-
-      if (error) throw error;
-      return data || [];
+      const { data } = await apiFetchList<Brand>("/brands?limit=100", { skipAuth: true });
+      return data;
     },
-    staleTime: 30 * 60 * 1000, // 30 minutes
+    staleTime: 30 * 60 * 1000,
   });
 }
