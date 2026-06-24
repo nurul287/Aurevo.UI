@@ -1,9 +1,8 @@
-import { supabase } from "@/lib/supabase";
+import { api } from "@/lib/api";
 import { CartItem } from "@/services/types";
 import { useQuery } from "@tanstack/react-query";
 import { computeCartTotals } from "./cart-totals";
 
-// Query keys for consistent cache management
 export const cartQueryKeys = {
   all: (userId: string, sessionId?: string) =>
     ["cart", "all", userId, sessionId] as const,
@@ -15,43 +14,31 @@ export type CartData = {
   itemCount: number;
 };
 
-/** Fetch cart from Supabase (shared by React Query and Meta Pixel tracking). */
+type BeCartItem = {
+  id: string;
+  quantity: number;
+  price: string | number;
+  product_id: string;
+  variant_id: string;
+  product?: Record<string, unknown>;
+  variant?: Record<string, unknown>;
+};
+
+/** Fetch cart from BE API (shared by React Query and Meta Pixel tracking). */
 export async function fetchCartData(
   userId?: string,
-  sessionId?: string,
+  sessionId?: string
 ): Promise<CartData> {
   if (!userId && !sessionId) {
     return { items: [], total: 0, itemCount: 0 };
   }
 
-  let query = supabase
-    .from("cart_items")
-    .select(
-      `
-          *,
-          product:products!product_id(
-            *,
-            images:product_images(*)
-          ),
-          variant:product_variants!variant_id(*)
-        `,
-    )
-    .order("created_at", { ascending: false });
+  const data = await api.get<{ items: BeCartItem[] }>("/cart", {
+    guestSessionId: sessionId,
+    skipAuth: !userId,
+  });
 
-  if (userId) {
-    query = query.eq("user_id", userId);
-  } else if (sessionId) {
-    query = query.eq("session_id", sessionId);
-  }
-
-  const { data: cartItems, error } = await query;
-
-  if (error) {
-    console.error("❌ Error fetching cart data:", error);
-    throw error;
-  }
-
-  const items = (cartItems || []) as CartItem[];
+  const items = (data?.items ?? []) as CartItem[];
   const { value: total } = computeCartTotals(items);
 
   return {
@@ -61,11 +48,6 @@ export async function fetchCartData(
   };
 }
 
-/**
- * Combined hook to get all cart data in a single query
- * This reduces API calls from 3 separate queries to 1
- * Supports both authenticated users (userId) and guests (sessionId)
- */
 export function useCartData(userId?: string, sessionId?: string) {
   const isEnabled = !!(userId || sessionId);
 
@@ -73,8 +55,8 @@ export function useCartData(userId?: string, sessionId?: string) {
     queryKey: cartQueryKeys.all(userId || "", sessionId),
     queryFn: () => fetchCartData(userId, sessionId),
     enabled: isEnabled,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
