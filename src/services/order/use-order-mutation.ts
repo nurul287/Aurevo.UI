@@ -36,19 +36,29 @@ export interface BulkUpdateOrderStatusParams {
   internalNotes?: string;
 }
 
+type CheckoutAddress = {
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  phone?: string;
+  address?: string;
+  district?: string;
+  upazila?: string;
+};
+
 export interface CreateGuestOrderParams {
   user_id?: string | null;
   email?: string | null;
   phone?: string;
   firstName?: string;
   lastName?: string;
-  billingAddress: unknown;
-  shippingAddress: unknown;
+  billingAddress: CheckoutAddress;
+  shippingAddress: CheckoutAddress;
   items: Array<{
-    product_id: string;
+    product_id?: string;
     variant_id?: string;
     quantity: number;
-    unit_price: number;
+    unit_price?: number;
   }>;
   subtotal: number;
   tax_amount?: number;
@@ -58,6 +68,22 @@ export interface CreateGuestOrderParams {
   payment_method: string;
   notes?: string;
   session_id?: string;
+}
+
+function normalizeAddress(addr: CheckoutAddress): {
+  name: string;
+  phone: string;
+  address: string;
+  district: string;
+  upazila: string;
+} {
+  return {
+    name: addr.name ?? `${addr.firstName ?? ""} ${addr.lastName ?? ""}`.trim(),
+    phone: addr.phone ?? "",
+    address: addr.address ?? "",
+    district: addr.district ?? "",
+    upazila: addr.upazila ?? "",
+  };
 }
 
 const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
@@ -239,24 +265,19 @@ export function useCreateGuestOrder() {
       api.post<{ order: { id: string; order_number: string }; guest_token: string | null }>(
         "/orders",
         {
-          userId: params.user_id ?? null,
-          email: params.email,
-          phone: params.phone ?? null,
-          firstName: params.firstName,
-          lastName: params.lastName,
-          billingAddress: params.billingAddress,
-          shippingAddress: params.shippingAddress,
-          items: params.items,
-          subtotal: params.subtotal,
-          taxAmount: params.tax_amount ?? 0,
-          shippingAmount: params.shipping_amount ?? 0,
-          discountAmount: params.discount_amount ?? 0,
-          totalAmount: params.total_amount,
+          email: params.email ?? undefined,
+          phone: params.phone ?? undefined,
           paymentMethod: params.payment_method,
+          shippingAddress: normalizeAddress(params.shippingAddress),
+          billingAddress: params.billingAddress
+            ? normalizeAddress(params.billingAddress)
+            : undefined,
           notes: params.notes ?? "",
-          sessionId: params.session_id ?? null,
+          // BE only needs variantId + quantity — price is resolved server-side
+          items: params.items
+            .filter((i) => !!i.variant_id)
+            .map((i) => ({ variantId: i.variant_id!, quantity: i.quantity })),
         },
-        // Allow optionalAuth — guests send no token; logged-in users get their JWT
         { skipAuth: !params.user_id }
       ),
     onSuccess: (data) => {
