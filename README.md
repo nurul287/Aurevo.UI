@@ -1,12 +1,15 @@
-# 🛍️ Aurevo Fashion - Premium Footwear E-commerce
+# 🛍️ Aurevo Fashion — Frontend E-commerce Store
 
-A modern, full-stack e-commerce application built with React, TypeScript, and Supabase, featuring a premium UI design and comprehensive shopping experience.
+Aurevo Fashion — Frontend E-commerce SPA. React 19 app built with Vite, TypeScript, TanStack Query, Supabase auth, Tailwind CSS v4, Shadcn/ui, React Router v7, and deployed on Vercel.
 
 ![React](https://img.shields.io/badge/React-19.1.1-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9.2-blue)
+![Vite](https://img.shields.io/badge/Vite-7.1.7-purple)
+![TanStack Query](https://img.shields.io/badge/TanStack_Query-5.90.2-red)
 ![Supabase](https://img.shields.io/badge/Supabase-2.58.0-green)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1.13-cyan)
-![Vite](https://img.shields.io/badge/Vite-7.1.7-purple)
+![React Router](https://img.shields.io/badge/React_Router-7.9.3-orange)
+![Vercel](https://img.shields.io/badge/Deployed-Vercel-black)
 
 ## 📸 Screenshots
 
