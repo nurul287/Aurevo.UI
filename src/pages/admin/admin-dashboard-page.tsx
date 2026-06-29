@@ -84,7 +84,7 @@ const AdminDashboardPage = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {data?.totalOrders.toLocaleString() ?? "0"}
+                  {(data?.total_orders ?? 0).toLocaleString()}
                 </div>
                 <p className="text-xs text-muted-foreground">All orders</p>
               </CardContent>
@@ -98,7 +98,7 @@ const AdminDashboardPage = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {formatPrice(data?.totalRevenue ?? 0)}
+                  {formatPrice(data?.total_revenue ?? 0)}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Excludes cancelled & refunded
@@ -114,7 +114,7 @@ const AdminDashboardPage = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {data?.totalProducts ?? 0}
+                  {data?.total_products ?? 0}
                 </div>
                 <p className="text-xs text-muted-foreground">Published catalog</p>
               </CardContent>
@@ -126,7 +126,7 @@ const AdminDashboardPage = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {data?.totalCustomers.toLocaleString() ?? "0"}
+                  {(data?.total_customers ?? 0).toLocaleString()}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Registered profiles
@@ -152,13 +152,13 @@ const AdminDashboardPage = () => {
                   <Skeleton key={i} className="h-12 w-full" />
                 ))}
               </div>
-            ) : !data?.recentOrders.length ? (
+            ) : !data?.recent_orders?.length ? (
               <p className="text-sm text-muted-foreground py-4 text-center">
                 No orders yet.
               </p>
             ) : (
               <div className="space-y-4">
-                {data!.recentOrders.map((order) => (
+                {(data?.recent_orders ?? []).map((order) => (
                   <Link
                     key={order.id}
                     to={`/admin/orders/${order.id}`}
@@ -218,19 +218,19 @@ const AdminDashboardPage = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Low stock variants</span>
                   <span className="text-sm font-medium text-amber-600">
-                    {data?.inventory.lowStockCount ?? 0}
+                    {data?.inventory?.low_stock_count ?? 0}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Out of stock</span>
                   <span className="text-sm font-medium text-red-600">
-                    {data?.inventory.outOfStockCount ?? 0}
+                    {data?.inventory?.out_of_stock_count ?? 0}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Tracked variants</span>
                   <span className="text-sm font-medium">
-                    {data?.inventory.trackedVariants ?? 0}
+                    {data?.inventory?.tracked_variants ?? 0}
                   </span>
                 </div>
               </div>
