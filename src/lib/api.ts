@@ -99,6 +99,34 @@ async function makeRequest(
 }
 
 /**
+ * Send a multipart/form-data request (file uploads). No Content-Type header —
+ * the browser sets it with the correct boundary automatically.
+ */
+export async function apiFetchForm<T>(
+  path: string,
+  options: {
+    method?: string;
+    formData: FormData;
+    guestSessionId?: string;
+  }
+): Promise<T> {
+  const { method = "POST", formData, guestSessionId } = options;
+  const token = await getToken();
+
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (guestSessionId) headers["X-Guest-Session"] = guestSessionId;
+
+  const res = await fetch(`${API_URL}${path}`, { method, headers, body: formData });
+
+  if (res.status === 204) return undefined as T;
+
+  const json = await res.json();
+  if (!json.success) throw buildError(json, res.status);
+  return snakifyKeys(json.data) as T;
+}
+
+/**
  * Fetch a single resource (or perform a mutation that returns a single object).
  * Response keys are converted camelCase → snake_case to match FE types.
  */
