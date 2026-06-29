@@ -1,8 +1,9 @@
 import { useToast } from "@/hooks/use-toast";
-import { api } from "@/lib/api";
+import { apiFetchForm } from "@/lib/api";
 import { Category } from "@/services/types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { productQueryKeys } from "../product/use-product-query";
+import { api } from "@/lib/api";
 
 export interface CreateCategoryParams {
   name: string;
@@ -12,6 +13,7 @@ export interface CreateCategoryParams {
   image_url?: string;
   sort_order?: number;
   is_active?: boolean;
+  imageFile?: File;
 }
 
 export interface UpdateCategoryParams {
@@ -23,6 +25,20 @@ export interface UpdateCategoryParams {
   image_url?: string | null;
   sort_order?: number;
   is_active?: boolean;
+  imageFile?: File;
+}
+
+function buildCategoryFormData(params: Omit<CreateCategoryParams, "id">): FormData {
+  const fd = new FormData();
+  if (params.name) fd.append("name", params.name);
+  if (params.slug) fd.append("slug", params.slug);
+  if (params.description) fd.append("description", params.description);
+  if (params.parent_id) fd.append("parentId", params.parent_id);
+  if (params.sort_order !== undefined) fd.append("sortOrder", String(params.sort_order));
+  if (params.is_active !== undefined) fd.append("isActive", String(params.is_active));
+  if (params.image_url) fd.append("imageUrl", params.image_url);
+  if (params.imageFile) fd.append("image", params.imageFile);
+  return fd;
 }
 
 export function useCreateCategory() {
@@ -30,8 +46,11 @@ export function useCreateCategory() {
   const { showSuccess, showError } = useToast();
 
   return useMutation({
-    mutationFn: (params: CreateCategoryParams) =>
-      api.post<Category>("/categories", params),
+    mutationFn: ({ imageFile, ...params }: CreateCategoryParams) =>
+      apiFetchForm<Category>("/categories", {
+        method: "POST",
+        formData: buildCategoryFormData({ ...params, imageFile }),
+      }),
     onSuccess: () => {
       showSuccess("Category Created", "Category has been successfully created");
       queryClient.invalidateQueries({ queryKey: productQueryKeys.categories });
@@ -47,8 +66,11 @@ export function useUpdateCategory() {
   const { showSuccess, showError } = useToast();
 
   return useMutation({
-    mutationFn: ({ id, ...patch }: UpdateCategoryParams) =>
-      api.patch<Category>(`/categories/${id}`, patch),
+    mutationFn: ({ id, imageFile, ...params }: UpdateCategoryParams) =>
+      apiFetchForm<Category>(`/categories/${id}`, {
+        method: "PATCH",
+        formData: buildCategoryFormData(params as Omit<CreateCategoryParams, "id">),
+      }),
     onSuccess: () => {
       showSuccess("Category Updated", "Category has been successfully updated");
       queryClient.invalidateQueries({ queryKey: productQueryKeys.categories });
