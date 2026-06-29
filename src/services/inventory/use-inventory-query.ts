@@ -1,4 +1,4 @@
-import { api, apiFetchList } from "@/lib/api";
+import { api, apiFetchList, type PaginationMeta } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 
 export interface InventoryRecord {
@@ -180,16 +180,27 @@ export function useInventorySummary(productId: string) {
   });
 }
 
-export function useInventoryLevels() {
+export interface InventoryLevelsResult {
+  data: InventoryRecord[];
+  pagination: PaginationMeta;
+}
+
+export function useInventoryLevels(filters?: {
+  search?: string;
+  page?: number;
+  limit?: number;
+}) {
+  const page = filters?.page ?? 1;
+  const limit = filters?.limit ?? 20;
+  const search = filters?.search ?? "";
+
   return useQuery({
-    queryKey: ["inventory-levels"],
-    queryFn: async (): Promise<InventoryRecord[]> => {
-      const { data } = await apiFetchList<InventoryRecord>("/inventory?limit=1000");
-      return data.sort((a, b) => {
-        const nameA = (a.product_variants as { products?: { name?: string } })?.products?.name ?? "";
-        const nameB = (b.product_variants as { products?: { name?: string } })?.products?.name ?? "";
-        return nameA.localeCompare(nameB);
-      });
+    queryKey: ["inventory-levels", { page, limit, search }],
+    queryFn: async (): Promise<InventoryLevelsResult> => {
+      const q = new URLSearchParams({ page: String(page), limit: String(limit) });
+      if (search) q.set("search", search);
+      const result = await apiFetchList<InventoryRecord>(`/inventory?${q.toString()}`);
+      return { data: result.data, pagination: result.pagination };
     },
   });
 }
@@ -207,36 +218,32 @@ export function useOrderInventoryMovements(orderId: string) {
   });
 }
 
-export function useInventoryStats() {
-  return useQuery({
-    queryKey: ["inventory-stats"],
-    queryFn: async () => {
-      const [inventoryResult, lowStockResult] = await Promise.all([
-        apiFetchList<InventoryRecord>("/inventory?limit=5000"),
-        apiFetchList<LowStockItem>("/inventory/low-stock"),
-      ]);
+/** Derive stats from already-fetched inventory + low-stock data — no extra API calls. */
+export function computeInventoryStats(
+  stockRecords: InventoryRecord[],
+  lowStockItems: LowStockItem[],
+) {
+  const totalStockValue = stockRecords.reduce((sum, item) => {
+    const qty = Number(item.quantity) || 0;
+    const variantPrice = Number(item.product_variants?.price) || 0;
+    const basePrice =
+      Number(
+        (item.product_variants as { products?: { base_price?: number } })
+          ?.products?.base_price,
+      ) || 0;
+    const unit = variantPrice > 0 ? variantPrice : basePrice;
+    return sum + qty * unit;
+  }, 0);
 
-      const stockRecords = inventoryResult.data;
-      const lowStockItems = lowStockResult.data;
-
-      const totalValue = stockRecords.reduce((sum, item) => {
-        const qty = Number(item.quantity) || 0;
-        const variantPrice = Number(item.product_variants?.price) || 0;
-        const basePrice = Number(
-          (item.product_variants as { products?: { base_price?: number } })?.products?.base_price
-        ) || 0;
-        const unit = variantPrice > 0 ? variantPrice : basePrice;
-        return sum + qty * unit;
-      }, 0);
-
-      return {
-        totalStockValue: totalValue,
-        lowStockCount: lowStockItems.length,
-        totalVariants: stockRecords.length,
-        totalStockQuantity: stockRecords.reduce((s, r) => s + (Number(r.quantity) || 0), 0),
-      };
-    },
-  });
+  return {
+    totalStockValue,
+    lowStockCount: lowStockItems.length,
+    totalVariants: stockRecords.length,
+    totalStockQuantity: stockRecords.reduce(
+      (s, r) => s + (Number(r.quantity) || 0),
+      0,
+    ),
+  };
 }
 
 /** Fetch inventory record for a specific variant (needed for adjust mutations). */

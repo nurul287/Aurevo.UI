@@ -296,7 +296,7 @@ export function useDecreaseStock() {
         adjustment: -params.quantity,
         movementType: "adjustment",
         reason: "manual_adjustment",
-        notes: params.notes ?? null,
+        notes: params.notes || undefined,
       });
     },
     onSuccess: () => {

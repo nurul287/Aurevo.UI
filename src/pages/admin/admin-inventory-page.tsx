@@ -36,10 +36,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatPrice } from "@/lib/currency";
 // Toast notifications are handled by the mutation hooks
 import {
+  computeInventoryStats,
   useAllInventoryMovements,
   useDecreaseStock,
   useInventoryLevels,
-  useInventoryStats,
   useLowStockItems,
   useRestockInventory,
 } from "@/services/inventory";
@@ -56,6 +56,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useState } from "react";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 function unwrapRelation<T>(rel: T | T[] | null | undefined): T | undefined {
   if (rel == null) return undefined;
@@ -70,6 +71,9 @@ function variantProductName(variant: { products?: unknown } | null): string {
 
 export default function AdminInventoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
+  const debouncedSearch = useDebouncedValue(searchTerm, 400);
   const [selectedMovementType, setSelectedMovementType] =
     useState<string>("all");
   const [isRestockDialogOpen, setIsRestockDialogOpen] = useState(false);
@@ -87,11 +91,16 @@ export default function AdminInventoryPage() {
   // Toast notifications are handled by the mutation hooks
 
   // Queries
-  const { data: inventoryLevels, isLoading: inventoryLoading } =
-    useInventoryLevels();
-  const { data: lowStockItems, isLoading: lowStockLoading } =
-    useLowStockItems();
-  const { data: inventoryStats, isLoading: statsLoading } = useInventoryStats();
+  const { data: inventoryResult, isLoading: inventoryLoading } = useInventoryLevels({
+    search: debouncedSearch,
+    page,
+    limit: PAGE_SIZE,
+  });
+  const inventoryLevels = inventoryResult?.data ?? [];
+  const pagination = inventoryResult?.pagination;
+
+  const { data: lowStockItems, isLoading: lowStockLoading } = useLowStockItems();
+  const inventoryStats = computeInventoryStats(inventoryLevels, lowStockItems ?? []);
   const { data: movements } = useAllInventoryMovements({
     movement_type:
       selectedMovementType === "all" ? undefined : selectedMovementType,
@@ -102,20 +111,8 @@ export default function AdminInventoryPage() {
   const restockMutation = useRestockInventory();
   const decreaseMutation = useDecreaseStock();
 
-  // Filter inventory levels
-  const filteredInventory =
-    inventoryLevels?.filter(
-      (item) =>
-        item.product_variants.products.name
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        item.product_variants.name
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        item.product_variants.sku
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase())
-    ) || [];
+  // Server-side filtered — use data directly
+  const filteredInventory = inventoryLevels;
 
   // Filter movements
   const filteredMovements =
@@ -231,7 +228,7 @@ export default function AdminInventoryPage() {
     );
   };
 
-  if (inventoryLoading || lowStockLoading || statsLoading) {
+  if (inventoryLoading || lowStockLoading) {
     return (
       <div className="space-y-6">
         <div className="grid gap-4 md:grid-cols-4">
@@ -474,7 +471,7 @@ export default function AdminInventoryPage() {
               <Input
                 placeholder="Search products, variants, or SKUs..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                 className="pl-10"
               />
             </div>
@@ -553,6 +550,34 @@ export default function AdminInventoryPage() {
               </Table>
             </CardContent>
           </Card>
+          {pagination && pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4">
+              <p className="text-sm text-muted-foreground">
+                Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, pagination.total)} of {pagination.total} variants
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm tabular-nums">
+                  Page {page} of {pagination.totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= pagination.totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         {/* Low Stock Tab */}
