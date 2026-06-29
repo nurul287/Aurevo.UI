@@ -81,9 +81,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             void queryClient.invalidateQueries({
               queryKey: authQueryKeys.userProfile(user.id),
             });
-            return;
           }
-          profileBootstrapForUserId.current = null;
+          // Don't reset the ref — prevents infinite retry loop on persistent failures
         },
       },
     );

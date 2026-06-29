@@ -1,6 +1,7 @@
 import { APP_PATHS } from "@/constants/app-paths";
 import { markOAuthLoginPending } from "@/lib/oauth-login-flag";
 import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { SignInData, SignUpData, UserProfile } from "@/services/types";
 import type { Provider } from "@supabase/supabase-js";
@@ -151,21 +152,12 @@ export function useUpdateProfile() {
 
   return useMutation({
     mutationFn: async ({
-      userId,
       updates,
     }: {
       userId: string;
       updates: Partial<UserProfile>;
     }) => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .update(updates)
-        .eq("id", userId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return await api.patch<UserProfile>("/auth/profile", updates);
     },
     onSuccess: (data, variables) => {
       // Update profile cache
