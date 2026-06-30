@@ -207,7 +207,7 @@ export default function AdminVariantsPage() {
 
   const handleConfirmDelete = () => {
     if (deletingVariant) {
-      deleteVariantMutation.mutate(deletingVariant.id, { onSuccess: () => setPage(1) });
+      deleteVariantMutation.mutate({ variantId: deletingVariant.id, productId: deletingVariant.product_id }, { onSuccess: () => setPage(1) });
       setIsDeleteDialogOpen(false);
       setDeletingVariant(null);
     }
