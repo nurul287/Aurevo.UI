@@ -234,7 +234,7 @@ export const GenerateVariantsDialog = ({
 
         <div className="space-y-6 py-4">
           {/* Product */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label>
               Product <span className="text-red-500">*</span>
             </Label>
