@@ -1,5 +1,5 @@
 import { useToast } from "@/hooks/use-toast";
-import { api } from "@/lib/api";
+import { api, apiFetchForm } from "@/lib/api";
 import { Brand } from "@/services/types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { productQueryKeys } from "../product/use-product-query";
@@ -8,9 +8,9 @@ export interface CreateBrandParams {
   name: string;
   slug: string;
   description?: string;
-  logo_url?: string;
   website_url?: string;
   is_active?: boolean;
+  logoFile?: File;
 }
 
 export interface UpdateBrandParams {
@@ -18,9 +18,20 @@ export interface UpdateBrandParams {
   name?: string;
   slug?: string;
   description?: string;
-  logo_url?: string;
   website_url?: string;
   is_active?: boolean;
+  logoFile?: File;
+}
+
+function buildBrandFormData(params: Omit<CreateBrandParams, "id">): FormData {
+  const fd = new FormData();
+  if (params.name) fd.append("name", params.name);
+  if (params.slug) fd.append("slug", params.slug);
+  if (params.description) fd.append("description", params.description);
+  if (params.website_url) fd.append("websiteUrl", params.website_url);
+  if (params.is_active !== undefined) fd.append("isActive", String(params.is_active));
+  if (params.logoFile) fd.append("logo", params.logoFile);
+  return fd;
 }
 
 export function useCreateBrand() {
@@ -28,8 +39,11 @@ export function useCreateBrand() {
   const { showSuccess, showError } = useToast();
 
   return useMutation({
-    mutationFn: (params: CreateBrandParams) =>
-      api.post<Brand>("/brands", params),
+    mutationFn: ({ logoFile, ...params }: CreateBrandParams) =>
+      apiFetchForm<Brand>("/brands", {
+        method: "POST",
+        formData: buildBrandFormData({ ...params, logoFile }),
+      }),
     onSuccess: () => {
       showSuccess("Brand Created", "Brand has been successfully created");
       queryClient.invalidateQueries({ queryKey: productQueryKeys.brands });
@@ -45,8 +59,11 @@ export function useUpdateBrand() {
   const { showSuccess, showError } = useToast();
 
   return useMutation({
-    mutationFn: ({ id, ...patch }: UpdateBrandParams) =>
-      api.patch<Brand>(`/brands/${id}`, patch),
+    mutationFn: ({ id, logoFile, ...params }: UpdateBrandParams) =>
+      apiFetchForm<Brand>(`/brands/${id}`, {
+        method: "PATCH",
+        formData: buildBrandFormData(params as Omit<CreateBrandParams, "id">),
+      }),
     onSuccess: () => {
       showSuccess("Brand Updated", "Brand has been successfully updated");
       queryClient.invalidateQueries({ queryKey: productQueryKeys.brands });
