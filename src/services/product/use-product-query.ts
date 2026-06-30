@@ -23,7 +23,17 @@ import {
 } from "@/constants/promotional-banners";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 
+export type AdminProductsParams = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  isActive?: "true" | "false";
+  categoryId?: string;
+  brandId?: string;
+};
+
 export const productQueryKeys = {
+  adminProducts: (params: AdminProductsParams) => ["products", "admin", params] as const,
   products: (params: PaginationParams) => ["products", "list", params] as const,
   product: (id: string) => ["products", "detail", id] as const,
   productBySlug: (slug: string) => ["products", "detail", "slug", slug] as const,
@@ -58,8 +68,8 @@ function buildProductsUrl(params: {
   if (params.page) q.set("page", String(params.page));
   if (params.limit) q.set("limit", String(params.limit));
   if (params.search) q.set("search", params.search);
-  if (params.categoryId) q.set("category", params.categoryId);
-  if (params.brandId) q.set("brand", params.brandId);
+  if (params.categoryId) q.set("categoryId", params.categoryId);
+  if (params.brandId) q.set("brandId", params.brandId);
   if (params.isActive !== undefined) q.set("isActive", String(params.isActive));
   if (params.isFeatured !== undefined) q.set("isFeatured", String(params.isFeatured));
   return `/products?${q.toString()}`;
@@ -131,6 +141,28 @@ export function useProducts(params: PaginationParams = {}) {
       };
     },
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useAdminProducts(params: AdminProductsParams & { enabled?: boolean } = {}) {
+  const { page = 1, limit = 20, search, isActive, categoryId, brandId, enabled = true } = params;
+  return useQuery({
+    queryKey: productQueryKeys.adminProducts(params),
+    enabled,
+    queryFn: async (): Promise<PaginatedResponse<ProductWithVariants>> => {
+      const { data, pagination } = await apiFetchList<ProductWithVariants>(
+        buildProductsUrl({ page, limit, search: search || undefined, isActive: isActive ? isActive === "true" : undefined, categoryId, brandId }),
+        { skipAuth: false }
+      );
+      return {
+        data: withSortedVariantsOnProducts(data),
+        count: pagination.total,
+        page: pagination.page,
+        limit: pagination.limit,
+        totalPages: pagination.totalPages,
+      };
+    },
+    staleTime: 0,
   });
 }
 
@@ -306,23 +338,12 @@ export function useProductVariants(productId: string) {
 
 export function useAllVariants() {
   return useQuery({
-    queryKey: ["products", "variants", "all"],
+    queryKey: ["variants", "all"],
     queryFn: async (): Promise<(ProductVariant & { product?: Product })[]> => {
-      // Admin endpoint — needs auth, no skipAuth
       const { data } = await apiFetchList<ProductVariant & { product?: Product }>(
-        "/products?limit=1000"
+        "/variants"
       );
-      // Flatten: collect all variants from all products
-      // The BE /products/:id/variants is per-product; for admin list we fetch
-      // all products and extract their variants
-      const allProducts = data as unknown as (Product & { variants?: ProductVariant[] })[];
-      const variants: (ProductVariant & { product?: Product })[] = [];
-      for (const p of allProducts) {
-        for (const v of p.variants ?? []) {
-          variants.push({ ...v, product: p });
-        }
-      }
-      return sortAdminVariantRows(variants);
+      return sortAdminVariantRows(data);
     },
     staleTime: 15 * 60 * 1000,
   });
