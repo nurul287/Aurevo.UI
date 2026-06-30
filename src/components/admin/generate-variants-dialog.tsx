@@ -9,13 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -27,8 +20,8 @@ import {
 } from "@/components/ui/table";
 import { formatPrice } from "@/lib/currency";
 import { cn } from "@/lib/utils";
-import { useBulkCreateVariants } from "@/services/product";
-import type { Product } from "@/services/types";
+import { useBulkCreateVariants, useProduct } from "@/services/product";
+import { ProductCombobox } from "@/components/admin/product-combobox";
 import { Plus, Trash2, Wand2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -44,7 +37,6 @@ interface ColorRow {
 interface GenerateVariantsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  products: Product[];
   defaultProductId?: string;
 }
 
@@ -63,7 +55,6 @@ const newColorId = () =>
 export const GenerateVariantsDialog = ({
   open,
   onOpenChange,
-  products,
   defaultProductId,
 }: GenerateVariantsDialogProps) => {
   const [productId, setProductId] = useState<string>(defaultProductId ?? "");
@@ -88,10 +79,7 @@ export const GenerateVariantsDialog = ({
     }
   }, [open, defaultProductId]);
 
-  const selectedProduct = useMemo(
-    () => products.find((p) => p.id === productId),
-    [products, productId],
-  );
+  const { data: selectedProduct } = useProduct(productId);
 
   const validColors = colors.filter((c) => c.name.trim().length > 0);
 
@@ -250,19 +238,11 @@ export const GenerateVariantsDialog = ({
             <Label>
               Product <span className="text-red-500">*</span>
             </Label>
-            <Select value={productId} onValueChange={setProductId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a product" />
-              </SelectTrigger>
-              <SelectContent>
-                {products.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
-                    {p.base_price ? ` — ${formatPrice(p.base_price)}` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ProductCombobox
+              value={productId || "all"}
+              onChange={(v) => setProductId(v === "all" ? "" : v)}
+              className="w-full"
+            />
           </div>
 
           {/* Sizes */}
