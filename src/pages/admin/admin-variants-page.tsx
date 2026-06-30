@@ -36,7 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  useAllVariants,
+  useAdminVariants,
   useBulkDeleteVariants,
   useBulkUpdateVariantStatus,
   useCreateProductVariant,
@@ -55,14 +55,11 @@ import {
   Trash2,
   Wand2,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import GenerateVariantsDialog from "@/components/admin/generate-variants-dialog";
 import { ProductCombobox } from "@/components/admin/product-combobox";
-import { sortAdminVariantRows } from "@/lib/variant-size-sort";
 import { formatPrice } from "@/lib/currency";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-
-const VARIANTS_PER_PAGE = 20;
 
 const statusColors = {
   active: "bg-green-100 text-green-800",
@@ -89,10 +86,11 @@ interface VariantFormData {
 export default function AdminVariantsPage() {
   // State management
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "true" | "false">("all");
   const [productFilter, setProductFilter] = useState("all");
   const [page, setPage] = useState(1);
   const debouncedSearch = useDebouncedValue(searchTerm, 400);
+  const hasActiveFilters = !!searchTerm || statusFilter !== "all" || productFilter !== "all";
   const [selectedVariants, setSelectedVariants] = useState<string[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
@@ -127,52 +125,23 @@ export default function AdminVariantsPage() {
   });
 
   // Hooks
-  const { data: allVariants, isLoading: variantsLoading } = useAllVariants();
+  const { data: variantsData, isLoading: variantsLoading, isFetching: variantsFetching } = useAdminVariants({
+    page,
+    limit: 20,
+    search: debouncedSearch || undefined,
+    isActive: statusFilter !== "all" ? statusFilter as "true" | "false" : undefined,
+    productId: productFilter !== "all" ? productFilter : undefined,
+  });
 
-  // Derive unique products from already-fetched variants — no extra API call needed
-  const products = useMemo(() => {
-    const seen = new Map<string, Product>();
-    for (const v of allVariants ?? []) {
-      if (v.product && !seen.has(v.product.id)) seen.set(v.product.id, v.product);
-    }
-    return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [allVariants]);
+  const variants = variantsData?.data ?? [];
+  const totalPages = variantsData?.totalPages ?? 1;
+  const totalCount = variantsData?.count ?? 0;
+
   const createVariantMutation = useCreateProductVariant();
   const updateVariantMutation = useUpdateProductVariant();
   const deleteVariantMutation = useDeleteProductVariant();
   const bulkUpdateStatusMutation = useBulkUpdateVariantStatus();
   const bulkDeleteVariantsMutation = useBulkDeleteVariants();
-
-  // Computed values
-  const filteredVariants = useMemo(() => {
-    if (!allVariants) return [];
-    const search = debouncedSearch.toLowerCase();
-    const filtered = allVariants.filter((variant) => {
-      const matchesSearch =
-        !search ||
-        variant.sku?.toLowerCase().includes(search) ||
-        variant.name?.toLowerCase().includes(search) ||
-        variant.size?.toLowerCase().includes(search) ||
-        variant.color?.toLowerCase().includes(search);
-
-      const matchesStatus =
-        statusFilter === "all" ||
-        (statusFilter === "active" && variant.is_active) ||
-        (statusFilter === "inactive" && !variant.is_active);
-
-      const matchesProduct =
-        productFilter === "all" || variant.product_id === productFilter;
-
-      return matchesSearch && matchesStatus && matchesProduct;
-    });
-
-    return sortAdminVariantRows(filtered);
-  }, [allVariants, debouncedSearch, statusFilter, productFilter]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredVariants.length / VARIANTS_PER_PAGE));
-  const paginatedVariants = filteredVariants.slice((page - 1) * VARIANTS_PER_PAGE, page * VARIANTS_PER_PAGE);
-
-  const hasActiveFilters = !!searchTerm || statusFilter !== "all" || productFilter !== "all";
 
   const resetFilters = () => {
     setSearchTerm("");
@@ -205,7 +174,7 @@ export default function AdminVariantsPage() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedVariants(paginatedVariants.map((v) => v.id));
+      setSelectedVariants(variants.map((v) => v.id));
     } else {
       setSelectedVariants([]);
     }
@@ -358,7 +327,6 @@ export default function AdminVariantsPage() {
           <Button
             variant="outline"
             onClick={() => setIsGenerateDialogOpen(true)}
-            disabled={products.length === 0}
           >
             <Wand2 className="mr-2 h-4 w-4" />
             Generate Variants
@@ -382,23 +350,13 @@ export default function AdminVariantsPage() {
                   <Label htmlFor="product_id" className="text-right">
                     Product *
                   </Label>
-                  <Select
-                    value={formData.product_id}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, product_id: value }))
-                    }
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select a product" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((product: any) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="col-span-3">
+                    <ProductCombobox
+                      value={formData.product_id || "all"}
+                      onChange={(v) => setFormData((prev) => ({ ...prev, product_id: v === "all" ? "" : v }))}
+                      className="w-full"
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="sku" className="text-right">
@@ -556,14 +514,14 @@ export default function AdminVariantsPage() {
                 />
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as "all" | "true" | "false"); setPage(1); }}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="true">Active</SelectItem>
+                <SelectItem value="false">Inactive</SelectItem>
               </SelectContent>
             </Select>
             <ProductCombobox value={productFilter} onChange={(v) => { setProductFilter(v); setPage(1); }} />
@@ -580,7 +538,7 @@ export default function AdminVariantsPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Variants ({filteredVariants.length})</CardTitle>
+            <CardTitle>Variants ({totalCount})</CardTitle>
             {selectedVariants.length > 0 && (
               <div className="text-sm text-muted-foreground">
                 {selectedVariants.length} selected
@@ -589,15 +547,20 @@ export default function AdminVariantsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="relative rounded-md border">
+            {variantsFetching && !variantsLoading && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60 rounded-md">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+              </div>
+            )}
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[50px]">
                     <Checkbox
                       checked={
-                        paginatedVariants.length > 0 &&
-                        paginatedVariants.every((v) => selectedVariants.includes(v.id))
+                        variants.length > 0 &&
+                        variants.every((v) => selectedVariants.includes(v.id))
                       }
                       onCheckedChange={handleSelectAll}
                     />
@@ -613,7 +576,7 @@ export default function AdminVariantsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedVariants.length === 0 ? (
+                {variants.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8">
                       <div className="flex flex-col items-center gap-2">
@@ -625,7 +588,7 @@ export default function AdminVariantsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedVariants.map((variant) => {
+                  variants.map((variant) => {
                     const isSelected = selectedVariants.includes(variant.id);
                     return (
                       <TableRow key={variant.id}>
@@ -769,9 +732,7 @@ export default function AdminVariantsPage() {
                   id="edit-product"
                   value={
                     editingVariant
-                      ? products.find(
-                          (p: any) => p.id === editingVariant.product_id
-                        )?.name || "Unknown Product"
+                      ? (editingVariant as ProductVariant & { product?: Product }).product?.name || "Unknown Product"
                       : ""
                   }
                   disabled
@@ -977,10 +938,7 @@ export default function AdminVariantsPage() {
       <GenerateVariantsDialog
         open={isGenerateDialogOpen}
         onOpenChange={setIsGenerateDialogOpen}
-        products={products}
-        defaultProductId={
-          productFilter !== "all" ? productFilter : undefined
-        }
+        defaultProductId={productFilter !== "all" ? productFilter : undefined}
       />
     </div>
   );
