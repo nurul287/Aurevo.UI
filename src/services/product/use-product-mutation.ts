@@ -280,6 +280,7 @@ export function useCreateProductVariant() {
     onSuccess: (_data, params) => {
       showSuccess("Variant Created", "Product variant has been successfully created");
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["variants", "admin"] });
       queryClient.invalidateQueries({
         queryKey: productQueryKeys.productVariants(params.product_id),
       });
@@ -315,6 +316,7 @@ export function useUpdateProductVariant() {
     onSuccess: (data: { product_id: string }) => {
       showSuccess("Variant Updated", "Product variant has been successfully updated");
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["variants", "admin"] });
       queryClient.invalidateQueries({
         queryKey: productQueryKeys.productVariants(data.product_id),
       });
@@ -342,6 +344,7 @@ export function useDeleteProductVariant() {
     onSuccess: ({ variantId, productId }) => {
       showSuccess("Variant Deleted", "Product variant has been successfully deleted");
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["variants", "admin"] });
       if (productId) {
         queryClient.invalidateQueries({
           queryKey: productQueryKeys.productVariants(productId),
@@ -368,6 +371,7 @@ export function useBulkCreateVariants() {
         `${(createdVariants as unknown[]).length} variants were created successfully`
       );
       queryClient.invalidateQueries({ queryKey: ["variants", "all"] });
+      queryClient.invalidateQueries({ queryKey: ["variants", "admin"] });
       queryClient.invalidateQueries({
         queryKey: productQueryKeys.productVariants(product_id),
       });

@@ -207,7 +207,7 @@ export default function AdminVariantsPage() {
 
   const handleConfirmDelete = () => {
     if (deletingVariant) {
-      deleteVariantMutation.mutate(deletingVariant.id);
+      deleteVariantMutation.mutate(deletingVariant.id, { onSuccess: () => setPage(1) });
       setIsDeleteDialogOpen(false);
       setDeletingVariant(null);
     }
@@ -217,12 +217,12 @@ export default function AdminVariantsPage() {
     if (selectedVariants.length === 0) return;
 
     if (bulkAction === "delete") {
-      bulkDeleteVariantsMutation.mutate(selectedVariants);
+      bulkDeleteVariantsMutation.mutate(selectedVariants, { onSuccess: () => setPage(1) });
     } else {
       bulkUpdateStatusMutation.mutate({
         variantIds: selectedVariants,
         isActive: bulkAction === "activate",
-      });
+      }, { onSuccess: () => setPage(1) });
     }
 
     setSelectedVariants([]);
@@ -246,7 +246,7 @@ export default function AdminVariantsPage() {
         barcode: formData.barcode,
         sort_order: parseInt(formData.sort_order),
         is_active: formData.is_active,
-      });
+      }, { onSuccess: () => setPage(1) });
       setIsEditDialogOpen(false);
       setEditingVariant(null);
     } else {
@@ -270,7 +270,7 @@ export default function AdminVariantsPage() {
         barcode: formData.barcode,
         sort_order: parseInt(formData.sort_order),
         is_active: formData.is_active,
-      });
+      }, { onSuccess: () => setPage(1) });
       setIsAddDialogOpen(false);
     }
 
@@ -937,7 +937,7 @@ export default function AdminVariantsPage() {
       {/* Generate Variants Dialog */}
       <GenerateVariantsDialog
         open={isGenerateDialogOpen}
-        onOpenChange={setIsGenerateDialogOpen}
+        onOpenChange={(open) => { setIsGenerateDialogOpen(open); if (!open) setPage(1); }}
         defaultProductId={productFilter !== "all" ? productFilter : undefined}
       />
     </div>
