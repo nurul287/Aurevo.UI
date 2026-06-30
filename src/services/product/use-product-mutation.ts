@@ -332,14 +332,9 @@ export function useDeleteProductVariant() {
   const { showSuccess, showError } = useToast();
 
   return useMutation({
-    mutationFn: async (variantId: string) => {
-      // Fetch variant first to get product_id for cache invalidation
-      const data = await apiFetch<{ id: string; product_id: string }>(
-        `/products/unknown/variants/${variantId}`,
-        { skipAuth: false }
-      ).catch(() => ({ id: variantId, product_id: "" }));
-      await api.delete(`/products/${data.product_id}/variants/${variantId}`);
-      return { variantId, productId: data.product_id };
+    mutationFn: async ({ variantId, productId }: { variantId: string; productId: string }) => {
+      await api.delete(`/products/${productId}/variants/${variantId}`);
+      return { variantId, productId };
     },
     onSuccess: ({ variantId, productId }) => {
       showSuccess("Variant Deleted", "Product variant has been successfully deleted");
