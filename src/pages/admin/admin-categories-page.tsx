@@ -548,6 +548,14 @@ export default function AdminCategoriesPage() {
                 />
               </div>
             </div>
+            {(searchTerm || statusFilter !== "all") && (
+              <Button
+                variant="default"
+                onClick={() => { setSearchTerm(""); setStatusFilter("all"); }}
+              >
+                Clear
+              </Button>
+            )}
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Status" />
