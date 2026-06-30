@@ -36,6 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { CategoryImageField } from "@/components/admin/category-image-field";
 import {
   useBulkUpdateBrandStatus,
   useCreateBrand,
@@ -47,15 +48,15 @@ import { Brand } from "@/services/types";
 import {
   AlertTriangle,
   Edit,
+  ExternalLink,
   Filter,
   MoreHorizontal,
   Plus,
   Search,
   Tag,
   Trash2,
-  Upload,
 } from "lucide-react";
-import { useRef, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 const statusColors = {
   active: "bg-green-100 text-green-800",
@@ -95,8 +96,6 @@ export default function AdminBrandsPage() {
     is_active: true,
   });
   const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Hooks
   const { data: brands, isLoading: brandsLoading } = useBrands();
@@ -157,13 +156,6 @@ export default function AdminBrandsPage() {
     }
   };
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setLogoFile(file);
-    setLogoPreview(URL.createObjectURL(file));
-  };
-
   const handleEditBrand = (brand: Brand) => {
     setEditingBrand(brand);
     setFormData({
@@ -174,7 +166,6 @@ export default function AdminBrandsPage() {
       is_active: brand.is_active ?? true,
     });
     setLogoFile(null);
-    setLogoPreview(brand.logo_url || null);
     setIsEditDialogOpen(true);
   };
 
@@ -214,8 +205,6 @@ export default function AdminBrandsPage() {
   const resetForm = () => {
     setFormData({ name: "", slug: "", description: "", website_url: "", is_active: true });
     setLogoFile(null);
-    setLogoPreview(null);
-    if (logoInputRef.current) logoInputRef.current.value = "";
   };
 
   const handleSubmitBrand = () => {
@@ -326,19 +315,11 @@ export default function AdminBrandsPage() {
                     }
                   />
                 </div>
-                <div className="grid grid-cols-4 items-start gap-4">
-                  <Label className="text-right pt-2">Logo</Label>
-                  <div className="col-span-3 space-y-2">
-                    {logoPreview && (
-                      <img src={logoPreview} alt="Logo preview" className="h-16 w-16 object-contain rounded border" />
-                    )}
-                    <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
-                    <Button type="button" variant="outline" size="sm" onClick={() => logoInputRef.current?.click()}>
-                      <Upload className="mr-2 h-4 w-4" />
-                      {logoPreview ? "Change Logo" : "Upload Logo"}
-                    </Button>
-                  </div>
-                </div>
+                <CategoryImageField
+                  label="Logo"
+                  file={logoFile}
+                  onFileChange={setLogoFile}
+                />
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="website_url" className="text-right">
                     Website URL
@@ -429,6 +410,14 @@ export default function AdminBrandsPage() {
                 />
               </div>
             </div>
+            {(searchTerm || statusFilter !== "all") && (
+              <Button
+                variant="default"
+                onClick={() => { setSearchTerm(""); setStatusFilter("all"); }}
+              >
+                Clear
+              </Button>
+            )}
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Status" />
@@ -526,13 +515,15 @@ export default function AdminBrandsPage() {
                               href={brand.website_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline text-sm"
+                              title={brand.website_url}
+                              className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
                             >
                               Visit Website
+                              <ExternalLink className="h-3 w-3" />
                             </a>
                           ) : (
                             <span className="text-muted-foreground text-sm">
-                              No website
+                              —
                             </span>
                           )}
                         </TableCell>
@@ -623,19 +614,12 @@ export default function AdminBrandsPage() {
                 }
               />
             </div>
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label className="text-right pt-2">Logo</Label>
-              <div className="col-span-3 space-y-2">
-                {logoPreview && (
-                  <img src={logoPreview} alt="Logo preview" className="h-16 w-16 object-contain rounded border" />
-                )}
-                <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
-                <Button type="button" variant="outline" size="sm" onClick={() => logoInputRef.current?.click()}>
-                  <Upload className="mr-2 h-4 w-4" />
-                  {logoPreview ? "Change Logo" : "Upload Logo"}
-                </Button>
-              </div>
-            </div>
+            <CategoryImageField
+              label="Logo"
+              existingUrl={editingBrand?.logo_url}
+              file={logoFile}
+              onFileChange={setLogoFile}
+            />
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-website_url" className="text-right">
                 Website URL
