@@ -62,7 +62,7 @@ export function useUpdateBrand() {
     mutationFn: ({ id, logoFile, ...params }: UpdateBrandParams) =>
       apiFetchForm<Brand>(`/brands/${id}`, {
         method: "PATCH",
-        formData: buildBrandFormData(params as Omit<CreateBrandParams, "id">),
+        formData: buildBrandFormData({ ...params, logoFile } as Omit<CreateBrandParams, "id">),
       }),
     onSuccess: () => {
       showSuccess("Brand Updated", "Brand has been successfully updated");
