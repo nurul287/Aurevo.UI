@@ -41,7 +41,6 @@ import {
   useBulkUpdateVariantStatus,
   useCreateProductVariant,
   useDeleteProductVariant,
-  useProducts,
   useUpdateProductVariant,
 } from "@/services/product";
 import { Product, ProductVariant } from "@/services/types";
@@ -58,6 +57,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import GenerateVariantsDialog from "@/components/admin/generate-variants-dialog";
+import { ProductCombobox } from "@/components/admin/product-combobox";
 import { sortAdminVariantRows } from "@/lib/variant-size-sort";
 import { formatPrice } from "@/lib/currency";
 
@@ -122,11 +122,16 @@ export default function AdminVariantsPage() {
   });
 
   // Hooks
-  const { data: productsResponse, isLoading: productsLoading } = useProducts();
   const { data: allVariants, isLoading: variantsLoading } = useAllVariants();
 
-  // Extract products from paginated response
-  const products = productsResponse?.data || [];
+  // Derive unique products from already-fetched variants — no extra API call needed
+  const products = useMemo(() => {
+    const seen = new Map<string, Product>();
+    for (const v of allVariants ?? []) {
+      if (v.product && !seen.has(v.product.id)) seen.set(v.product.id, v.product);
+    }
+    return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [allVariants]);
   const createVariantMutation = useCreateProductVariant();
   const updateVariantMutation = useUpdateProductVariant();
   const deleteVariantMutation = useDeleteProductVariant();
@@ -300,7 +305,7 @@ export default function AdminVariantsPage() {
     });
   };
 
-  if (productsLoading || variantsLoading) {
+  if (variantsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -543,19 +548,7 @@ export default function AdminVariantsPage() {
                 <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={productFilter} onValueChange={setProductFilter}>
-              <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Product" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Products</SelectItem>
-                {products?.map((product: any) => (
-                  <SelectItem key={product.id} value={product.id}>
-                    {product.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ProductCombobox value={productFilter} onChange={setProductFilter} />
           </div>
         </CardContent>
       </Card>

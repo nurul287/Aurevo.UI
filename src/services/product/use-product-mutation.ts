@@ -367,7 +367,7 @@ export function useBulkCreateVariants() {
         "Variants Generated",
         `${(createdVariants as unknown[]).length} variants were created successfully`
       );
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["variants", "all"] });
       queryClient.invalidateQueries({
         queryKey: productQueryKeys.productVariants(product_id),
       });
