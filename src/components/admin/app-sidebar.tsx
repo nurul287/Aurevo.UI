@@ -139,9 +139,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <SidebarMenuButton
                     asChild
                     isActive={
-                      item.url === "/admin"
-                        ? location.pathname === "/admin"
-                        : location.pathname.startsWith(item.url)
+                      !item.items && (
+                        item.url === "/admin"
+                          ? location.pathname === "/admin"
+                          : location.pathname.startsWith(item.url)
+                      )
                     }
                     tooltip={item.title}
                   >
