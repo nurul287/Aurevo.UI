@@ -336,16 +336,38 @@ export function useProductVariants(productId: string) {
   });
 }
 
-export function useAllVariants() {
+export type AdminVariantsParams = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  isActive?: "true" | "false";
+  productId?: string;
+};
+
+export function useAdminVariants(params: AdminVariantsParams & { enabled?: boolean } = {}) {
+  const { page = 1, limit = 20, search, isActive, productId, enabled = true } = params;
   return useQuery({
-    queryKey: ["variants", "all"],
-    queryFn: async (): Promise<(ProductVariant & { product?: Product })[]> => {
-      const { data } = await apiFetchList<ProductVariant & { product?: Product }>(
-        "/variants"
+    queryKey: ["variants", "admin", params],
+    enabled,
+    queryFn: async (): Promise<PaginatedResponse<ProductVariant & { product?: Product }>> => {
+      const q = new URLSearchParams();
+      q.set("page", String(page));
+      q.set("limit", String(limit));
+      if (search) q.set("search", search);
+      if (isActive) q.set("isActive", isActive);
+      if (productId && productId !== "all") q.set("productId", productId);
+      const { data, pagination } = await apiFetchList<ProductVariant & { product?: Product }>(
+        `/variants?${q.toString()}`
       );
-      return sortAdminVariantRows(data);
+      return {
+        data: sortAdminVariantRows(data),
+        count: pagination.total,
+        page: pagination.page,
+        limit: pagination.limit,
+        totalPages: pagination.totalPages,
+      };
     },
-    staleTime: 15 * 60 * 1000,
+    staleTime: 0,
   });
 }
 
