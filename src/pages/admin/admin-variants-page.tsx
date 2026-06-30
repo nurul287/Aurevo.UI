@@ -60,6 +60,9 @@ import GenerateVariantsDialog from "@/components/admin/generate-variants-dialog"
 import { ProductCombobox } from "@/components/admin/product-combobox";
 import { sortAdminVariantRows } from "@/lib/variant-size-sort";
 import { formatPrice } from "@/lib/currency";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+
+const VARIANTS_PER_PAGE = 20;
 
 const statusColors = {
   active: "bg-green-100 text-green-800",
@@ -88,6 +91,8 @@ export default function AdminVariantsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [productFilter, setProductFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const debouncedSearch = useDebouncedValue(searchTerm, 400);
   const [selectedVariants, setSelectedVariants] = useState<string[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
@@ -141,13 +146,14 @@ export default function AdminVariantsPage() {
   // Computed values
   const filteredVariants = useMemo(() => {
     if (!allVariants) return [];
-
+    const search = debouncedSearch.toLowerCase();
     const filtered = allVariants.filter((variant) => {
       const matchesSearch =
-        variant.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        variant.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        variant.size?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        variant.color?.toLowerCase().includes(searchTerm.toLowerCase());
+        !search ||
+        variant.sku?.toLowerCase().includes(search) ||
+        variant.name?.toLowerCase().includes(search) ||
+        variant.size?.toLowerCase().includes(search) ||
+        variant.color?.toLowerCase().includes(search);
 
       const matchesStatus =
         statusFilter === "all" ||
@@ -161,7 +167,19 @@ export default function AdminVariantsPage() {
     });
 
     return sortAdminVariantRows(filtered);
-  }, [allVariants, searchTerm, statusFilter, productFilter]);
+  }, [allVariants, debouncedSearch, statusFilter, productFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredVariants.length / VARIANTS_PER_PAGE));
+  const paginatedVariants = filteredVariants.slice((page - 1) * VARIANTS_PER_PAGE, page * VARIANTS_PER_PAGE);
+
+  const hasActiveFilters = !!searchTerm || statusFilter !== "all" || productFilter !== "all";
+
+  const resetFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setProductFilter("all");
+    setPage(1);
+  };
 
   // Helper functions
   const formatDate = (dateString: string) => {
@@ -187,7 +205,7 @@ export default function AdminVariantsPage() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedVariants(filteredVariants.map((v) => v.id));
+      setSelectedVariants(paginatedVariants.map((v) => v.id));
     } else {
       setSelectedVariants([]);
     }
@@ -533,12 +551,12 @@ export default function AdminVariantsPage() {
                 <Input
                   placeholder="Search variants..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                   className="pl-10"
                 />
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -548,7 +566,12 @@ export default function AdminVariantsPage() {
                 <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
-            <ProductCombobox value={productFilter} onChange={setProductFilter} />
+            <ProductCombobox value={productFilter} onChange={(v) => { setProductFilter(v); setPage(1); }} />
+            {hasActiveFilters && (
+              <Button variant="default" onClick={resetFilters}>
+                Clear
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -573,8 +596,8 @@ export default function AdminVariantsPage() {
                   <TableHead className="w-[50px]">
                     <Checkbox
                       checked={
-                        selectedVariants.length === filteredVariants.length &&
-                        filteredVariants.length > 0
+                        paginatedVariants.length > 0 &&
+                        paginatedVariants.every((v) => selectedVariants.includes(v.id))
                       }
                       onCheckedChange={handleSelectAll}
                     />
@@ -590,7 +613,7 @@ export default function AdminVariantsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredVariants.length === 0 ? (
+                {paginatedVariants.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8">
                       <div className="flex flex-col items-center gap-2">
@@ -602,7 +625,7 @@ export default function AdminVariantsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredVariants.map((variant) => {
+                  paginatedVariants.map((variant) => {
                     const isSelected = selectedVariants.includes(variant.id);
                     return (
                       <TableRow key={variant.id}>
@@ -711,6 +734,21 @@ export default function AdminVariantsPage() {
               </TableBody>
             </Table>
           </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4">
+              <p className="text-sm text-muted-foreground">
+                Page {page} of {totalPages}
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>
+                  Previous
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
