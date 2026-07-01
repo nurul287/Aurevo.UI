@@ -40,10 +40,10 @@ import {
   useBulkDeleteImages,
   useCreateProductImage,
   useDeleteProductImage,
-  useProducts,
   useProductVariants,
   useUpdateProductImage,
 } from "@/services/product";
+import { ProductCombobox } from "@/components/admin/product-combobox";
 import { Product, ProductImage, ProductVariant } from "@/services/types";
 import {
   AlertTriangle,
@@ -94,11 +94,7 @@ export default function AdminImagesPage() {
   });
 
   // Hooks
-  const { data: productsResponse, isLoading: productsLoading } = useProducts();
   const { data: allImages, isLoading: imagesLoading } = useAllImages();
-
-  // Extract products from paginated response
-  const products = productsResponse?.data || [];
 
   // Get variants for the selected product
   const { data: productVariants, isLoading: variantsLoading } =
@@ -254,7 +250,7 @@ export default function AdminImagesPage() {
     });
   };
 
-  if (productsLoading || imagesLoading) {
+  if (imagesLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -288,7 +284,6 @@ export default function AdminImagesPage() {
           )}
           <Button
             onClick={() => setIsBulkUploadDialogOpen(true)}
-            disabled={products.length === 0}
           >
             <CloudUpload className="mr-2 h-4 w-4" />
             Bulk Upload
@@ -312,21 +307,13 @@ export default function AdminImagesPage() {
                   <Label htmlFor="product_id" className="text-right">
                     Product *
                   </Label>
-                  <Select
-                    value={formData.product_id}
-                    onValueChange={handleProductChange}
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select a product" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((product: any) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="col-span-3">
+                    <ProductCombobox
+                      value={formData.product_id || "all"}
+                      onChange={(v) => handleProductChange(v === "all" ? "" : v)}
+                      className="w-full"
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="variant_id" className="text-right">
@@ -467,19 +454,10 @@ export default function AdminImagesPage() {
                 />
               </div>
             </div>
-            <Select value={productFilter} onValueChange={setProductFilter}>
-              <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Product" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Products</SelectItem>
-                {products?.map((product: any) => (
-                  <SelectItem key={product.id} value={product.id}>
-                    {product.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ProductCombobox
+              value={productFilter}
+              onChange={setProductFilter}
+            />
           </div>
         </CardContent>
       </Card>
@@ -637,9 +615,7 @@ export default function AdminImagesPage() {
                   id="edit-product"
                   value={
                     editingImage
-                      ? products.find(
-                          (p: any) => p.id === editingImage.product_id
-                        )?.name || "Unknown Product"
+                      ? (editingImage as ProductImage & { product?: Product }).product?.name || "Unknown Product"
                       : ""
                   }
                   disabled
@@ -811,10 +787,7 @@ export default function AdminImagesPage() {
       <BulkImageUploadDialog
         open={isBulkUploadDialogOpen}
         onOpenChange={setIsBulkUploadDialogOpen}
-        products={products}
-        defaultProductId={
-          productFilter !== "all" ? productFilter : undefined
-        }
+        defaultProductId={productFilter !== "all" ? productFilter : undefined}
       />
     </div>
   );
