@@ -1,28 +1,35 @@
 import { api, apiFetchList } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
-import { Order, OrderItem, PaginatedResponse, PaginationParams, Payment } from "../types";
+import { Order, OrderItem, PaginatedResponse, Payment } from "../types";
+
+export interface AdminOrdersParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  paymentStatus?: string;
+}
 
 export const orderQueryKeys = {
-  orders: (params: PaginationParams) => ["orders", "list", params] as const,
+  orders: (params: AdminOrdersParams) => ["orders", "list", params] as const,
   order: (id: string) => ["orders", "detail", id] as const,
   orderItems: (orderId: string) => ["orders", "items", orderId] as const,
   orderPayments: (orderId: string) => ["orders", "payments", orderId] as const,
-  ordersByStatus: (status: string, params: PaginationParams) =>
-    ["orders", "status", status, params] as const,
-  ordersByUser: (userId: string, params: PaginationParams) =>
-    ["orders", "user", userId, params] as const,
-  searchOrders: (query: string, params: PaginationParams) =>
-    ["orders", "search", query, params] as const,
 } as const;
 
-export function useOrders(params: PaginationParams = {}) {
-  const { page = 1, limit = 20 } = params;
+export function useOrders(params: AdminOrdersParams = {}) {
+  const { page = 1, limit = 20, search, status, paymentStatus } = params;
+  const qs = new URLSearchParams();
+  qs.set("page", String(page));
+  qs.set("limit", String(limit));
+  if (search) qs.set("search", search);
+  if (status && status !== "all") qs.set("status", status);
+  if (paymentStatus && paymentStatus !== "all") qs.set("paymentStatus", paymentStatus);
+
   return useQuery({
     queryKey: orderQueryKeys.orders(params),
     queryFn: async (): Promise<PaginatedResponse<Order>> => {
-      const { data, pagination } = await apiFetchList<Order>(
-        `/orders?page=${page}&limit=${limit}`
-      );
+      const { data, pagination } = await apiFetchList<Order>(`/orders?${qs.toString()}`);
       return {
         data,
         count: pagination.total,
@@ -31,7 +38,7 @@ export function useOrders(params: PaginationParams = {}) {
         totalPages: pagination.totalPages,
       };
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
   });
 }
 
@@ -76,47 +83,6 @@ export function useOrderPayments(orderId: string) {
   });
 }
 
-export function useOrdersByStatus(status: string, params: PaginationParams = {}) {
-  const { page = 1, limit = 20 } = params;
-  return useQuery({
-    queryKey: orderQueryKeys.ordersByStatus(status, params),
-    queryFn: async (): Promise<PaginatedResponse<Order>> => {
-      const { data, pagination } = await apiFetchList<Order>(
-        `/orders?status=${status}&page=${page}&limit=${limit}`
-      );
-      return {
-        data,
-        count: pagination.total,
-        page: pagination.page,
-        limit: pagination.limit,
-        totalPages: pagination.totalPages,
-      };
-    },
-    enabled: !!status,
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-export function useSearchOrders(query: string, params: PaginationParams = {}) {
-  const { page = 1, limit = 20 } = params;
-  return useQuery({
-    queryKey: orderQueryKeys.searchOrders(query, params),
-    queryFn: async (): Promise<PaginatedResponse<Order>> => {
-      const { data, pagination } = await apiFetchList<Order>(
-        `/orders?search=${encodeURIComponent(query)}&page=${page}&limit=${limit}`
-      );
-      return {
-        data,
-        count: pagination.total,
-        page: pagination.page,
-        limit: pagination.limit,
-        totalPages: pagination.totalPages,
-      };
-    },
-    enabled: !!query && query.length > 2,
-    staleTime: 5 * 60 * 1000,
-  });
-}
 
 export function useFetchOrderWithGuestToken(orderId: string, guestToken?: string) {
   return useQuery({
@@ -133,18 +99,22 @@ export function useFetchOrderWithGuestToken(orderId: string, guestToken?: string
   });
 }
 
+export interface OrderStats {
+  totalOrders: number;
+  totalRevenue: number;
+  pendingOrders: number;
+  confirmedOrders: number;
+  processingOrders: number;
+  shippedOrders: number;
+  deliveredOrders: number;
+  cancelledOrders: number;
+  refundedOrders: number;
+}
+
 export function useOrderStats() {
   return useQuery({
     queryKey: ["orders", "stats"],
-    queryFn: () =>
-      api.get<{
-        totalOrders: number;
-        pendingOrders: number;
-        processingOrders: number;
-        shippedOrders: number;
-        deliveredOrders: number;
-        totalRevenue: number;
-      }>("/orders/stats"),
+    queryFn: () => api.get<OrderStats>("/orders/stats"),
     staleTime: 2 * 60 * 1000,
   });
 }
