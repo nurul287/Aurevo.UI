@@ -1,5 +1,5 @@
 import { useToast } from "@/hooks/use-toast";
-import { api, apiFetch } from "@/lib/api";
+import { api } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { ProductGender } from "@/services/types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
