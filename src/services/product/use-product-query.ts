@@ -162,7 +162,7 @@ export function useAdminProducts(params: AdminProductsParams & { enabled?: boole
         totalPages: pagination.totalPages,
       };
     },
-    staleTime: 0,
+    staleTime: 2 * 60 * 1000,
   });
 }
 
