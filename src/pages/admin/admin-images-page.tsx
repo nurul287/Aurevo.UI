@@ -377,7 +377,7 @@ export default function AdminImagesPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by alt text or URL..."
+                  placeholder="Search by product name, alt text or URL..."
                   value={searchInput}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   className="pl-10"
