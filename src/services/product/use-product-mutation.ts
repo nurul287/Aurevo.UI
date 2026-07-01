@@ -1,6 +1,5 @@
 import { useToast } from "@/hooks/use-toast";
-import { api } from "@/lib/api";
-import { supabase } from "@/lib/supabase";
+import { api, apiFetchForm } from "@/lib/api";
 import { ProductGender } from "@/services/types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { productQueryKeys } from "./use-product-query";
@@ -97,7 +96,7 @@ export interface UpdateProductVariantParams {
 export interface CreateProductImageParams {
   product_id: string;
   variant_id?: string;
-  url: string;
+  file: File;
   alt_text?: string;
   sort_order?: number;
   is_primary?: boolean;
@@ -467,14 +466,15 @@ export function useCreateProductImage() {
   const { showSuccess, showError } = useToast();
 
   return useMutation({
-    mutationFn: (params: CreateProductImageParams) =>
-      api.post(`/products/${params.product_id}/images`, {
-        variantId: params.variant_id,
-        url: params.url,
-        altText: params.alt_text,
-        sortOrder: params.sort_order,
-        isPrimary: params.is_primary,
-      }),
+    mutationFn: (params: CreateProductImageParams) => {
+      const fd = new FormData();
+      fd.append("image", params.file);
+      if (params.variant_id) fd.append("variantId", params.variant_id);
+      if (params.alt_text) fd.append("altText", params.alt_text);
+      if (params.sort_order !== undefined) fd.append("sortOrder", String(params.sort_order));
+      if (params.is_primary !== undefined) fd.append("isPrimary", String(params.is_primary));
+      return apiFetchForm(`/products/${params.product_id}/images`, { formData: fd });
+    },
     onSuccess: (_data, params) => {
       showSuccess("Image Created", "Product image has been successfully created");
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -555,11 +555,8 @@ export function useBulkDeleteImages() {
   });
 }
 
-// ── Bulk image upload (Storage direct → keep on Supabase) ─────────────────
-// File upload to Supabase Storage stays on the client SDK — the BE doesn't
-// expose a file upload endpoint. Only the DB record creation moves to BE.
+// ── Bulk image upload ─────────────────────────────────────────────────────
 
-const PRODUCT_IMAGES_BUCKET = "product-images";
 const UPLOAD_CONCURRENCY = 4;
 
 async function runWithConcurrency<T, R>(
@@ -589,15 +586,7 @@ async function runWithConcurrency<T, R>(
   return results;
 }
 
-const slugifyForStorage = (value: string) =>
-  value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9.\-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
-
-const humanizeStorageError = (message: string): string => {
+const humanizeUploadError = (message: string): string => {
   const lower = message.toLowerCase();
   if (lower.includes("payload too large") || lower.includes("exceeded"))
     return "File is larger than the 5 MB limit";
@@ -651,62 +640,23 @@ export function useBulkUploadProductImages() {
           try {
             onProgress?.(clientId, { status: "uploading", progress: 0.1 });
 
-            const ext = file.name.includes(".")
-              ? file.name.slice(file.name.lastIndexOf(".") + 1).toLowerCase()
-              : "jpg";
-            const baseName = slugifyForStorage(
-              file.name.replace(/\.[^.]+$/, "") || "image"
-            );
-            const stamp = Date.now();
-            const path = `products/${product_id}/${stamp}-${index}-${baseName}.${ext}`;
+            const fd = new FormData();
+            fd.append("image", file);
+            if (singleVariantId) fd.append("variantId", singleVariantId);
+            if (alt_text) fd.append("altText", alt_text);
+            fd.append("sortOrder", String(sort_order ?? index));
+            fd.append("isPrimary", String(is_primary || false));
 
-            const { error: uploadError } = await supabase.storage
-              .from(PRODUCT_IMAGES_BUCKET)
-              .upload(path, file, {
-                cacheControl: "3600",
-                upsert: false,
-                contentType: file.type || undefined,
-              });
-
-            if (uploadError) {
-              onProgress?.(clientId, {
-                status: "error",
-                progress: 0,
-                error: humanizeStorageError(uploadError.message),
-              });
-              throw uploadError;
-            }
-
-            if (signal?.aborted) {
-              await supabase.storage.from(PRODUCT_IMAGES_BUCKET).remove([path]).catch(() => {});
-              onProgress?.(clientId, { status: "cancelled", progress: 0, error: "Upload cancelled" });
-              throw new DOMException("Upload cancelled", "AbortError");
-            }
-
-            onProgress?.(clientId, { status: "saving", progress: 0.7 });
-
-            const { data: publicUrlData } = supabase.storage
-              .from(PRODUCT_IMAGES_BUCKET)
-              .getPublicUrl(path);
-
-            // Create DB record via BE
-            await api.post(`/products/${product_id}/images`, {
-              variantId: singleVariantId,
-              url: publicUrlData.publicUrl,
-              altText: alt_text || null,
-              sortOrder: sort_order ?? index,
-              isPrimary: is_primary || false,
-            });
+            await apiFetchForm(`/products/${product_id}/images`, { formData: fd });
 
             onProgress?.(clientId, { status: "done", progress: 1 });
-            return publicUrlData.publicUrl;
           } catch (error) {
             const message = error instanceof Error ? error.message : "Upload failed";
             if (!(error instanceof DOMException && error.name === "AbortError")) {
               onProgress?.(clientId, {
                 status: "error",
                 progress: 0,
-                error: humanizeStorageError(message),
+                error: humanizeUploadError(message),
               });
             }
             throw error;

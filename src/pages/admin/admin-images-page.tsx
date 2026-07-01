@@ -64,7 +64,7 @@ import BulkImageUploadDialog from "@/components/admin/bulk-image-upload-dialog";
 interface ImageFormData {
   product_id: string;
   variant_id: string;
-  url: string;
+  file: File | null;
   alt_text: string;
   sort_order: string;
   is_primary: boolean;
@@ -87,7 +87,7 @@ export default function AdminImagesPage() {
   const [formData, setFormData] = useState<ImageFormData>({
     product_id: "",
     variant_id: "",
-    url: "",
+    file: null,
     alt_text: "",
     sort_order: "0",
     is_primary: false,
@@ -175,7 +175,7 @@ export default function AdminImagesPage() {
     setFormData({
       product_id: image.product_id,
       variant_id: image.variant_id || "",
-      url: image.url,
+      file: null,
       alt_text: image.alt_text || "",
       sort_order: image.sort_order?.toString() || "0",
       is_primary: image.is_primary || false,
@@ -209,7 +209,6 @@ export default function AdminImagesPage() {
       // Update existing image
       updateImageMutation.mutate({
         id: editingImage.id,
-        url: formData.url,
         alt_text: formData.alt_text,
         sort_order: parseInt(formData.sort_order),
         is_primary: formData.is_primary,
@@ -223,15 +222,15 @@ export default function AdminImagesPage() {
         return;
       }
 
-      if (!formData.variant_id) {
-        alert("Please select a variant first.");
+      if (!formData.file) {
+        alert("Please select an image file.");
         return;
       }
 
       createImageMutation.mutate({
         product_id: formData.product_id,
-        variant_id: formData.variant_id,
-        url: formData.url,
+        variant_id: formData.variant_id || undefined,
+        file: formData.file,
         alt_text: formData.alt_text,
         sort_order: parseInt(formData.sort_order),
         is_primary: formData.is_primary,
@@ -243,7 +242,7 @@ export default function AdminImagesPage() {
     setFormData({
       product_id: "",
       variant_id: "",
-      url: "",
+      file: null,
       alt_text: "",
       sort_order: "0",
       is_primary: false,
@@ -350,16 +349,16 @@ export default function AdminImagesPage() {
                   </Select>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="url" className="text-right">
-                    Image URL *
+                  <Label htmlFor="image_file" className="text-right">
+                    Image File *
                   </Label>
                   <Input
-                    id="url"
+                    id="image_file"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
                     className="col-span-3"
-                    placeholder="https://example.com/image.jpg"
-                    value={formData.url}
                     onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, url: e.target.value }))
+                      setFormData((prev) => ({ ...prev, file: e.target.files?.[0] ?? null }))
                     }
                   />
                 </div>
@@ -647,20 +646,6 @@ export default function AdminImagesPage() {
                   className="bg-muted"
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-url" className="text-right">
-                Image URL *
-              </Label>
-              <Input
-                id="edit-url"
-                className="col-span-3"
-                placeholder="https://example.com/image.jpg"
-                value={formData.url}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, url: e.target.value }))
-                }
-              />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-alt_text" className="text-right">
