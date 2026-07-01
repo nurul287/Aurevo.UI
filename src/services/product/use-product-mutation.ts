@@ -557,58 +557,6 @@ export function useBulkDeleteImages() {
 
 // ── Bulk image upload ─────────────────────────────────────────────────────
 
-const UPLOAD_CONCURRENCY = 4;
-
-async function runWithConcurrency<T, R>(
-  items: T[],
-  limit: number,
-  task: (item: T, index: number) => Promise<R>
-): Promise<PromiseSettledResult<R>[]> {
-  const results: PromiseSettledResult<R>[] = new Array(items.length);
-  let cursor = 0;
-  const workers = Array.from(
-    { length: Math.min(limit, items.length) },
-    async () => {
-      while (cursor < items.length) {
-        const myIndex = cursor++;
-        try {
-          results[myIndex] = {
-            status: "fulfilled",
-            value: await task(items[myIndex], myIndex),
-          };
-        } catch (reason) {
-          results[myIndex] = { status: "rejected", reason };
-        }
-      }
-    }
-  );
-  await Promise.all(workers);
-  return results;
-}
-
-const humanizeUploadError = (message: string): string => {
-  const lower = message.toLowerCase();
-  if (lower.includes("payload too large") || lower.includes("exceeded"))
-    return "File is larger than the 5 MB limit";
-  if (lower.includes("mime type") || lower.includes("not allowed"))
-    return "File type not allowed (use JPG, PNG, WebP, GIF, or AVIF)";
-  if (lower.includes("duplicate") || lower.includes("already exists"))
-    return "A file with this name was uploaded a moment ago";
-  if (lower.includes("bucket not found"))
-    return "Storage bucket is missing — contact support";
-  if (lower.includes("jwt") || lower.includes("unauthorized"))
-    return "You need to sign in again to upload";
-  if (
-    lower.includes("failed to fetch") ||
-    lower.includes("network") ||
-    lower.includes("err_internet_disconnected")
-  )
-    return "Network problem — check your internet connection and try again";
-  if (lower.includes("timeout") || lower.includes("timed out"))
-    return "Upload timed out — try again on a faster connection";
-  return message;
-};
-
 export function useBulkUploadProductImages() {
   const queryClient = useQueryClient();
   const { showSuccess, showError } = useToast();
@@ -619,60 +567,39 @@ export function useBulkUploadProductImages() {
       variant_ids = [],
       items,
       onProgress,
-      signal,
     }: BulkUploadProductImagesParams) => {
       if (!items.length) throw new Error("No files selected");
       if (!product_id) throw new Error("Product is required");
 
       const singleVariantId = variant_ids.length === 1 ? variant_ids[0] : null;
 
-      const results = await runWithConcurrency(
-        items,
-        UPLOAD_CONCURRENCY,
-        async (item, index) => {
-          const { clientId, file, alt_text, is_primary, sort_order } = item;
-
-          if (signal?.aborted) {
-            onProgress?.(clientId, { status: "cancelled", progress: 0, error: "Upload cancelled" });
-            throw new DOMException("Upload cancelled", "AbortError");
-          }
-
-          try {
-            onProgress?.(clientId, { status: "uploading", progress: 0.1 });
-
-            const fd = new FormData();
-            fd.append("image", file);
-            if (singleVariantId) fd.append("variantId", singleVariantId);
-            if (alt_text) fd.append("altText", alt_text);
-            fd.append("sortOrder", String(sort_order ?? index));
-            fd.append("isPrimary", String(is_primary || false));
-
-            await apiFetchForm(`/products/${product_id}/images`, { formData: fd });
-
-            onProgress?.(clientId, { status: "done", progress: 1 });
-          } catch (error) {
-            const message = error instanceof Error ? error.message : "Upload failed";
-            if (!(error instanceof DOMException && error.name === "AbortError")) {
-              onProgress?.(clientId, {
-                status: "error",
-                progress: 0,
-                error: humanizeUploadError(message),
-              });
-            }
-            throw error;
-          }
-        }
+      // Mark all as uploading
+      items.forEach(({ clientId }) =>
+        onProgress?.(clientId, { status: "uploading", progress: 0.1 })
       );
 
-      const succeeded = results.filter((r) => r.status === "fulfilled").length;
-      const cancelled = results.filter(
-        (r) =>
-          r.status === "rejected" &&
-          r.reason instanceof DOMException &&
-          r.reason.name === "AbortError"
-      ).length;
-      const failed = results.length - succeeded - cancelled;
-      return { succeeded, failed, cancelled, total: results.length };
+      const fd = new FormData();
+      items.forEach(({ file }) => fd.append("images", file));
+      if (singleVariantId) fd.append("variantId", singleVariantId);
+      fd.append(
+        "metadata",
+        JSON.stringify(
+          items.map(({ alt_text, is_primary, sort_order }, index) => ({
+            altText: alt_text || undefined,
+            isPrimary: is_primary || false,
+            sortOrder: sort_order ?? index,
+          }))
+        )
+      );
+
+      await apiFetchForm(`/products/${product_id}/images/bulk`, { formData: fd });
+
+      // Mark all as done
+      items.forEach(({ clientId }) =>
+        onProgress?.(clientId, { status: "done", progress: 1 })
+      );
+
+      return { succeeded: items.length, failed: 0, cancelled: 0, total: items.length };
     },
     onSuccess: ({ succeeded, failed, cancelled, total }, { product_id }) => {
       if (succeeded > 0) {
