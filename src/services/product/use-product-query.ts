@@ -11,7 +11,6 @@ import {
   PaginatedResponse,
   PaginationParams,
   Product,
-  ProductImage,
   ProductVariant,
   ProductWithVariants,
   PublicProductWithVariants,
@@ -371,27 +370,40 @@ export function useAdminVariants(params: AdminVariantsParams & { enabled?: boole
   });
 }
 
-export function useAllImages() {
+export interface AdminImageRow {
+  id: string;
+  product_id: string;
+  variant_id?: string;
+  url: string;
+  alt_text?: string;
+  sort_order?: number;
+  is_primary?: boolean;
+  created_at?: string;
+  product_name?: string;
+  variant_name?: string;
+  variant_color?: string;
+  variant_size?: string;
+}
+
+export interface AdminImagesParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  productId?: string;
+}
+
+export function useAdminImages(params: AdminImagesParams = {}) {
+  const { page = 1, limit = 20, search, productId } = params;
+  const qs = new URLSearchParams();
+  qs.set("page", String(page));
+  qs.set("limit", String(limit));
+  if (search) qs.set("search", search);
+  if (productId && productId !== "all") qs.set("productId", productId);
+
   return useQuery({
-    queryKey: ["products", "images", "all"],
-    queryFn: async (): Promise<
-      (ProductImage & { product?: Product; variant?: ProductVariant })[]
-    > => {
-      const { data } = await apiFetchList<
-        ProductImage & { product?: Product; variant?: ProductVariant }
-      >("/products?limit=1000");
-      const allProducts = data as unknown as (Product & {
-        images?: (ProductImage & { variant?: ProductVariant })[];
-      })[];
-      const images: (ProductImage & { product?: Product; variant?: ProductVariant })[] = [];
-      for (const p of allProducts) {
-        for (const img of p.images ?? []) {
-          images.push({ ...img, product: p });
-        }
-      }
-      return images;
-    },
-    staleTime: 15 * 60 * 1000,
+    queryKey: ["admin", "images", { page, limit, search, productId }],
+    queryFn: () => apiFetchList<AdminImageRow>(`/admin/images?${qs.toString()}`),
+    staleTime: 30 * 1000,
   });
 }
 
