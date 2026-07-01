@@ -174,7 +174,7 @@ export default function AdminImagesPage() {
 
   const handleConfirmDelete = () => {
     if (!deletingImage) return;
-    deleteImageMutation.mutate(deletingImage.id, {
+    deleteImageMutation.mutate({ imageId: deletingImage.id, productId: deletingImage.product_id }, {
       onSuccess: () => {
         setIsDeleteDialogOpen(false);
         setDeletingImage(null);
@@ -184,7 +184,13 @@ export default function AdminImagesPage() {
 
   const handleBulkAction = () => {
     if (!selectedImages.length) return;
-    bulkDeleteImagesMutation.mutate(selectedImages, {
+    const deleteItems = selectedImages
+      .map((id) => {
+        const img = images.find((i) => i.id === id);
+        return img ? { imageId: id, productId: img.product_id } : null;
+      })
+      .filter(Boolean) as { imageId: string; productId: string }[];
+    bulkDeleteImagesMutation.mutate(deleteItems, {
       onSuccess: () => {
         setSelectedImages([]);
         setIsBulkActionDialogOpen(false);

@@ -520,13 +520,14 @@ export function useDeleteProductImage() {
   const { showSuccess, showError } = useToast();
 
   return useMutation({
-    mutationFn: async (imageId: string) => {
-      await api.delete(`/products/unknown/images/${imageId}`);
+    mutationFn: async ({ imageId, productId }: { imageId: string; productId: string }) => {
+      await api.delete(`/products/${productId}/images/${imageId}`);
       return imageId;
     },
     onSuccess: (imageId) => {
       showSuccess("Image Deleted", "Product image has been successfully deleted");
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "images"] });
       queryClient.removeQueries({ queryKey: productQueryKeys.productImage(imageId) });
     },
     onError: (error: Error) => {
@@ -540,13 +541,14 @@ export function useBulkDeleteImages() {
   const { showSuccess, showError } = useToast();
 
   return useMutation({
-    mutationFn: (imageIds: string[]) =>
-      Promise.all(imageIds.map((id) => api.delete(`/products/unknown/images/${id}`))),
-    onSuccess: (_, imageIds) => {
-      showSuccess("Images Deleted", `${imageIds.length} images have been successfully deleted`);
+    mutationFn: (items: { imageId: string; productId: string }[]) =>
+      Promise.all(items.map(({ imageId, productId }) => api.delete(`/products/${productId}/images/${imageId}`))),
+    onSuccess: (_, items) => {
+      showSuccess("Images Deleted", `${items.length} images have been successfully deleted`);
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      imageIds.forEach((id) => {
-        queryClient.removeQueries({ queryKey: productQueryKeys.productImage(id) });
+      queryClient.invalidateQueries({ queryKey: ["admin", "images"] });
+      items.forEach(({ imageId }) => {
+        queryClient.removeQueries({ queryKey: productQueryKeys.productImage(imageId) });
       });
     },
     onError: (error: Error) => {
