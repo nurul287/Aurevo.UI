@@ -68,6 +68,7 @@ import {
   Plus,
   Search,
   Trash2,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -824,8 +825,9 @@ export default function AdminProductsPage() {
               </SelectContent>
             </Select>
             {hasActiveFilters && (
-              <Button variant="default" onClick={resetFilters}>
-                Clear
+              <Button variant="ghost" onClick={resetFilters}>
+                <X className="h-4 w-4 mr-1" />
+                Clear filters
               </Button>
             )}
           </div>
