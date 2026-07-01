@@ -478,6 +478,7 @@ export function useCreateProductImage() {
     onSuccess: (_data, params) => {
       showSuccess("Image Created", "Product image has been successfully created");
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "images"] });
       queryClient.invalidateQueries({
         queryKey: productQueryKeys.productImages(params.product_id),
       });
@@ -494,7 +495,8 @@ export function useUpdateProductImage() {
 
   return useMutation({
     mutationFn: (params: UpdateProductImageParams) => {
-      const productId = params.product_id ?? "unknown";
+      const productId = params.product_id;
+      if (!productId) throw new Error("productId is required to update an image");
       return api.patch<{ product_id: string }>(`/products/${productId}/images/${params.id}`, {
         url: params.url,
         altText: params.alt_text,
@@ -505,6 +507,7 @@ export function useUpdateProductImage() {
     onSuccess: (data: { product_id: string }) => {
       showSuccess("Image Updated", "Product image has been successfully updated");
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "images"] });
       queryClient.invalidateQueries({
         queryKey: productQueryKeys.productImages(data.product_id),
       });

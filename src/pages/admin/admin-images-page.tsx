@@ -203,6 +203,7 @@ export default function AdminImagesPage() {
       updateImageMutation.mutate(
         {
           id: editingImage.id,
+          product_id: editingImage.product_id,
           alt_text: formData.alt_text,
           sort_order: parseInt(formData.sort_order),
           is_primary: formData.is_primary,
@@ -263,13 +264,13 @@ export default function AdminImagesPage() {
             <DialogTrigger asChild>
               <Button variant="outline">
                 <Plus className="mr-2 h-4 w-4" />
-                Add Image
+                Upload Image
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
-                <DialogTitle>Add New Image</DialogTitle>
-                <DialogDescription>Add a new image for a specific product variant.</DialogDescription>
+                <DialogTitle>Upload Image</DialogTitle>
+                <DialogDescription>Upload a new image for a product or variant.</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -354,7 +355,7 @@ export default function AdminImagesPage() {
               </div>
               <DialogFooter>
                 <Button onClick={handleSubmitImage} disabled={createImageMutation.isPending}>
-                  {createImageMutation.isPending ? "Creating..." : "Create Image"}
+                  {createImageMutation.isPending ? "Uploading..." : "Upload"}
                 </Button>
               </DialogFooter>
             </DialogContent>
