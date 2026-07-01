@@ -46,7 +46,6 @@ import {
 import {
   AlertTriangle,
   Download,
-  Filter,
   Package,
   Plus,
   RotateCcw,
@@ -54,6 +53,7 @@ import {
   Trash2,
   TrendingDown,
   TrendingUp,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -475,10 +475,12 @@ export default function AdminInventoryPage() {
                 className="pl-10"
               />
             </div>
-            <Button variant="outline" size="sm">
-              <Filter className="h-4 w-4 mr-2" />
-              Filter
-            </Button>
+            {searchTerm && (
+              <Button variant="ghost" size="sm" onClick={() => { setSearchTerm(""); setPage(1); }}>
+                <X className="h-4 w-4 mr-1" />
+                Clear filters
+              </Button>
+            )}
           </div>
 
           <Card>
@@ -669,6 +671,12 @@ export default function AdminInventoryPage() {
                 <SelectItem value="return">Return</SelectItem>
               </SelectContent>
             </Select>
+            {(searchTerm || selectedMovementType !== "all") && (
+              <Button variant="ghost" size="sm" onClick={() => { setSearchTerm(""); setSelectedMovementType("all"); }}>
+                <X className="h-4 w-4 mr-1" />
+                Clear filters
+              </Button>
+            )}
           </div>
 
           <Card>
