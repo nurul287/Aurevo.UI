@@ -174,6 +174,38 @@ export async function apiFetchList<T>(
   };
 }
 
+/**
+ * Fetch a binary response (e.g. a server-generated .xlsx export) and trigger
+ * a browser download. Filename is read from the server's Content-Disposition
+ * header — the server owns the naming, not the client.
+ */
+export async function apiDownloadFile(path: string): Promise<void> {
+  const token = await getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_URL}${path}`, { headers });
+
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw buildError(json as never, res.status);
+  }
+
+  const disposition = res.headers.get("Content-Disposition") ?? "";
+  const match = disposition.match(/filename="?([^"]+)"?/);
+  const filename = match?.[1] ?? "download";
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 /** Convenience wrappers */
 export const api = {
   get: <T>(path: string, opts?: Parameters<typeof apiFetch>[1]) =>

@@ -34,8 +34,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { formatPrice } from "@/lib/currency";
-import { apiFetchList } from "@/lib/api";
-import { exportRowsToXlsx } from "@/lib/export-xlsx";
+import { apiDownloadFile } from "@/lib/api";
 // Toast notifications are handled by the mutation hooks
 import {
   computeInventoryStats,
@@ -44,8 +43,6 @@ import {
   useInventoryLevels,
   useLowStockItems,
   useRestockInventory,
-  type InventoryRecord,
-  type InventoryMovement,
 } from "@/services/inventory";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -137,58 +134,21 @@ export default function AdminInventoryPage() {
   const handleExport = async () => {
     setIsExporting(true);
     try {
+      // BE owns the export: it queries the full filtered dataset (no page
+      // limit), builds the .xlsx, and names the file — this just tells it
+      // which tab and filters are active.
+      const q = new URLSearchParams();
       if (activeTab === "inventory") {
-        const q = new URLSearchParams({ limit: "10000" });
+        q.set("type", "levels");
         if (debouncedSearch) q.set("search", debouncedSearch);
-        const { data } = await apiFetchList<InventoryRecord>(`/inventory?${q.toString()}`);
-        exportRowsToXlsx("inventory-levels", "Inventory Levels", data.map((item) => ({
-          Product: item.product_variants.products.name,
-          Variant: item.product_variants.name,
-          SKU: item.product_variants.sku,
-          Stock: item.quantity,
-          Reserved: item.reserved_quantity,
-          Available: item.available_quantity,
-          Status:
-            item.quantity === 0
-              ? "Out of Stock"
-              : item.quantity <= item.product_variants.products.low_stock_threshold
-                ? "Low Stock"
-                : "In Stock",
-        })));
       } else if (activeTab === "low-stock") {
-        exportRowsToXlsx("low-stock-items", "Low Stock", (lowStockItems ?? []).map((item) => ({
-          Product: item.product_name,
-          Variant: item.variant_name,
-          "Current Stock": item.current_stock,
-          Threshold: item.low_stock_threshold,
-          "Reorder Point": item.reorder_point,
-          "Reorder Quantity": item.reorder_quantity,
-        })));
+        q.set("type", "low-stock");
       } else {
-        const q = new URLSearchParams({ limit: "10000" });
+        q.set("type", "movements");
         if (selectedMovementType !== "all") q.set("movementType", selectedMovementType);
-        const { data } = await apiFetchList<InventoryMovement>(`/inventory/movements?${q.toString()}`);
-        const rows = data.filter(
-          (movement) =>
-            movement.product_variants?.products?.name
-              ?.toLowerCase()
-              .includes(searchTerm.toLowerCase()) ||
-            movement.product_variants?.name
-              ?.toLowerCase()
-              .includes(searchTerm.toLowerCase())
-        );
-        exportRowsToXlsx("stock-movements", "Stock Movements", rows.map((movement) => ({
-          Date: new Date(movement.created_at).toLocaleString(),
-          Product: movement.product_variants?.products?.name ?? "",
-          Variant: movement.product_variants?.name ?? "",
-          Type: movement.movement_type,
-          Quantity: movement.quantity,
-          Previous: movement.previous_quantity,
-          New: movement.new_quantity,
-          Reference: movement.reference_number ?? "",
-          Notes: movement.notes ?? "",
-        })));
+        if (searchTerm) q.set("search", searchTerm);
       }
+      await apiDownloadFile(`/inventory/export?${q.toString()}`);
     } catch (error) {
       showError("Export failed", "Could not generate the export file. Please try again.");
     } finally {
