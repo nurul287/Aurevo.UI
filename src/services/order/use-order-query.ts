@@ -99,16 +99,19 @@ export function useFetchOrderWithGuestToken(orderId: string, guestToken?: string
   });
 }
 
+// NOTE: `api.get`/`apiFetch` converts every response key from camelCase to
+// snake_case (see src/lib/api.ts), so these fields must be declared in
+// snake_case to match the object actually returned at runtime.
 export interface OrderStats {
-  totalOrders: number;
-  totalRevenue: number;
-  pendingOrders: number;
-  confirmedOrders: number;
-  processingOrders: number;
-  shippedOrders: number;
-  deliveredOrders: number;
-  cancelledOrders: number;
-  refundedOrders: number;
+  total_orders: number;
+  total_revenue: number;
+  pending_orders: number;
+  confirmed_orders: number;
+  processing_orders: number;
+  shipped_orders: number;
+  delivered_orders: number;
+  cancelled_orders: number;
+  refunded_orders: number;
 }
 
 export function useOrderStats() {

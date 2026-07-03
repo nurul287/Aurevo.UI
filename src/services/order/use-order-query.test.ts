@@ -25,7 +25,7 @@ describe("useOrders", () => {
           data: [{ id: "o1", order_number: "ORD-1" }],
           meta: { pagination: { page: 1, limit: 20, total: 1, totalPages: 1 } },
         });
-      })
+      }),
     );
 
     const { result } = renderHookWithQueryClient(() => useOrders());
@@ -45,10 +45,12 @@ describe("useOrders", () => {
           data: [],
           meta: { pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } },
         });
-      })
+      }),
     );
 
-    const { result } = renderHookWithQueryClient(() => useOrders({ status: "all" }));
+    const { result } = renderHookWithQueryClient(() =>
+      useOrders({ status: "all" }),
+    );
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(receivedStatus).toBeNull();
   });
@@ -58,8 +60,11 @@ describe("useOrder", () => {
   it("fetches a single order by id", async () => {
     server.use(
       http.get(`${API_URL}/orders/o1`, () =>
-        HttpResponse.json({ success: true, data: { id: "o1", order_number: "ORD-1" } })
-      )
+        HttpResponse.json({
+          success: true,
+          data: { id: "o1", order_number: "ORD-1" },
+        }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useOrder("o1"));
@@ -90,16 +95,16 @@ describe("useOrderStats", () => {
             cancelledOrders: 1,
             refundedOrders: 0,
           },
-        })
-      )
+        }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useOrderStats());
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    // NOTE: apiFetch converts every response key from camelCase to snake_case
-    // (see src/lib/api.ts), so the runtime object actually carries
-    // `total_orders`, not the camelCase `totalOrders` the OrderStats type
-    // declares. This test documents the current (mismatched) behavior.
-    expect((result.current.data as unknown as { total_orders: number })?.total_orders).toBe(10);
+    // The BE returns camelCase; apiFetch converts every response key to
+    // snake_case (see src/lib/api.ts), so OrderStats is declared in
+    // snake_case to match what's actually available at runtime.
+    expect(result.current.data?.total_orders).toBe(10);
+    expect(result.current.data?.pending_orders).toBe(2);
   });
 });

@@ -411,7 +411,7 @@ export default function AdminOrdersPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalOrders}</div>
+              <div className="text-2xl font-bold">{stats.total_orders}</div>
             </CardContent>
           </Card>
           <Card>
@@ -421,7 +421,7 @@ export default function AdminOrdersPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.pendingOrders}</div>
+              <div className="text-2xl font-bold">{stats.pending_orders}</div>
             </CardContent>
           </Card>
           <Card>
@@ -431,7 +431,7 @@ export default function AdminOrdersPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.processingOrders}</div>
+              <div className="text-2xl font-bold">{stats.processing_orders}</div>
             </CardContent>
           </Card>
           <Card>
@@ -442,7 +442,7 @@ export default function AdminOrdersPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {formatCurrency(stats.totalRevenue)}
+                {formatCurrency(stats.total_revenue)}
               </div>
             </CardContent>
           </Card>
