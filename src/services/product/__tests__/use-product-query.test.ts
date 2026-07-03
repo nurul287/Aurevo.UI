@@ -5,7 +5,7 @@ import { renderHookWithQueryClient } from "@/test/test-utils";
 import { server } from "@/test/msw/server";
 import { createMockSupabaseClient } from "@/test/mocks/supabase";
 
-const API_URL = "http://localhost:3001/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 vi.mock("@/lib/supabase", () => ({
   supabase: createMockSupabaseClient(null),
@@ -26,8 +26,8 @@ describe("useProducts", () => {
           success: true,
           data: [{ id: "p1", name: "Air Runner", variants: [] }],
           meta: { pagination: { page: 1, limit: 10, total: 1, totalPages: 1 } },
-        })
-      )
+        }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useProducts());
@@ -51,8 +51,8 @@ describe("useProducts", () => {
             },
           ],
           meta: { pagination: { page: 1, limit: 10, total: 1, totalPages: 1 } },
-        })
-      )
+        }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useProducts());
@@ -69,9 +69,9 @@ describe("useProducts", () => {
       http.get(`${API_URL}/products`, () =>
         HttpResponse.json(
           { success: false, error: { message: "Server error" } },
-          { status: 500 }
-        )
-      )
+          { status: 500 },
+        ),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useProducts());
@@ -84,8 +84,11 @@ describe("useProduct", () => {
   it("returns the product for a valid id", async () => {
     server.use(
       http.get(`${API_URL}/products/p1`, () =>
-        HttpResponse.json({ success: true, data: { id: "p1", name: "Air Runner" } })
-      )
+        HttpResponse.json({
+          success: true,
+          data: { id: "p1", name: "Air Runner" },
+        }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useProduct("p1"));
@@ -97,10 +100,13 @@ describe("useProduct", () => {
     server.use(
       http.get(`${API_URL}/products/missing`, () =>
         HttpResponse.json(
-          { success: false, error: { code: "NOT_FOUND", message: "Not found" } },
-          { status: 404 }
-        )
-      )
+          {
+            success: false,
+            error: { code: "NOT_FOUND", message: "Not found" },
+          },
+          { status: 404 },
+        ),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useProduct("missing"));
@@ -121,9 +127,11 @@ describe("useCategories", () => {
         HttpResponse.json({
           success: true,
           data: [{ id: "c1", name: "Shoes" }],
-          meta: { pagination: { page: 1, limit: 100, total: 1, totalPages: 1 } },
-        })
-      )
+          meta: {
+            pagination: { page: 1, limit: 100, total: 1, totalPages: 1 },
+          },
+        }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useCategories());
@@ -139,9 +147,11 @@ describe("useBrands", () => {
         HttpResponse.json({
           success: true,
           data: [{ id: "b1", name: "Nike" }],
-          meta: { pagination: { page: 1, limit: 100, total: 1, totalPages: 1 } },
-        })
-      )
+          meta: {
+            pagination: { page: 1, limit: 100, total: 1, totalPages: 1 },
+          },
+        }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useBrands());

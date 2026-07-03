@@ -5,7 +5,7 @@ import { renderHookWithQueryClient } from "@/test/test-utils";
 import { server } from "@/test/msw/server";
 import { createMockSupabaseClient } from "@/test/mocks/supabase";
 
-const API_URL = "http://localhost:3001/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 vi.mock("@/lib/supabase", () => ({
   supabase: createMockSupabaseClient(null),

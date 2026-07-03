@@ -6,7 +6,7 @@ import { server } from "@/test/msw/server";
 import { createMockSupabaseClient } from "@/test/mocks/supabase";
 import { useToast } from "@/hooks/use-toast";
 
-const API_URL = "http://localhost:3001/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 vi.mock("@/lib/supabase", () => ({
   supabase: createMockSupabaseClient(null),
@@ -27,16 +27,20 @@ describe("useCreateProduct", () => {
   beforeEach(() => {
     showSuccess.mockClear();
     showError.mockClear();
-    mockUseToast.mockReturnValue({ showSuccess, showError } as unknown as ReturnType<
-      typeof useToast
-    >);
+    mockUseToast.mockReturnValue({
+      showSuccess,
+      showError,
+    } as unknown as ReturnType<typeof useToast>);
   });
 
   it("creates a product and shows a success toast", async () => {
     server.use(
       http.post(`${API_URL}/products`, () =>
-        HttpResponse.json({ success: true, data: { id: "p1", name: "Air Runner" } })
-      )
+        HttpResponse.json({
+          success: true,
+          data: { id: "p1", name: "Air Runner" },
+        }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useCreateProduct());
@@ -50,7 +54,7 @@ describe("useCreateProduct", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(showSuccess).toHaveBeenCalledWith(
       "Product Created",
-      "Product has been successfully created"
+      "Product has been successfully created",
     );
   });
 
@@ -59,9 +63,9 @@ describe("useCreateProduct", () => {
       http.post(`${API_URL}/products`, () =>
         HttpResponse.json(
           { success: false, error: { message: "Slug already exists" } },
-          { status: 422 }
-        )
-      )
+          { status: 422 },
+        ),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useCreateProduct());
@@ -73,7 +77,10 @@ describe("useCreateProduct", () => {
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(showError).toHaveBeenCalledWith("Failed to Create Product", "Slug already exists");
+    expect(showError).toHaveBeenCalledWith(
+      "Failed to Create Product",
+      "Slug already exists",
+    );
   });
 });
 
@@ -84,14 +91,18 @@ describe("useDeleteProduct", () => {
   beforeEach(() => {
     showSuccess.mockClear();
     showError.mockClear();
-    mockUseToast.mockReturnValue({ showSuccess, showError } as unknown as ReturnType<
-      typeof useToast
-    >);
+    mockUseToast.mockReturnValue({
+      showSuccess,
+      showError,
+    } as unknown as ReturnType<typeof useToast>);
   });
 
   it("deletes a product and shows a success toast", async () => {
     server.use(
-      http.delete(`${API_URL}/products/p1`, () => new HttpResponse(null, { status: 204 }))
+      http.delete(
+        `${API_URL}/products/p1`,
+        () => new HttpResponse(null, { status: 204 }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useDeleteProduct());
@@ -100,16 +111,21 @@ describe("useDeleteProduct", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(showSuccess).toHaveBeenCalledWith(
       "Product Deleted",
-      "Product has been successfully deleted"
+      "Product has been successfully deleted",
     );
   });
 
   it("removes the deleted product from the cache", async () => {
     server.use(
-      http.delete(`${API_URL}/products/p1`, () => new HttpResponse(null, { status: 204 }))
+      http.delete(
+        `${API_URL}/products/p1`,
+        () => new HttpResponse(null, { status: 204 }),
+      ),
     );
 
-    const { result, queryClient } = renderHookWithQueryClient(() => useDeleteProduct());
+    const { result, queryClient } = renderHookWithQueryClient(() =>
+      useDeleteProduct(),
+    );
     const removeSpy = vi.spyOn(queryClient, "removeQueries");
 
     result.current.mutate("p1");

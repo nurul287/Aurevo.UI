@@ -19,7 +19,9 @@ const mockUseCart = vi.mocked(useCart);
 const mockUseToast = vi.mocked(useToast);
 const mockUseGuestCart = vi.mocked(useGuestCart);
 const mockUseProduct = vi.mocked(useProduct);
-const mockUseVariantsAvailableQuantities = vi.mocked(useVariantsAvailableQuantities);
+const mockUseVariantsAvailableQuantities = vi.mocked(
+  useVariantsAvailableQuantities,
+);
 
 const CART_ITEM = {
   id: "item-1",
@@ -67,7 +69,7 @@ function renderPanel(cartItems: unknown[] = [CART_ITEM]) {
   const result = render(
     <MemoryRouter>
       <CartSidePanel />
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 
   return { ...result, removeItem, updateItemQuantity, addItem, closeCartPanel };

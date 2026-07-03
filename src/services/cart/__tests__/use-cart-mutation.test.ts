@@ -6,7 +6,7 @@ import { server } from "@/test/msw/server";
 import { createMockSupabaseClient } from "@/test/mocks/supabase";
 import { useToast } from "@/hooks/use-toast";
 
-const API_URL = "http://localhost:3001/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 vi.mock("@/lib/supabase", () => ({
   supabase: createMockSupabaseClient(null),
@@ -18,7 +18,11 @@ vi.mock("@/hooks/use-toast", () => ({
 
 const mockUseToast = vi.mocked(useToast);
 
-import { useAddToCart, useClearCart, useRemoveFromCart } from "../use-cart-mutation";
+import {
+  useAddToCart,
+  useClearCart,
+  useRemoveFromCart,
+} from "../use-cart-mutation";
 
 describe("cart mutations", () => {
   const showSuccess = vi.fn();
@@ -27,9 +31,10 @@ describe("cart mutations", () => {
   beforeEach(() => {
     showSuccess.mockClear();
     showError.mockClear();
-    mockUseToast.mockReturnValue({ showSuccess, showError } as unknown as ReturnType<
-      typeof useToast
-    >);
+    mockUseToast.mockReturnValue({
+      showSuccess,
+      showError,
+    } as unknown as ReturnType<typeof useToast>);
   });
 
   it("useAddToCart adds an item and shows a success toast with the product name", async () => {
@@ -38,8 +43,8 @@ describe("cart mutations", () => {
         HttpResponse.json({
           success: true,
           data: { id: "item-1", product: { name: "Air Runner" } },
-        })
-      )
+        }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useAddToCart());
@@ -53,15 +58,15 @@ describe("cart mutations", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(showSuccess).toHaveBeenCalledWith(
       "Added to cart!",
-      "Air Runner has been added to your cart"
+      "Air Runner has been added to your cart",
     );
   });
 
   it("useAddToCart suppresses the toast when suppressToast is true", async () => {
     server.use(
       http.post(`${API_URL}/cart/items`, () =>
-        HttpResponse.json({ success: true, data: { id: "item-1" } })
-      )
+        HttpResponse.json({ success: true, data: { id: "item-1" } }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useAddToCart());
@@ -81,21 +86,31 @@ describe("cart mutations", () => {
       http.post(`${API_URL}/cart/items`, () =>
         HttpResponse.json(
           { success: false, error: { message: "Insufficient stock" } },
-          { status: 422 }
-        )
-      )
+          { status: 422 },
+        ),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useAddToCart());
-    result.current.mutate({ sessionId: "guest-1", productId: "p1", variantId: "v1" });
+    result.current.mutate({
+      sessionId: "guest-1",
+      productId: "p1",
+      variantId: "v1",
+    });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(showError).toHaveBeenCalledWith("Failed to add to cart", "Insufficient stock");
+    expect(showError).toHaveBeenCalledWith(
+      "Failed to add to cart",
+      "Insufficient stock",
+    );
   });
 
   it("useRemoveFromCart removes an item without error", async () => {
     server.use(
-      http.delete(`${API_URL}/cart/items/item-1`, () => new HttpResponse(null, { status: 204 }))
+      http.delete(
+        `${API_URL}/cart/items/item-1`,
+        () => new HttpResponse(null, { status: 204 }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useRemoveFromCart());
@@ -105,7 +120,12 @@ describe("cart mutations", () => {
   });
 
   it("useClearCart clears the cart and shows a success toast", async () => {
-    server.use(http.delete(`${API_URL}/cart`, () => new HttpResponse(null, { status: 204 })));
+    server.use(
+      http.delete(
+        `${API_URL}/cart`,
+        () => new HttpResponse(null, { status: 204 }),
+      ),
+    );
 
     const { result } = renderHookWithQueryClient(() => useClearCart());
     result.current.mutate({ sessionId: "guest-1" });
@@ -113,7 +133,7 @@ describe("cart mutations", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(showSuccess).toHaveBeenCalledWith(
       "Cart cleared!",
-      "All items have been removed from your cart"
+      "All items have been removed from your cart",
     );
   });
 });

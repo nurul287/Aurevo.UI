@@ -12,7 +12,11 @@ vi.mock("@/contexts/guest-cart-context", () => ({ useGuestCart: vi.fn() }));
 vi.mock("@/hooks/use-cart", () => ({ useCart: vi.fn() }));
 vi.mock("@/services", () => ({
   useCategories: vi.fn(),
-  useSearchProducts: vi.fn(() => ({ data: undefined, isFetching: false, isError: false })),
+  useSearchProducts: vi.fn(() => ({
+    data: undefined,
+    isFetching: false,
+    isError: false,
+  })),
 }));
 // The real cart drawer is covered by its own test file — stub it here so
 // Layout's test doesn't need to re-mock its entire dependency tree.
@@ -33,7 +37,7 @@ function renderLayout(initialEntry = "/") {
           <Route index element={<div>Home Content</div>} />
         </Route>
       </Routes>
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 }
 
@@ -45,7 +49,9 @@ describe("Layout", () => {
     mockUseCategories.mockReturnValue({
       data: [{ id: "c1", name: "Sneakers", slug: "sneakers" }],
     } as unknown as ReturnType<typeof useCategories>);
-    mockUseCart.mockReturnValue({ itemCount: 0 } as unknown as ReturnType<typeof useCart>);
+    mockUseCart.mockReturnValue({ itemCount: 0 } as unknown as ReturnType<
+      typeof useCart
+    >);
     mockUseGuestCart.mockReturnValue({ openCartPanel } as unknown as ReturnType<
       typeof useGuestCart
     >);
@@ -70,10 +76,9 @@ describe("Layout", () => {
     } as unknown as ReturnType<typeof useAuth>);
 
     renderLayout();
-    expect(screen.getAllByRole("link", { name: "Sneakers" })[0]).toHaveAttribute(
-      "href",
-      "/products?category=sneakers"
-    );
+    expect(
+      screen.getAllByRole("link", { name: "Sneakers" })[0],
+    ).toHaveAttribute("href", "/products?category=sneakers");
   });
 
   it("shows a 'Sign in' link when there is no user", () => {
@@ -84,7 +89,10 @@ describe("Layout", () => {
     } as unknown as ReturnType<typeof useAuth>);
 
     renderLayout();
-    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login");
+    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
+      "href",
+      "/login",
+    );
   });
 
   it("shows the user menu with a Dashboard link when logged in", () => {
@@ -118,7 +126,9 @@ describe("Layout", () => {
       isAdmin: false,
       signOut: vi.fn(),
     } as unknown as ReturnType<typeof useAuth>);
-    mockUseCart.mockReturnValue({ itemCount: 3 } as unknown as ReturnType<typeof useCart>);
+    mockUseCart.mockReturnValue({ itemCount: 3 } as unknown as ReturnType<
+      typeof useCart
+    >);
 
     renderLayout();
     expect(screen.getByText("3")).toBeInTheDocument();

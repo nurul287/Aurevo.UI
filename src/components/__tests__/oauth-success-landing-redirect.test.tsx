@@ -25,7 +25,7 @@ function renderAt(path: string) {
         />
         <Route path="/dashboard" element={<div>Dashboard Page</div>} />
       </Routes>
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 }
 

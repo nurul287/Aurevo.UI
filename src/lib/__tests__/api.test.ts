@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { server } from "@/test/msw/server";
 import { createMockSupabaseClient } from "@/test/mocks/supabase";
 
-const API_URL = "http://localhost:3001/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 vi.mock("@/lib/supabase", () => ({
   supabase: createMockSupabaseClient(null),
@@ -26,13 +26,15 @@ describe("apiFetch", () => {
         HttpResponse.json({
           success: true,
           data: { id: "1", isActive: true, basePrice: 100 },
-        })
-      )
+        }),
+      ),
     );
 
-    const result = await apiFetch<{ id: string; is_active: boolean; base_price: number }>(
-      "/products/1"
-    );
+    const result = await apiFetch<{
+      id: string;
+      is_active: boolean;
+      base_price: number;
+    }>("/products/1");
 
     expect(result).toEqual({ id: "1", is_active: true, base_price: 100 });
   });
@@ -48,7 +50,7 @@ describe("apiFetch", () => {
       http.get(`${API_URL}/auth/me`, ({ request }) => {
         receivedAuthHeader = request.headers.get("Authorization");
         return HttpResponse.json({ success: true, data: { id: "1" } });
-      })
+      }),
     );
 
     await apiFetch("/auth/me");
@@ -62,7 +64,7 @@ describe("apiFetch", () => {
       http.get(`${API_URL}/products`, ({ request }) => {
         receivedAuthHeader = request.headers.get("Authorization");
         return HttpResponse.json({ success: true, data: [] });
-      })
+      }),
     );
 
     await apiFetch("/products", { skipAuth: true });
@@ -74,13 +76,18 @@ describe("apiFetch", () => {
     server.use(
       http.get(`${API_URL}/products/missing`, () =>
         HttpResponse.json(
-          { success: false, error: { code: "NOT_FOUND", message: "Product not found" } },
-          { status: 404 }
-        )
-      )
+          {
+            success: false,
+            error: { code: "NOT_FOUND", message: "Product not found" },
+          },
+          { status: 404 },
+        ),
+      ),
     );
 
-    await expect(apiFetch("/products/missing", { skipAuth: true })).rejects.toMatchObject({
+    await expect(
+      apiFetch("/products/missing", { skipAuth: true }),
+    ).rejects.toMatchObject({
       message: "Product not found",
       code: "NOT_FOUND",
       status: 404,
@@ -92,8 +99,11 @@ describe("apiFetch", () => {
     server.use(
       http.post(`${API_URL}/cart`, async ({ request }) => {
         receivedBody = await request.json();
-        return HttpResponse.json({ success: true, data: { id: "cart-item-1" } });
-      })
+        return HttpResponse.json({
+          success: true,
+          data: { id: "cart-item-1" },
+        });
+      }),
     );
 
     await apiFetch("/cart", {
@@ -111,7 +121,7 @@ describe("apiFetch", () => {
       http.get(`${API_URL}/cart`, ({ request }) => {
         receivedHeader = request.headers.get("X-Guest-Session");
         return HttpResponse.json({ success: true, data: { items: [] } });
-      })
+      }),
     );
 
     await apiFetch("/cart", { skipAuth: true, guestSessionId: "guest-123" });
@@ -127,27 +137,39 @@ describe("apiFetchList", () => {
         HttpResponse.json({
           success: true,
           data: [{ id: "1" }],
-          meta: { pagination: { page: 2, limit: 10, total: 30, totalPages: 3 } },
-        })
-      )
+          meta: {
+            pagination: { page: 2, limit: 10, total: 30, totalPages: 3 },
+          },
+        }),
+      ),
     );
 
     const result = await apiFetchList("/products", { skipAuth: true });
 
     expect(result.data).toEqual([{ id: "1" }]);
-    expect(result.pagination).toEqual({ page: 2, limit: 10, total: 30, totalPages: 3 });
+    expect(result.pagination).toEqual({
+      page: 2,
+      limit: 10,
+      total: 30,
+      totalPages: 3,
+    });
   });
 
   it("falls back to derived pagination metadata when the response has none", async () => {
     server.use(
       http.get(`${API_URL}/brands`, () =>
-        HttpResponse.json({ success: true, data: [{ id: "1" }, { id: "2" }] })
-      )
+        HttpResponse.json({ success: true, data: [{ id: "1" }, { id: "2" }] }),
+      ),
     );
 
     const result = await apiFetchList("/brands", { skipAuth: true });
 
-    expect(result.pagination).toEqual({ page: 1, limit: 2, total: 2, totalPages: 1 });
+    expect(result.pagination).toEqual({
+      page: 1,
+      limit: 2,
+      total: 2,
+      totalPages: 1,
+    });
   });
 
   it("throws when the response envelope reports failure", async () => {
@@ -155,12 +177,14 @@ describe("apiFetchList", () => {
       http.get(`${API_URL}/categories`, () =>
         HttpResponse.json(
           { success: false, error: { message: "Server exploded" } },
-          { status: 500 }
-        )
-      )
+          { status: 500 },
+        ),
+      ),
     );
 
-    await expect(apiFetchList("/categories", { skipAuth: true })).rejects.toMatchObject({
+    await expect(
+      apiFetchList("/categories", { skipAuth: true }),
+    ).rejects.toMatchObject({
       message: "Server exploded",
       status: 500,
     });
@@ -174,11 +198,15 @@ describe("apiFetchForm", () => {
       http.post(`${API_URL}/admin/images`, async ({ request }) => {
         receivedContentType = request.headers.get("Content-Type");
         return HttpResponse.json({ success: true, data: { id: "img-1" } });
-      })
+      }),
     );
 
     const formData = new FormData();
-    formData.append("file", new Blob(["fake"], { type: "image/png" }), "photo.png");
+    formData.append(
+      "file",
+      new Blob(["fake"], { type: "image/png" }),
+      "photo.png",
+    );
 
     await apiFetchForm("/admin/images", { formData });
 
@@ -187,7 +215,10 @@ describe("apiFetchForm", () => {
 
   it("returns undefined on a 204 No Content response", async () => {
     server.use(
-      http.delete(`${API_URL}/admin/images/1`, () => new HttpResponse(null, { status: 204 }))
+      http.delete(
+        `${API_URL}/admin/images/1`,
+        () => new HttpResponse(null, { status: 204 }),
+      ),
     );
 
     const result = await apiFetchForm("/admin/images/1", {
@@ -203,10 +234,12 @@ describe("api convenience wrappers", () => {
   it("api.get performs a GET request", async () => {
     server.use(
       http.get(`${API_URL}/products/1`, () =>
-        HttpResponse.json({ success: true, data: { id: "1" } })
-      )
+        HttpResponse.json({ success: true, data: { id: "1" } }),
+      ),
     );
-    await expect(api.get("/products/1", { skipAuth: true })).resolves.toEqual({ id: "1" });
+    await expect(api.get("/products/1", { skipAuth: true })).resolves.toEqual({
+      id: "1",
+    });
   });
 
   it("api.post sends the given body", async () => {
@@ -215,7 +248,7 @@ describe("api convenience wrappers", () => {
       http.post(`${API_URL}/cart`, async ({ request }) => {
         receivedBody = await request.json();
         return HttpResponse.json({ success: true, data: { id: "1" } });
-      })
+      }),
     );
 
     await api.post("/cart", { quantity: 3 }, { skipAuth: true });
@@ -224,8 +257,13 @@ describe("api convenience wrappers", () => {
 
   it("api.delete performs a DELETE request", async () => {
     server.use(
-      http.delete(`${API_URL}/cart/1`, () => new HttpResponse(null, { status: 204 }))
+      http.delete(
+        `${API_URL}/cart/1`,
+        () => new HttpResponse(null, { status: 204 }),
+      ),
     );
-    await expect(api.delete("/cart/1", { skipAuth: true })).resolves.toBeUndefined();
+    await expect(
+      api.delete("/cart/1", { skipAuth: true }),
+    ).resolves.toBeUndefined();
   });
 });

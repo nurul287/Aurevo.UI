@@ -6,7 +6,10 @@ describe("ProductVideoPlayer", () => {
   it("shows a placeholder with a disabled play button when there is no video URL", () => {
     render(<ProductVideoPlayer posterImage="/poster.jpg" />);
     expect(screen.getByRole("button", { name: "Play video" })).toBeDisabled();
-    expect(screen.getByAltText("Product video")).toHaveAttribute("src", "/poster.jpg");
+    expect(screen.getByAltText("Product video")).toHaveAttribute(
+      "src",
+      "/poster.jpg",
+    );
   });
 
   it("shows a 'no video available' message when there is no video or poster", () => {
@@ -15,7 +18,9 @@ describe("ProductVideoPlayer", () => {
   });
 
   it("renders a video element when a video URL is provided", () => {
-    const { container } = render(<ProductVideoPlayer videoUrl="/clip.mp4" alt="Sneaker demo" />);
+    const { container } = render(
+      <ProductVideoPlayer videoUrl="/clip.mp4" alt="Sneaker demo" />,
+    );
     const video = container.querySelector("video") as HTMLVideoElement;
     expect(video).toHaveAttribute("src", "/clip.mp4");
     expect(video).toHaveAttribute("loop");

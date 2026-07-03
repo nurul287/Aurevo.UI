@@ -5,7 +5,7 @@ import { renderHookWithQueryClient } from "@/test/test-utils";
 import { server } from "@/test/msw/server";
 import { createMockSupabaseClient } from "@/test/mocks/supabase";
 
-const API_URL = "http://localhost:3001/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 vi.mock("@/lib/supabase", () => ({
   supabase: createMockSupabaseClient(null),
@@ -47,8 +47,8 @@ describe("useInventoryLevels", () => {
           success: true,
           data: [makeRecord()],
           meta: { pagination: { page: 1, limit: 20, total: 1, totalPages: 1 } },
-        })
-      )
+        }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useInventoryLevels());
@@ -65,8 +65,8 @@ describe("useLowStockItems", () => {
           success: true,
           data: [makeRecord({ quantity: 2 })],
           meta: { pagination: { page: 1, limit: 20, total: 1, totalPages: 1 } },
-        })
-      )
+        }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useLowStockItems());
@@ -77,7 +77,12 @@ describe("useLowStockItems", () => {
 
 describe("computeInventoryStats", () => {
   it("sums stock value using variant price when available", () => {
-    const records = [makeRecord({ quantity: 3, product_variants: { ...makeRecord().product_variants, price: 100 } })];
+    const records = [
+      makeRecord({
+        quantity: 3,
+        product_variants: { ...makeRecord().product_variants, price: 100 },
+      }),
+    ];
     const stats = computeInventoryStats(records, 2);
     expect(stats.totalStockValue).toBe(300);
     expect(stats.lowStockCount).toBe(2);
@@ -93,7 +98,12 @@ describe("computeInventoryStats", () => {
         name: "Air Runner - 42",
         sku: "AR-42",
         price: undefined,
-        products: { id: "p1", name: "Air Runner", base_price: 50, low_stock_threshold: 5 },
+        products: {
+          id: "p1",
+          name: "Air Runner",
+          base_price: 50,
+          low_stock_threshold: 5,
+        },
       } as never,
     });
     const stats = computeInventoryStats([record], 0);

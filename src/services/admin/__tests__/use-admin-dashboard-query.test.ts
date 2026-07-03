@@ -5,7 +5,7 @@ import { renderHookWithQueryClient } from "@/test/test-utils";
 import { server } from "@/test/msw/server";
 import { createMockSupabaseClient } from "@/test/mocks/supabase";
 
-const API_URL = "http://localhost:3001/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 vi.mock("@/lib/supabase", () => ({
   supabase: createMockSupabaseClient(null),
@@ -31,8 +31,8 @@ describe("useAdminDashboard", () => {
               tracked_variants: 30,
             },
           },
-        })
-      )
+        }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useAdminDashboard());
@@ -48,9 +48,9 @@ describe("useAdminDashboard", () => {
       http.get(`${API_URL}/admin/dashboard`, () =>
         HttpResponse.json(
           { success: false, error: { message: "Forbidden" } },
-          { status: 403 }
-        )
-      )
+          { status: 403 },
+        ),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useAdminDashboard());

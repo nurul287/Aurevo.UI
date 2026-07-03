@@ -13,7 +13,7 @@ describe("MetaPixelTracker", () => {
     const { container } = render(
       <MemoryRouter>
         <MetaPixelTracker />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     expect(container).toBeEmptyDOMElement();
   });
@@ -23,7 +23,7 @@ describe("MetaPixelTracker", () => {
     const { container } = render(
       <MemoryRouter>
         <MetaPixelTracker />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     expect(container.querySelector("noscript")).toBeInTheDocument();
   });

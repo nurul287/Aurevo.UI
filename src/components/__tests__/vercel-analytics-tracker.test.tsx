@@ -9,8 +9,8 @@ describe("VercelAnalyticsTracker", () => {
       render(
         <MemoryRouter initialEntries={["/products"]}>
           <VercelAnalyticsTracker />
-        </MemoryRouter>
-      )
+        </MemoryRouter>,
+      ),
     ).not.toThrow();
   });
 
@@ -19,8 +19,8 @@ describe("VercelAnalyticsTracker", () => {
       render(
         <MemoryRouter initialEntries={["/admin/products"]}>
           <VercelAnalyticsTracker />
-        </MemoryRouter>
-      )
+        </MemoryRouter>,
+      ),
     ).not.toThrow();
   });
 });

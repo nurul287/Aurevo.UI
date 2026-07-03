@@ -6,7 +6,7 @@ import { server } from "@/test/msw/server";
 import { createMockSupabaseClient } from "@/test/mocks/supabase";
 import { useToast } from "@/hooks/use-toast";
 
-const API_URL = "http://localhost:3001/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 vi.mock("@/lib/supabase", () => ({
   supabase: createMockSupabaseClient(null),
@@ -31,16 +31,20 @@ describe("order mutations", () => {
   beforeEach(() => {
     showSuccess.mockClear();
     showError.mockClear();
-    mockUseToast.mockReturnValue({ showSuccess, showError } as unknown as ReturnType<
-      typeof useToast
-    >);
+    mockUseToast.mockReturnValue({
+      showSuccess,
+      showError,
+    } as unknown as ReturnType<typeof useToast>);
   });
 
   it("useUpdateOrderStatus updates status and shows a labeled success toast", async () => {
     server.use(
       http.patch(`${API_URL}/orders/o1/status`, () =>
-        HttpResponse.json({ success: true, data: { id: "o1", order_number: "ORD-1" } })
-      )
+        HttpResponse.json({
+          success: true,
+          data: { id: "o1", order_number: "ORD-1" },
+        }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useUpdateOrderStatus());
@@ -49,7 +53,7 @@ describe("order mutations", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(showSuccess).toHaveBeenCalledWith(
       "Order Status Updated",
-      "Order ORD-1 status updated to Shipped"
+      "Order ORD-1 status updated to Shipped",
     );
   });
 
@@ -58,30 +62,39 @@ describe("order mutations", () => {
       http.patch(`${API_URL}/orders/o1/status`, () =>
         HttpResponse.json(
           { success: false, error: { message: "Invalid transition" } },
-          { status: 409 }
-        )
-      )
+          { status: 409 },
+        ),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useUpdateOrderStatus());
     result.current.mutate({ orderId: "o1", status: "delivered" });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(showError).toHaveBeenCalledWith("Failed to Update Order Status", "Invalid transition");
+    expect(showError).toHaveBeenCalledWith(
+      "Failed to Update Order Status",
+      "Invalid transition",
+    );
   });
 
   it("useCancelOrder cancels the order and shows a success toast", async () => {
     server.use(
       http.patch(`${API_URL}/orders/o1/cancel`, () =>
-        HttpResponse.json({ success: true, data: { id: "o1", order_number: "ORD-1" } })
-      )
+        HttpResponse.json({
+          success: true,
+          data: { id: "o1", order_number: "ORD-1" },
+        }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useCancelOrder());
     result.current.mutate("o1");
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(showSuccess).toHaveBeenCalledWith("Order Cancelled", "Order ORD-1 has been cancelled");
+    expect(showSuccess).toHaveBeenCalledWith(
+      "Order Cancelled",
+      "Order ORD-1 has been cancelled",
+    );
   });
 
   it("useCancelOrder shows an error toast when the order is already cancelled", async () => {
@@ -89,16 +102,19 @@ describe("order mutations", () => {
       http.patch(`${API_URL}/orders/o1/cancel`, () =>
         HttpResponse.json(
           { success: false, error: { message: "Order already cancelled" } },
-          { status: 409 }
-        )
-      )
+          { status: 409 },
+        ),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useCancelOrder());
     result.current.mutate("o1");
 
     await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(showError).toHaveBeenCalledWith("Failed to Cancel Order", "Order already cancelled");
+    expect(showError).toHaveBeenCalledWith(
+      "Failed to Cancel Order",
+      "Order already cancelled",
+    );
   });
 
   it("useCreateGuestOrder creates an order and shows a success toast", async () => {
@@ -106,9 +122,12 @@ describe("order mutations", () => {
       http.post(`${API_URL}/orders`, () =>
         HttpResponse.json({
           success: true,
-          data: { order: { id: "o1", order_number: "ORD-1" }, guest_token: "tok-1" },
-        })
-      )
+          data: {
+            order: { id: "o1", order_number: "ORD-1" },
+            guest_token: "tok-1",
+          },
+        }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useCreateGuestOrder());
@@ -124,7 +143,7 @@ describe("order mutations", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(showSuccess).toHaveBeenCalledWith(
       "Order Created",
-      "Your order ORD-1 has been created successfully"
+      "Your order ORD-1 has been created successfully",
     );
   });
 
@@ -136,19 +155,19 @@ describe("order mutations", () => {
         receivedItems = body.items;
         return HttpResponse.json({
           success: true,
-          data: { order: { id: "o1", order_number: "ORD-1" }, guest_token: null },
+          data: {
+            order: { id: "o1", order_number: "ORD-1" },
+            guest_token: null,
+          },
         });
-      })
+      }),
     );
 
     const { result } = renderHookWithQueryClient(() => useCreateGuestOrder());
     result.current.mutate({
       billingAddress: {},
       shippingAddress: {},
-      items: [
-        { variant_id: "v1", quantity: 1 },
-        { quantity: 2 },
-      ],
+      items: [{ variant_id: "v1", quantity: 1 }, { quantity: 2 }],
       subtotal: 1000,
       total_amount: 1000,
       payment_method: "cash_on_delivery",

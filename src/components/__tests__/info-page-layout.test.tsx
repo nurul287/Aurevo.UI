@@ -10,11 +10,16 @@ describe("InfoPageLayout", () => {
         <InfoPageLayout title="Terms & Conditions" breadcrumbPage="Terms">
           <p>Body copy</p>
         </InfoPageLayout>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
-    expect(screen.getByRole("heading", { name: "Terms & Conditions" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
+    expect(
+      screen.getByRole("heading", { name: "Terms & Conditions" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Home" })).toHaveAttribute(
+      "href",
+      "/",
+    );
     expect(screen.getByText("Terms")).toHaveAttribute("aria-current", "page");
     expect(screen.getByText("Body copy")).toBeInTheDocument();
   });

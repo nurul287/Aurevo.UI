@@ -5,7 +5,7 @@ import { renderHookWithQueryClient } from "@/test/test-utils";
 import { server } from "@/test/msw/server";
 import { createMockSupabaseClient } from "@/test/mocks/supabase";
 
-const API_URL = "http://localhost:3001/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 vi.mock("@/lib/supabase", () => ({
   supabase: createMockSupabaseClient(null),
@@ -26,11 +26,17 @@ describe("fetchCartData", () => {
           success: true,
           data: {
             items: [
-              { id: "i1", quantity: 2, price: 100, product_id: "p1", variant_id: "v1" },
+              {
+                id: "i1",
+                quantity: 2,
+                price: 100,
+                product_id: "p1",
+                variant_id: "v1",
+              },
             ],
           },
-        })
-      )
+        }),
+      ),
     );
 
     const result = await fetchCartData(undefined, "guest-session-1");
@@ -41,7 +47,9 @@ describe("fetchCartData", () => {
 
 describe("useCartData", () => {
   it("is disabled when there is neither a userId nor a sessionId", () => {
-    const { result } = renderHookWithQueryClient(() => useCartData(undefined, undefined));
+    const { result } = renderHookWithQueryClient(() =>
+      useCartData(undefined, undefined),
+    );
     expect(result.current.fetchStatus).toBe("idle");
   });
 
@@ -52,14 +60,22 @@ describe("useCartData", () => {
           success: true,
           data: {
             items: [
-              { id: "i1", quantity: 1, price: 250, product_id: "p1", variant_id: "v1" },
+              {
+                id: "i1",
+                quantity: 1,
+                price: 250,
+                product_id: "p1",
+                variant_id: "v1",
+              },
             ],
           },
-        })
-      )
+        }),
+      ),
     );
 
-    const { result } = renderHookWithQueryClient(() => useCartData("user-1", undefined));
+    const { result } = renderHookWithQueryClient(() =>
+      useCartData("user-1", undefined),
+    );
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(result.current.data?.itemCount).toBe(1);

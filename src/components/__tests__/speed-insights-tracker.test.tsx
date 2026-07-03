@@ -9,8 +9,8 @@ describe("SpeedInsightsTracker", () => {
       render(
         <MemoryRouter initialEntries={["/products"]}>
           <SpeedInsightsTracker />
-        </MemoryRouter>
-      )
+        </MemoryRouter>,
+      ),
     ).not.toThrow();
   });
 });

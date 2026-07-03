@@ -22,7 +22,7 @@ function renderAt(searchOrHash: string) {
         />
         <Route path="/login" element={<div>Login Page</div>} />
       </Routes>
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 }
 

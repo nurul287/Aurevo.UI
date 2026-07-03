@@ -25,7 +25,7 @@ describe("MessengerChat", () => {
     const { container } = render(
       <MemoryRouter>
         <MessengerChat />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     expect(container).toBeEmptyDOMElement();
     vi.unstubAllEnvs();
@@ -38,12 +38,11 @@ describe("MessengerChat", () => {
     render(
       <MemoryRouter>
         <MessengerChat />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
-    expect(screen.getByRole("link", { name: "Message us on Messenger" })).toHaveAttribute(
-      "href",
-      "https://m.me/12345"
-    );
+    expect(
+      screen.getByRole("link", { name: "Message us on Messenger" }),
+    ).toHaveAttribute("href", "https://m.me/12345");
     vi.unstubAllEnvs();
   });
 
@@ -54,7 +53,7 @@ describe("MessengerChat", () => {
     const { container } = render(
       <MemoryRouter initialEntries={["/admin/products"]}>
         <MessengerChat />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     expect(container).toBeEmptyDOMElement();
     vi.unstubAllEnvs();

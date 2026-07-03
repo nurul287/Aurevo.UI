@@ -3,10 +3,13 @@ import { waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { renderHookWithQueryClient } from "@/test/test-utils";
 import { server } from "@/test/msw/server";
-import { createMockSupabaseClient, createMockSession } from "@/test/mocks/supabase";
+import {
+  createMockSupabaseClient,
+  createMockSession,
+} from "@/test/mocks/supabase";
 import { supabase } from "@/lib/supabase";
 
-const API_URL = "http://localhost:3001/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 vi.mock("@/lib/supabase", () => ({
   supabase: createMockSupabaseClient(null),
@@ -63,8 +66,11 @@ describe("useUserProfile", () => {
 
     server.use(
       http.get(`${API_URL}/auth/me`, () =>
-        HttpResponse.json({ success: true, data: { id: session.user.id, first_name: "Jane" } })
-      )
+        HttpResponse.json({
+          success: true,
+          data: { id: session.user.id, first_name: "Jane" },
+        }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useUserProfile());
@@ -82,10 +88,13 @@ describe("useUserProfile", () => {
     server.use(
       http.get(`${API_URL}/auth/me`, () =>
         HttpResponse.json(
-          { success: false, error: { code: "NOT_FOUND", message: "Not found" } },
-          { status: 404 }
-        )
-      )
+          {
+            success: false,
+            error: { code: "NOT_FOUND", message: "Not found" },
+          },
+          { status: 404 },
+        ),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useUserProfile());
@@ -107,8 +116,8 @@ describe("useAuth", () => {
         HttpResponse.json({
           success: true,
           data: { id: session.user.id, preferences: { role: "customer" } },
-        })
-      )
+        }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useAuth());
@@ -128,8 +137,8 @@ describe("useAuth", () => {
         HttpResponse.json({
           success: true,
           data: { id: session.user.id, preferences: { role: "super_admin" } },
-        })
-      )
+        }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useAuth());

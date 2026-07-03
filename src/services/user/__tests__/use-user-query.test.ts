@@ -5,7 +5,7 @@ import { renderHookWithQueryClient } from "@/test/test-utils";
 import { server } from "@/test/msw/server";
 import { createMockSupabaseClient } from "@/test/mocks/supabase";
 
-const API_URL = "http://localhost:3001/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 vi.mock("@/lib/supabase", () => ({
   supabase: createMockSupabaseClient(null),
@@ -20,9 +20,11 @@ describe("useUserOrders", () => {
         HttpResponse.json({
           success: true,
           data: [{ id: "o1", order_number: "ORD-1" }],
-          meta: { pagination: { page: 1, limit: 100, total: 1, totalPages: 1 } },
-        })
-      )
+          meta: {
+            pagination: { page: 1, limit: 100, total: 1, totalPages: 1 },
+          },
+        }),
+      ),
     );
 
     const { result } = renderHookWithQueryClient(() => useUserOrders("user-1"));
@@ -40,11 +42,16 @@ describe("useUserOrder", () => {
   it("returns a single order for the user", async () => {
     server.use(
       http.get(`${API_URL}/orders/o1`, () =>
-        HttpResponse.json({ success: true, data: { id: "o1", order_number: "ORD-1" } })
-      )
+        HttpResponse.json({
+          success: true,
+          data: { id: "o1", order_number: "ORD-1" },
+        }),
+      ),
     );
 
-    const { result } = renderHookWithQueryClient(() => useUserOrder("user-1", "o1"));
+    const { result } = renderHookWithQueryClient(() =>
+      useUserOrder("user-1", "o1"),
+    );
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.order_number).toBe("ORD-1");
   });
@@ -53,13 +60,18 @@ describe("useUserOrder", () => {
     server.use(
       http.get(`${API_URL}/orders/missing`, () =>
         HttpResponse.json(
-          { success: false, error: { code: "NOT_FOUND", message: "Not found" } },
-          { status: 404 }
-        )
-      )
+          {
+            success: false,
+            error: { code: "NOT_FOUND", message: "Not found" },
+          },
+          { status: 404 },
+        ),
+      ),
     );
 
-    const { result } = renderHookWithQueryClient(() => useUserOrder("user-1", "missing"));
+    const { result } = renderHookWithQueryClient(() =>
+      useUserOrder("user-1", "missing"),
+    );
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toBeNull();
   });
