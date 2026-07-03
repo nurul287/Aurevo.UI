@@ -1,0 +1,54 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, type RenderOptions } from "@testing-library/react";
+import type { ReactElement, ReactNode } from "react";
+import { MemoryRouter, type MemoryRouterProps } from "react-router-dom";
+
+/** Fresh QueryClient per render — no retries/caching noise between tests. */
+export function createTestQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0 },
+      mutations: { retry: false },
+    },
+  });
+}
+
+interface AllProvidersProps {
+  children: ReactNode;
+  queryClient?: QueryClient;
+  routerProps?: MemoryRouterProps;
+}
+
+function AllProviders({ children, queryClient, routerProps }: AllProvidersProps) {
+  return (
+    <QueryClientProvider client={queryClient ?? createTestQueryClient()}>
+      <MemoryRouter {...routerProps}>{children}</MemoryRouter>
+    </QueryClientProvider>
+  );
+}
+
+interface CustomRenderOptions extends Omit<RenderOptions, "wrapper"> {
+  queryClient?: QueryClient;
+  routerProps?: MemoryRouterProps;
+}
+
+/**
+ * Renders a component wrapped in a `QueryClientProvider` + `MemoryRouter`,
+ * matching the providers the real app tree supplies at the root.
+ */
+export function renderWithProviders(
+  ui: ReactElement,
+  { queryClient, routerProps, ...options }: CustomRenderOptions = {}
+) {
+  return render(ui, {
+    wrapper: ({ children }) => (
+      <AllProviders queryClient={queryClient} routerProps={routerProps}>
+        {children}
+      </AllProviders>
+    ),
+    ...options,
+  });
+}
+
+export * from "@testing-library/react";
+export { default as userEvent } from "@testing-library/user-event";

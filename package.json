@@ -9,6 +9,9 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
     "db:validate": "node scripts/db-validate.mjs",
     "db:start": "pnpm dlx supabase@2.98.2 start",
     "db:stop": "pnpm dlx supabase@2.98.2 stop",
@@ -69,17 +72,24 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/lodash": "^4.17.21",
     "@types/node": "^24.6.0",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.3",
+    "@vitest/coverage-v8": "^4.1.9",
     "eslint": "^9.36.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.4.0",
+    "jsdom": "^29.1.1",
+    "msw": "^2.14.6",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.9.2",
-    "vite": "^7.1.7"
+    "vite": "^7.1.7",
+    "vitest": "^4.1.9"
   }
 }
