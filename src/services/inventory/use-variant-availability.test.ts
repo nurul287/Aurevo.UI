@@ -17,9 +17,7 @@ import {
 } from "./use-variant-availability";
 
 describe("useVariantAvailableQuantity", () => {
-  // See the NOTE in variant-availability.test.ts — the underlying fetch
-  // helper always resolves to `null` today due to a double-unwrap bug.
-  it("resolves to null even when the BE has stock for the variant (double-unwrap bug)", async () => {
+  it("fetches the available quantity for a variant", async () => {
     server.use(
       http.get(`${API_URL}/inventory/availability`, () =>
         HttpResponse.json({
@@ -31,7 +29,7 @@ describe("useVariantAvailableQuantity", () => {
 
     const { result } = renderHookWithQueryClient(() => useVariantAvailableQuantity("v1"));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toBeNull();
+    expect(result.current.data).toBe(7);
   });
 
   it("is disabled when there is no variantId", () => {
@@ -50,7 +48,7 @@ describe("useVariantAvailableQuantity", () => {
 });
 
 describe("useVariantsAvailableQuantities", () => {
-  it("defaults every variant to 0 even when the BE has stock (double-unwrap bug)", async () => {
+  it("fetches quantities for multiple variants", async () => {
     server.use(
       http.get(`${API_URL}/inventory/availability`, () =>
         HttpResponse.json({
@@ -67,7 +65,7 @@ describe("useVariantsAvailableQuantities", () => {
       useVariantsAvailableQuantities(["v1", "v2"])
     );
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toEqual({ v1: 0, v2: 0 });
+    expect(result.current.data).toEqual({ v1: 10, v2: 3 });
   });
 
   it("is disabled when the variant id list is empty", () => {

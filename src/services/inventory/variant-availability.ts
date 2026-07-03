@@ -19,10 +19,12 @@ export async function fetchVariantAvailableQuantity(
   variantId: string,
 ): Promise<number | null> {
   try {
-    const res = await apiFetch<{ success: boolean; data: AvailabilityRow[] }>(
+    // `apiFetch` already unwraps the `{ success, data }` envelope and
+    // resolves to `data` directly — do not unwrap it again here.
+    const rows = await apiFetch<AvailabilityRow[]>(
       `/inventory/availability?variantIds=${encodeURIComponent(variantId)}`,
     );
-    const row = res?.data?.[0];
+    const row = rows?.[0];
     if (!row) return null;
     return computeAvailableUnits(row.quantity, row.reserved_quantity);
   } catch {
@@ -43,10 +45,12 @@ export async function fetchVariantsAvailableQuantities(
   try {
     const params = new URLSearchParams();
     uniqueIds.forEach((id) => params.append("variantIds", id));
-    const res = await apiFetch<{ success: boolean; data: AvailabilityRow[] }>(
+    // `apiFetch` already unwraps the `{ success, data }` envelope and
+    // resolves to `data` directly — do not unwrap it again here.
+    const rows = await apiFetch<AvailabilityRow[]>(
       `/inventory/availability?${params.toString()}`,
     );
-    for (const row of res?.data ?? []) {
+    for (const row of rows ?? []) {
       if (row.variant_id) {
         map[row.variant_id] = computeAvailableUnits(row.quantity, row.reserved_quantity);
       }

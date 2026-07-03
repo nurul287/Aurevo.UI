@@ -30,22 +30,25 @@ describe("computeAvailableUnits", () => {
   });
 });
 
-// NOTE: `apiFetch<T>` already unwraps the response envelope and resolves to
-// `json.data` directly (see src/lib/api.ts). These functions then do
-// `res?.data?.[0]` / `res?.data ?? []` on top of that already-unwrapped
-// value, so `res.data` is always `undefined` at runtime — regardless of what
-// the BE actually returns. In practice this means these two helpers always
-// resolve to `null` / all-zero maps today. The tests below document this
-// current (buggy) behavior rather than the apparently-intended one.
 describe("fetchVariantAvailableQuantity", () => {
-  it("resolves to null even when the BE has stock for the variant (double-unwrap bug)", async () => {
+  it("returns the available quantity for a variant", async () => {
     server.use(
       http.get(`${API_URL}/inventory/availability`, () =>
         HttpResponse.json({
           success: true,
           data: [{ variant_id: "v1", quantity: 10, reserved_quantity: 4 }],
-        })
-      )
+        }),
+      ),
+    );
+
+    expect(await fetchVariantAvailableQuantity("v1")).toBe(6);
+  });
+
+  it("returns null when the variant has no inventory row", async () => {
+    server.use(
+      http.get(`${API_URL}/inventory/availability`, () =>
+        HttpResponse.json({ success: true, data: [] }),
+      ),
     );
 
     expect(await fetchVariantAvailableQuantity("v1")).toBeNull();
@@ -54,8 +57,11 @@ describe("fetchVariantAvailableQuantity", () => {
   it("returns 0 when the request fails", async () => {
     server.use(
       http.get(`${API_URL}/inventory/availability`, () =>
-        HttpResponse.json({ success: false, error: { message: "boom" } }, { status: 500 })
-      )
+        HttpResponse.json(
+          { success: false, error: { message: "boom" } },
+          { status: 500 },
+        ),
+      ),
     );
 
     expect(await fetchVariantAvailableQuantity("v1")).toBe(0);
@@ -67,7 +73,7 @@ describe("fetchVariantsAvailableQuantities", () => {
     expect(await fetchVariantsAvailableQuantities([])).toEqual({});
   });
 
-  it("defaults every requested id to 0 even when the BE has stock (double-unwrap bug)", async () => {
+  it("de-duplicates variant ids and maps each to its available quantity", async () => {
     server.use(
       http.get(`${API_URL}/inventory/availability`, () =>
         HttpResponse.json({
@@ -76,19 +82,22 @@ describe("fetchVariantsAvailableQuantities", () => {
             { variant_id: "v1", quantity: 10, reserved_quantity: 2 },
             { variant_id: "v2", quantity: 5, reserved_quantity: 5 },
           ],
-        })
-      )
+        }),
+      ),
     );
 
     const result = await fetchVariantsAvailableQuantities(["v1", "v1", "v2"]);
-    expect(result).toEqual({ v1: 0, v2: 0 });
+    expect(result).toEqual({ v1: 8, v2: 0 });
   });
 
   it("defaults every requested id to 0 when the request fails", async () => {
     server.use(
       http.get(`${API_URL}/inventory/availability`, () =>
-        HttpResponse.json({ success: false, error: { message: "boom" } }, { status: 500 })
-      )
+        HttpResponse.json(
+          { success: false, error: { message: "boom" } },
+          { status: 500 },
+        ),
+      ),
     );
 
     const result = await fetchVariantsAvailableQuantities(["v1", "v2"]);
