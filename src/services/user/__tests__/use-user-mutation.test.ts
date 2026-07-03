@@ -11,7 +11,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: createMockSupabaseClient(null),
 }));
 
-import { useCreateUserProfile, useUpdateUserProfile } from "./use-user-mutation";
+import { useCreateUserProfile, useUpdateUserProfile } from "../use-user-mutation";
 
 describe("useUpdateUserProfile", () => {
   it("patches the profile and caches the result under the user's profile key", async () => {

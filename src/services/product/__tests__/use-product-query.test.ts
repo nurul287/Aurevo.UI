@@ -16,7 +16,7 @@ import {
   useCategories,
   useProduct,
   useProducts,
-} from "./use-product-query";
+} from "../use-product-query";
 
 describe("useProducts", () => {
   it("returns the product list with pagination metadata", async () => {

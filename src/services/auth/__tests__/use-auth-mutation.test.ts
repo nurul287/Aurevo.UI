@@ -15,8 +15,8 @@ vi.mock("@/hooks/use-toast", () => ({
 
 const mockUseToast = vi.mocked(useToast);
 
-import { useSignIn, useSignInWithOAuth, useSignOut, useSignUp } from "./use-auth-mutation";
-import { authQueryKeys } from "./use-auth-query";
+import { useSignIn, useSignInWithOAuth, useSignOut, useSignUp } from "../use-auth-mutation";
+import { authQueryKeys } from "../use-auth-query";
 
 describe("auth mutations", () => {
   const showSuccess = vi.fn();

@@ -22,7 +22,7 @@ import {
   useCancelOrder,
   useCreateGuestOrder,
   useUpdateOrderStatus,
-} from "./use-order-mutation";
+} from "../use-order-mutation";
 
 describe("order mutations", () => {
   const showSuccess = vi.fn();

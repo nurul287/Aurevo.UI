@@ -12,7 +12,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: createMockSupabaseClient(null),
 }));
 
-import { useAuth, useSession, useUserProfile } from "./use-auth-query";
+import { useAuth, useSession, useUserProfile } from "../use-auth-query";
 
 describe("useSession", () => {
   it("returns isAuthenticated: false when there is no session", async () => {

@@ -11,7 +11,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: createMockSupabaseClient(null),
 }));
 
-import { useUserOrder, useUserOrders } from "./use-user-query";
+import { useUserOrder, useUserOrders } from "../use-user-query";
 
 describe("useUserOrders", () => {
   it("returns the user's orders", async () => {

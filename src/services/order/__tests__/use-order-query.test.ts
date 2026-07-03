@@ -11,7 +11,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: createMockSupabaseClient(null),
 }));
 
-import { useOrder, useOrderStats, useOrders } from "./use-order-query";
+import { useOrder, useOrderStats, useOrders } from "../use-order-query";
 
 describe("useOrders", () => {
   it("returns a paginated order list", async () => {

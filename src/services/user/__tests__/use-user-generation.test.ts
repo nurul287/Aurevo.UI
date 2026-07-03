@@ -12,7 +12,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: createMockSupabaseClient(null),
 }));
 
-import { useCreateUserFromCheckout, useMigrateGuestCartToNewUser } from "./use-user-generation";
+import { useCreateUserFromCheckout, useMigrateGuestCartToNewUser } from "../use-user-generation";
 
 describe("useCreateUserFromCheckout", () => {
   // The mutation has a real 1.5s delay (waits for the auth session to

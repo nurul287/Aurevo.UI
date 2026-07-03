@@ -13,7 +13,7 @@ import {
   computeAvailableUnits,
   fetchVariantAvailableQuantity,
   fetchVariantsAvailableQuantities,
-} from "./variant-availability";
+} from "../variant-availability";
 
 describe("computeAvailableUnits", () => {
   it("subtracts reserved from total quantity", () => {

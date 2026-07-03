@@ -22,7 +22,7 @@ import {
   useBulkUpdateCategoryStatus,
   useCreateCategory,
   useDeleteCategory,
-} from "./use-category-mutation";
+} from "../use-category-mutation";
 
 describe("category mutations", () => {
   const showSuccess = vi.fn();

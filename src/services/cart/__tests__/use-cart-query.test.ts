@@ -11,7 +11,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: createMockSupabaseClient(null),
 }));
 
-import { fetchCartData, useCartData } from "./use-cart-query";
+import { fetchCartData, useCartData } from "../use-cart-query";
 
 describe("fetchCartData", () => {
   it("returns an empty cart when there is no user or session id", async () => {

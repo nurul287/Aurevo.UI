@@ -18,7 +18,7 @@ vi.mock("@/hooks/use-toast", () => ({
 
 const mockUseToast = vi.mocked(useToast);
 
-import { useCreateProduct, useDeleteProduct } from "./use-product-mutation";
+import { useCreateProduct, useDeleteProduct } from "../use-product-mutation";
 
 describe("useCreateProduct", () => {
   const showSuccess = vi.fn();

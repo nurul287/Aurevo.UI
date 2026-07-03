@@ -14,7 +14,7 @@ vi.mock("@/lib/supabase", () => ({
 import {
   useVariantAvailableQuantity,
   useVariantsAvailableQuantities,
-} from "./use-variant-availability";
+} from "../use-variant-availability";
 
 describe("useVariantAvailableQuantity", () => {
   it("fetches the available quantity for a variant", async () => {

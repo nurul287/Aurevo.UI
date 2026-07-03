@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CartItem } from "@/services/types";
-import { computeCartTotals, getCartLineUnitPrice } from "./cart-totals";
+import { computeCartTotals, getCartLineUnitPrice } from "../cart-totals";
 
 function makeItem(overrides: Partial<CartItem> = {}): CartItem {
   return {

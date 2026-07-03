@@ -11,7 +11,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: createMockSupabaseClient(null),
 }));
 
-import { useAdminDashboard } from "./use-admin-dashboard-query";
+import { useAdminDashboard } from "../use-admin-dashboard-query";
 
 describe("useAdminDashboard", () => {
   it("fetches the admin dashboard summary", async () => {

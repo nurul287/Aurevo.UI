@@ -16,7 +16,7 @@ import {
   useInventoryLevels,
   useLowStockItems,
   type InventoryRecord,
-} from "./use-inventory-query";
+} from "../use-inventory-query";
 
 function makeRecord(overrides: Partial<InventoryRecord> = {}): InventoryRecord {
   return {
