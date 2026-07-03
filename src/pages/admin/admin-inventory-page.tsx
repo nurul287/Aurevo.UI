@@ -34,6 +34,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { formatPrice } from "@/lib/currency";
+import { apiFetchList } from "@/lib/api";
+import { exportRowsToXlsx } from "@/lib/export-xlsx";
 // Toast notifications are handled by the mutation hooks
 import {
   computeInventoryStats,
@@ -42,7 +44,10 @@ import {
   useInventoryLevels,
   useLowStockItems,
   useRestockInventory,
+  type InventoryRecord,
+  type InventoryMovement,
 } from "@/services/inventory";
+import { useToast } from "@/hooks/use-toast";
 import {
   AlertTriangle,
   Download,
@@ -70,6 +75,9 @@ function variantProductName(variant: { products?: unknown } | null): string {
 }
 
 export default function AdminInventoryPage() {
+  const { showError } = useToast();
+  const [activeTab, setActiveTab] = useState("inventory");
+  const [isExporting, setIsExporting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
@@ -125,6 +133,68 @@ export default function AdminInventoryPage() {
           ?.toLowerCase()
           .includes(searchTerm.toLowerCase())
     ) || [];
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      if (activeTab === "inventory") {
+        const q = new URLSearchParams({ limit: "10000" });
+        if (debouncedSearch) q.set("search", debouncedSearch);
+        const { data } = await apiFetchList<InventoryRecord>(`/inventory?${q.toString()}`);
+        exportRowsToXlsx("inventory-levels", "Inventory Levels", data.map((item) => ({
+          Product: item.product_variants.products.name,
+          Variant: item.product_variants.name,
+          SKU: item.product_variants.sku,
+          Stock: item.quantity,
+          Reserved: item.reserved_quantity,
+          Available: item.available_quantity,
+          Status:
+            item.quantity === 0
+              ? "Out of Stock"
+              : item.quantity <= item.product_variants.products.low_stock_threshold
+                ? "Low Stock"
+                : "In Stock",
+        })));
+      } else if (activeTab === "low-stock") {
+        exportRowsToXlsx("low-stock-items", "Low Stock", (lowStockItems ?? []).map((item) => ({
+          Product: item.product_name,
+          Variant: item.variant_name,
+          "Current Stock": item.current_stock,
+          Threshold: item.low_stock_threshold,
+          "Reorder Point": item.reorder_point,
+          "Reorder Quantity": item.reorder_quantity,
+        })));
+      } else {
+        const q = new URLSearchParams({ limit: "10000" });
+        if (selectedMovementType !== "all") q.set("movementType", selectedMovementType);
+        const { data } = await apiFetchList<InventoryMovement>(`/inventory/movements?${q.toString()}`);
+        const rows = data.filter(
+          (movement) =>
+            movement.product_variants?.products?.name
+              ?.toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+            movement.product_variants?.name
+              ?.toLowerCase()
+              .includes(searchTerm.toLowerCase())
+        );
+        exportRowsToXlsx("stock-movements", "Stock Movements", rows.map((movement) => ({
+          Date: new Date(movement.created_at).toLocaleString(),
+          Product: movement.product_variants?.products?.name ?? "",
+          Variant: movement.product_variants?.name ?? "",
+          Type: movement.movement_type,
+          Quantity: movement.quantity,
+          Previous: movement.previous_quantity,
+          New: movement.new_quantity,
+          Reference: movement.reference_number ?? "",
+          Notes: movement.notes ?? "",
+        })));
+      }
+    } catch (error) {
+      showError("Export failed", "Could not generate the export file. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const resetRestockForm = () => {
     setRestockQuantity("");
@@ -262,9 +332,14 @@ export default function AdminInventoryPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void handleExport()}
+            disabled={isExporting}
+          >
             <Download className="h-4 w-4 mr-2" />
-            Export
+            {isExporting ? "Exporting..." : "Export"}
           </Button>
           <Button size="sm" type="button" onClick={openBulkRestock}>
             <Plus className="h-4 w-4 mr-2" />
@@ -456,7 +531,7 @@ export default function AdminInventoryPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="inventory" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="inventory">Inventory Levels</TabsTrigger>
           <TabsTrigger value="low-stock">Low Stock</TabsTrigger>
