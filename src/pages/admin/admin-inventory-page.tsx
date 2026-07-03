@@ -131,6 +131,14 @@ export default function AdminInventoryPage() {
   // Server-side filtered — use data directly
   const filteredInventory = inventoryLevels;
 
+  const activeTabTotal =
+    activeTab === "inventory"
+      ? pagination?.total
+      : activeTab === "low-stock"
+        ? lowStockPagination?.total
+        : movementsPagination?.total;
+  const isActiveTabEmpty = activeTabTotal === 0;
+
   const handleExport = async () => {
     setIsExporting(true);
     try {
@@ -296,7 +304,8 @@ export default function AdminInventoryPage() {
             variant="outline"
             size="sm"
             onClick={() => void handleExport()}
-            disabled={isExporting}
+            disabled={isExporting || isActiveTabEmpty}
+            title={isActiveTabEmpty ? "No records to export" : undefined}
           >
             <Download className="h-4 w-4 mr-2" />
             {isExporting ? "Exporting..." : "Export"}
