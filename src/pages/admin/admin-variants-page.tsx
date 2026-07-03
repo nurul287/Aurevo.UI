@@ -266,14 +266,17 @@ export default function AdminVariantsPage() {
         alert("Please select a product first.");
         return;
       }
+      if (!formData.size.trim()) {
+        alert("Please enter a size.");
+        return;
+      }
       if (!isCreateStockValid) {
         alert("Please enter a valid initial stock (0 or greater).");
         return;
       }
 
-      // Mirrors the Generate Variants dialog: name defaults to "Color / Size" when left blank.
+      // Mirrors the Generate Variants dialog: name is derived as "Color / Size".
       const derivedName =
-        formData.name.trim() ||
         [formData.color.trim(), formData.size.trim()].filter(Boolean).join(" / ");
 
       createVariantMutation.mutate({
@@ -395,22 +398,8 @@ export default function AdminVariantsPage() {
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Name
-                  </Label>
-                  <Input
-                    id="name"
-                    className="col-span-3"
-                    placeholder="Leave empty to use &quot;Color / Size&quot;"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, name: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="size" className="text-right">
-                    Size
+                    Size <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="size"
@@ -551,6 +540,7 @@ export default function AdminVariantsPage() {
                   disabled={
                     createVariantMutation.isPending ||
                     !formData.product_id ||
+                    !formData.size.trim() ||
                     !isCreateStockValid
                   }
                 >
