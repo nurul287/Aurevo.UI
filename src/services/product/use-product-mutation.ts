@@ -1,8 +1,19 @@
 import { useToast } from "@/hooks/use-toast";
 import { api, apiFetchForm } from "@/lib/api";
 import { ProductGender } from "@/services/types";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { QueryClient, useMutation, useQueryClient } from "@tanstack/react-query";
 import { productQueryKeys } from "./use-product-query";
+
+/**
+ * Every variant create/update/delete changes what the Inventory admin page
+ * shows (it joins from `inventory`, keyed on variant), so all three of its
+ * queries need invalidating alongside the product/variant caches.
+ */
+function invalidateInventoryQueries(queryClient: QueryClient) {
+  queryClient.invalidateQueries({ queryKey: ["inventory-levels"] });
+  queryClient.invalidateQueries({ queryKey: ["low-stock-items"] });
+  queryClient.invalidateQueries({ queryKey: ["inventory-movements"] });
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -285,6 +296,7 @@ export function useCreateProductVariant() {
       queryClient.invalidateQueries({
         queryKey: productQueryKeys.productVariants(params.product_id),
       });
+      invalidateInventoryQueries(queryClient);
     },
     onError: (error: Error) => {
       showError("Failed to Create Variant", error.message);
@@ -321,6 +333,7 @@ export function useUpdateProductVariant() {
       queryClient.invalidateQueries({
         queryKey: productQueryKeys.productVariants(data.product_id),
       });
+      invalidateInventoryQueries(queryClient);
     },
     onError: (error: Error) => {
       showError("Failed to Update Variant", error.message);
@@ -347,6 +360,7 @@ export function useDeleteProductVariant() {
         });
       }
       queryClient.removeQueries({ queryKey: productQueryKeys.productVariant(variantId) });
+      invalidateInventoryQueries(queryClient);
     },
     onError: (error: Error) => {
       showError("Failed to Delete Variant", error.message);
@@ -371,7 +385,7 @@ export function useBulkCreateVariants() {
       queryClient.invalidateQueries({
         queryKey: productQueryKeys.productVariants(product_id),
       });
-      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      invalidateInventoryQueries(queryClient);
     },
     onError: (error: Error) => {
       showError("Failed to Generate Variants", error.message);
@@ -392,6 +406,7 @@ export function useBulkUpdateVariantStatus() {
       const status = isActive ? "activated" : "deactivated";
       showSuccess("Variants Updated", `${variantIds.length} variants have been ${status}`);
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      invalidateInventoryQueries(queryClient);
     },
     onError: (error: Error) => {
       showError("Failed to Update Variants", error.message);
@@ -414,6 +429,7 @@ export function useBulkDeleteVariants() {
       variantIds.forEach((id) => {
         queryClient.removeQueries({ queryKey: productQueryKeys.productVariant(id) });
       });
+      invalidateInventoryQueries(queryClient);
     },
     onError: (error: Error) => {
       showError("Failed to Delete Variants", error.message);
