@@ -78,7 +78,7 @@ export function useMigrateGuestCartToNewUser() {
       sessionId: string;
       userId: string;
     }) => {
-      await api.post("/cart/migrate", { sessionId, userId });
+      await api.post("/cart/migrate", { guestSessionId: sessionId, userId });
     },
     onError: (error) => {
       console.error("Migrate guest cart to new user error:", error);

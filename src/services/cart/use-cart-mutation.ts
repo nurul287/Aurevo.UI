@@ -28,24 +28,30 @@ export function useAddToCart() {
       return api.post<CartItem>(
         "/cart/items",
         { productId, variantId, quantity },
-        { guestSessionId: sessionId, skipAuth: !userId }
+        { guestSessionId: sessionId, skipAuth: !userId },
       );
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: cartQueryKeys.all(variables.userId || "", variables.sessionId),
+        queryKey: cartQueryKeys.all(
+          variables.userId || "",
+          variables.sessionId,
+        ),
       });
 
       if (!variables.suppressToast) {
         const productName =
           (data as { product?: { name?: string } })?.product?.name || "Product";
-        showSuccess("Added to cart!", `${productName} has been added to your cart`);
+        showSuccess(
+          "Added to cart!",
+          `${productName} has been added to your cart`,
+        );
       }
     },
     onError: (error: Error) => {
       showError(
         "Failed to add to cart",
-        error.message || "Something went wrong. Please try again."
+        error.message || "Something went wrong. Please try again.",
       );
     },
   });
@@ -68,17 +74,17 @@ export function useUpdateCartItemQuantity() {
       sessionId?: string;
     }) => {
       if (quantity <= 0) {
-        await api.delete(
-          `/cart/items/${itemId}`,
-          { guestSessionId: sessionId, skipAuth: !userId }
-        );
+        await api.delete(`/cart/items/${itemId}`, {
+          guestSessionId: sessionId,
+          skipAuth: !userId,
+        });
         return null;
       }
 
       return api.patch<CartItem>(
         `/cart/items/${itemId}`,
         { quantity },
-        { guestSessionId: sessionId, skipAuth: !userId }
+        { guestSessionId: sessionId, skipAuth: !userId },
       );
     },
     onMutate: async ({ itemId, quantity, userId, sessionId }) => {
@@ -87,7 +93,7 @@ export function useUpdateCartItemQuantity() {
       });
 
       const previousCartData = queryClient.getQueryData<CartData>(
-        cartQueryKeys.all(userId || "", sessionId)
+        cartQueryKeys.all(userId || "", sessionId),
       );
 
       queryClient.setQueryData(
@@ -96,17 +102,22 @@ export function useUpdateCartItemQuantity() {
           if (!old) return old;
 
           const updatedItems = old.items.map((item) =>
-            item.id === itemId ? { ...item, quantity } : item
+            item.id === itemId ? { ...item, quantity } : item,
           );
 
           const total = updatedItems.reduce(
             (sum, item: CartItem) =>
               sum + getCartLineUnitPrice(item) * item.quantity,
-            0
+            0,
           );
 
-          return { ...old, items: updatedItems, total, itemCount: updatedItems.length };
-        }
+          return {
+            ...old,
+            items: updatedItems,
+            total,
+            itemCount: updatedItems.length,
+          };
+        },
       );
 
       return { previousCartData };
@@ -115,24 +126,30 @@ export function useUpdateCartItemQuantity() {
       if (data) {
         const productName =
           (data as { product?: { name?: string } })?.product?.name || "Item";
-        showSuccess("Quantity updated", `${productName} quantity has been updated`);
+        showSuccess(
+          "Quantity updated",
+          `${productName} quantity has been updated`,
+        );
       }
     },
     onError: (err: Error, variables, context) => {
       if (context?.previousCartData) {
         queryClient.setQueryData(
           cartQueryKeys.all(variables.userId || "", variables.sessionId),
-          context.previousCartData
+          context.previousCartData,
         );
       }
       showError(
         "Failed to update quantity",
-        err.message || "Something went wrong. Please try again."
+        err.message || "Something went wrong. Please try again.",
       );
     },
     onSettled: (_, __, variables) => {
       queryClient.invalidateQueries({
-        queryKey: cartQueryKeys.all(variables.userId || "", variables.sessionId),
+        queryKey: cartQueryKeys.all(
+          variables.userId || "",
+          variables.sessionId,
+        ),
       });
     },
   });
@@ -152,10 +169,10 @@ export function useRemoveFromCart() {
       userId?: string;
       sessionId?: string;
     }) => {
-      await api.delete(
-        `/cart/items/${itemId}`,
-        { guestSessionId: sessionId, skipAuth: !userId }
-      );
+      await api.delete(`/cart/items/${itemId}`, {
+        guestSessionId: sessionId,
+        skipAuth: !userId,
+      });
     },
     onMutate: async ({ itemId, userId, sessionId }) => {
       await queryClient.cancelQueries({
@@ -163,7 +180,7 @@ export function useRemoveFromCart() {
       });
 
       const previousCartData = queryClient.getQueryData(
-        cartQueryKeys.all(userId || "", sessionId)
+        cartQueryKeys.all(userId || "", sessionId),
       );
 
       queryClient.setQueryData(
@@ -174,13 +191,19 @@ export function useRemoveFromCart() {
           const updatedItems = old.items.filter((item) => item.id !== itemId);
           const total = updatedItems.reduce((sum, item: CartItem) => {
             const variantPrice = (item.variant as { price?: number })?.price;
-            const productPrice = (item.product as { base_price?: number })?.base_price;
+            const productPrice = (item.product as { base_price?: number })
+              ?.base_price;
             const price = variantPrice || productPrice || item.price || 0;
             return sum + price * item.quantity;
           }, 0);
 
-          return { ...old, items: updatedItems, total, itemCount: updatedItems.length };
-        }
+          return {
+            ...old,
+            items: updatedItems,
+            total,
+            itemCount: updatedItems.length,
+          };
+        },
       );
 
       return { previousCartData };
@@ -189,17 +212,20 @@ export function useRemoveFromCart() {
       if (context?.previousCartData) {
         queryClient.setQueryData(
           cartQueryKeys.all(variables.userId || "", variables.sessionId),
-          context.previousCartData
+          context.previousCartData,
         );
       }
       showError(
         "Failed to remove item",
-        err.message || "Something went wrong. Please try again."
+        err.message || "Something went wrong. Please try again.",
       );
     },
     onSettled: (_, __, variables) => {
       queryClient.invalidateQueries({
-        queryKey: cartQueryKeys.all(variables.userId || "", variables.sessionId),
+        queryKey: cartQueryKeys.all(
+          variables.userId || "",
+          variables.sessionId,
+        ),
       });
     },
   });
@@ -217,18 +243,25 @@ export function useClearCart() {
       userId?: string;
       sessionId?: string;
     }) => {
-      await api.delete("/cart", { guestSessionId: sessionId, skipAuth: !userId });
+      await api.delete("/cart", {
+        guestSessionId: sessionId,
+        skipAuth: !userId,
+      });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: cartQueryKeys.all(variables.userId || "", variables.sessionId),
-      });
-      showSuccess("Cart cleared!", "All items have been removed from your cart");
+      queryClient.setQueryData(
+        cartQueryKeys.all(variables.userId || "", variables.sessionId),
+        { items: [], total: 0, itemCount: 0 },
+      );
+      showSuccess(
+        "Cart cleared!",
+        "All items have been removed from your cart",
+      );
     },
     onError: (error: Error) => {
       showError(
         "Failed to clear cart",
-        error.message || "Something went wrong. Please try again."
+        error.message || "Something went wrong. Please try again.",
       );
     },
   });
@@ -245,7 +278,7 @@ export function useMigrateGuestCart() {
       sessionId: string;
       userId: string;
     }) => {
-      await api.post("/cart/migrate", { sessionId });
+      await api.post("/cart/migrate", { guestSessionId: sessionId });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
@@ -272,5 +305,11 @@ export function useCartMutations() {
   const clearCart = useClearCart();
   const migrateGuestCart = useMigrateGuestCart();
 
-  return { addToCart, updateQuantity, removeFromCart, clearCart, migrateGuestCart };
+  return {
+    addToCart,
+    updateQuantity,
+    removeFromCart,
+    clearCart,
+    migrateGuestCart,
+  };
 }
