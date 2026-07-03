@@ -56,6 +56,7 @@ import {
   Plus,
   Search,
   Trash2,
+  X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -548,14 +549,6 @@ export default function AdminCategoriesPage() {
                 />
               </div>
             </div>
-            {(searchTerm || statusFilter !== "all") && (
-              <Button
-                variant="default"
-                onClick={() => { setSearchTerm(""); setStatusFilter("all"); }}
-              >
-                Clear
-              </Button>
-            )}
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Status" />
@@ -566,6 +559,12 @@ export default function AdminCategoriesPage() {
                 <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
+            {(searchTerm || statusFilter !== "all") && (
+              <Button variant="ghost" onClick={() => { setSearchTerm(""); setStatusFilter("all"); }}>
+                <X className="h-4 w-4 mr-1" />
+                Clear filters
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -54,6 +54,7 @@ import {
   Search,
   Trash2,
   Wand2,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 import GenerateVariantsDialog from "@/components/admin/generate-variants-dialog";
@@ -526,8 +527,9 @@ export default function AdminVariantsPage() {
             </Select>
             <ProductCombobox value={productFilter} onChange={(v) => { setProductFilter(v); setPage(1); }} />
             {hasActiveFilters && (
-              <Button variant="default" onClick={resetFilters}>
-                Clear
+              <Button variant="ghost" onClick={resetFilters}>
+                <X className="h-4 w-4 mr-1" />
+                Clear filters
               </Button>
             )}
           </div>
