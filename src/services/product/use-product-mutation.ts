@@ -611,6 +611,7 @@ export function useBulkUploadProductImages() {
     onSuccess: ({ succeeded, failed, cancelled, total }, { product_id }) => {
       if (succeeded > 0) {
         queryClient.invalidateQueries({ queryKey: ["products"] });
+        queryClient.invalidateQueries({ queryKey: ["admin", "images"] });
         queryClient.invalidateQueries({
           queryKey: productQueryKeys.productImages(product_id),
         });
