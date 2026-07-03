@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { useAuth } from "@/contexts/auth-context";
-import AdminGuard from "./admin-guard";
+import AuthGuard from "../auth-guard";
 
 vi.mock("@/contexts/auth-context", () => ({
   useAuth: vi.fn(),
@@ -10,66 +10,52 @@ vi.mock("@/contexts/auth-context", () => ({
 
 const mockUseAuth = vi.mocked(useAuth);
 
-function renderAdminGuard(initialEntry = "/admin") {
+function renderAuthGuard(initialEntry = "/protected") {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
-        <Route path="/admin" element={<AdminGuard />}>
-          <Route index element={<div>Admin Content</div>} />
+        <Route path="/protected" element={<AuthGuard />}>
+          <Route index element={<div>Protected Content</div>} />
         </Route>
         <Route path="/login" element={<div>Login Page</div>} />
-        <Route path="/dashboard" element={<div>Dashboard Page</div>} />
       </Routes>
     </MemoryRouter>
   );
 }
 
-describe("AdminGuard", () => {
+describe("AuthGuard", () => {
   it("renders a loading state while auth status is resolving", () => {
     mockUseAuth.mockReturnValue({
       isAuthenticated: false,
-      isAdmin: false,
       loading: true,
     } as unknown as ReturnType<typeof useAuth>);
 
-    const { container } = renderAdminGuard();
+    const { container } = renderAuthGuard();
 
     expect(container.querySelector(".loading-spinner")).toBeInTheDocument();
+    expect(screen.queryByText("Protected Content")).not.toBeInTheDocument();
   });
 
   it("redirects to /login when the user is not authenticated", () => {
     mockUseAuth.mockReturnValue({
       isAuthenticated: false,
-      isAdmin: false,
       loading: false,
     } as unknown as ReturnType<typeof useAuth>);
 
-    renderAdminGuard();
+    renderAuthGuard();
 
     expect(screen.getByText("Login Page")).toBeInTheDocument();
+    expect(screen.queryByText("Protected Content")).not.toBeInTheDocument();
   });
 
-  it("redirects to /dashboard when authenticated but not an admin", () => {
+  it("renders the protected outlet when the user is authenticated", () => {
     mockUseAuth.mockReturnValue({
       isAuthenticated: true,
-      isAdmin: false,
       loading: false,
     } as unknown as ReturnType<typeof useAuth>);
 
-    renderAdminGuard();
+    renderAuthGuard();
 
-    expect(screen.getByText("Dashboard Page")).toBeInTheDocument();
-  });
-
-  it("renders the protected outlet when authenticated and an admin", () => {
-    mockUseAuth.mockReturnValue({
-      isAuthenticated: true,
-      isAdmin: true,
-      loading: false,
-    } as unknown as ReturnType<typeof useAuth>);
-
-    renderAdminGuard();
-
-    expect(screen.getByText("Admin Content")).toBeInTheDocument();
+    expect(screen.getByText("Protected Content")).toBeInTheDocument();
   });
 });

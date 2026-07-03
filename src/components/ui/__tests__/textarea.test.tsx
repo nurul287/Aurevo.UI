@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { Textarea } from "./textarea";
+import { Textarea } from "../textarea";
 
 describe("Textarea", () => {
   it("renders with a placeholder", () => {

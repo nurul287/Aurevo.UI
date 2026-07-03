@@ -3,7 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
-import { ProductCard } from "./product-card";
+import { ProductCard } from "../product-card";
 
 vi.mock("@/hooks/use-cart", () => ({
   useCart: vi.fn(),

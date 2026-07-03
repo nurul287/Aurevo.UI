@@ -3,7 +3,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { useAuth } from "@/contexts/auth-context";
 import { useSession } from "@/services/auth/use-auth-query";
-import GuestGuard from "./guest-guard";
+import GuestGuard from "../guest-guard";
 
 vi.mock("@/contexts/auth-context", () => ({
   useAuth: vi.fn(),

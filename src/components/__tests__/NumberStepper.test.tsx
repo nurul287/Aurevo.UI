@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import NumberStepper from "./NumberStepper";
+import NumberStepper from "../NumberStepper";
 
 describe("NumberStepper", () => {
   beforeEach(() => {

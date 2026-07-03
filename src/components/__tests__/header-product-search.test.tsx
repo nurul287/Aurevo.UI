@@ -3,7 +3,7 @@ import type { ComponentProps } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useSearchProducts } from "@/services";
-import { HeaderProductSearch } from "./header-product-search";
+import { HeaderProductSearch } from "../header-product-search";
 
 vi.mock("@/services", () => ({
   useSearchProducts: vi.fn(),

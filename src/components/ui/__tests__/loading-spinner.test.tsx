@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { LoadingIndicator, LoadingSpinner } from "./loading-spinner";
+import { LoadingIndicator, LoadingSpinner } from "../loading-spinner";
 
 describe("LoadingSpinner", () => {
   it("renders with the default medium size", () => {

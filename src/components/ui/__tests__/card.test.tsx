@@ -7,7 +7,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "./card";
+} from "../card";
 
 describe("Card", () => {
   it("renders composed header, title, description, content, and footer", () => {

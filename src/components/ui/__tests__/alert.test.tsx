@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { Alert, AlertDescription, AlertTitle } from "./alert";
+import { Alert, AlertDescription, AlertTitle } from "../alert";
 
 describe("Alert", () => {
   it("renders with an alert role", () => {
