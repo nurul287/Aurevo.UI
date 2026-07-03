@@ -52,7 +52,10 @@ export async function fetchVariantsAvailableQuantities(
     );
     for (const row of rows ?? []) {
       if (row.variant_id) {
-        map[row.variant_id] = computeAvailableUnits(row.quantity, row.reserved_quantity);
+        map[row.variant_id] = computeAvailableUnits(
+          row.quantity,
+          row.reserved_quantity,
+        );
       }
     }
   } catch {
