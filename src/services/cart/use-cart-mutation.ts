@@ -254,6 +254,10 @@ export function useMigrateGuestCart() {
       queryClient.invalidateQueries({
         queryKey: cartQueryKeys.all(variables.userId),
       });
+      // Migration is one-shot — without this, every fresh page load for an
+      // already-logged-in user re-sends this request forever, since the
+      // guest session id otherwise lingers in localStorage indefinitely.
+      localStorage.removeItem("guest_session_id");
     },
     onError: (error: Error) => {
       console.error("Migrate guest cart error:", error);
