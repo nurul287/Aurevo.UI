@@ -57,7 +57,7 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
-import GenerateVariantsDialog from "@/components/admin/generate-variants-dialog";
+import GenerateVariantsDialog, { slugifyForSku } from "@/components/admin/generate-variants-dialog";
 import { ProductCombobox } from "@/components/admin/product-combobox";
 import { formatPrice } from "@/lib/currency";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -275,13 +275,18 @@ export default function AdminVariantsPage() {
         return;
       }
 
-      // Mirrors the Generate Variants dialog: name is derived as "Color / Size".
+      // Mirrors the Generate Variants dialog: name is derived as "Color / Size",
+      // and SKU as "{prefix}-{COLOR}-{SIZE}" when a prefix is given.
       const derivedName =
         [formData.color.trim(), formData.size.trim()].filter(Boolean).join(" / ");
+      const skuPrefix = formData.sku.trim();
+      const derivedSku = skuPrefix
+        ? `${skuPrefix.toUpperCase()}-${slugifyForSku(formData.color)}-${slugifyForSku(formData.size)}`
+        : undefined;
 
       createVariantMutation.mutate({
         product_id: formData.product_id,
-        sku: formData.sku,
+        sku: derivedSku,
         name: derivedName,
         size: formData.size,
         color: formData.color,
@@ -383,19 +388,27 @@ export default function AdminVariantsPage() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="sku" className="text-right">
-                    SKU
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label htmlFor="sku" className="text-right pt-2">
+                    SKU prefix
                   </Label>
-                  <Input
-                    id="sku"
-                    className="col-span-3"
-                    placeholder="Variant SKU"
-                    value={formData.sku}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, sku: e.target.value }))
-                    }
-                  />
+                  <div className="col-span-3 space-y-1">
+                    <Input
+                      id="sku"
+                      placeholder="e.g. ADDIDAS-ADIMULE"
+                      value={formData.sku}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, sku: e.target.value }))
+                      }
+                    />
+                    <p className="text-xs text-gray-500">
+                      Optional. SKU will be generated as{" "}
+                      <code className="text-xs bg-gray-100 px-1 rounded">
+                        {`{prefix}-{COLOR}-{SIZE}`}
+                      </code>
+                      , same as Generate Variants.
+                    </p>
+                  </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="size" className="text-right">

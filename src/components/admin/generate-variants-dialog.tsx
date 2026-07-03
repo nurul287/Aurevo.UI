@@ -40,7 +40,7 @@ interface GenerateVariantsDialogProps {
   defaultProductId?: string;
 }
 
-const slugifyForSku = (value: string) =>
+export const slugifyForSku = (value: string) =>
   value
     .toUpperCase()
     .replace(/[^A-Z0-9]+/g, "-")
