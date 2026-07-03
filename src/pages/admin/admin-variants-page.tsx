@@ -443,18 +443,32 @@ export default function AdminVariantsPage() {
                   <Label htmlFor="color_code" className="text-right">
                     Color Code
                   </Label>
-                  <Input
-                    id="color_code"
-                    className="col-span-3"
-                    placeholder="#FF0000"
-                    value={formData.color_code}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        color_code: e.target.value,
-                      }))
-                    }
-                  />
+                  <div className="col-span-3 flex items-center gap-2 border border-gray-200 rounded-md px-2 py-1 bg-white">
+                    <input
+                      type="color"
+                      value={/^#[0-9a-fA-F]{6}$/.test(formData.color_code) ? formData.color_code : "#000000"}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          color_code: e.target.value,
+                        }))
+                      }
+                      className="w-7 h-7 cursor-pointer border-0 bg-transparent p-0"
+                      aria-label="Color code"
+                    />
+                    <Input
+                      id="color_code"
+                      placeholder="#FF0000"
+                      value={formData.color_code}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          color_code: e.target.value,
+                        }))
+                      }
+                      className="border-0 shadow-none focus-visible:ring-0 px-0"
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-4 items-start gap-4">
                   <Label htmlFor="price" className="text-right pt-2">
