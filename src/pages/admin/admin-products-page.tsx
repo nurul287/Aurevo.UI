@@ -54,7 +54,6 @@ import {
 } from "@/services/product/use-product-mutation";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Inventory,
   ProductGender,
   ProductVariant,
   ProductWithVariants,
@@ -133,15 +132,10 @@ const EMPTY_PRODUCT_FORM_DATA: ProductFormData = {
 };
 
 function variantAvailableUnits(variant: ProductVariant): number {
-  const inv = variant.inventory;
-  if (inv == null) return 0;
-  const rows: Inventory[] = Array.isArray(inv) ? inv : [inv];
-  return rows.reduce((sum, row) => {
-    const avail =
-      row.available_quantity ??
-      Math.max(0, (row.quantity ?? 0) - (row.reserved_quantity ?? 0));
-    return sum + Math.max(0, avail);
-  }, 0);
+  // product_variants.stock/reserved_stock is the source of truth — the field
+  // order creation/cancellation actually mutates. The nested `inventory`
+  // relation is a separate, legacy table GET /products doesn't even return.
+  return Math.max(0, (variant.stock ?? 0) - (variant.reserved_stock ?? 0));
 }
 
 export default function AdminProductsPage() {
