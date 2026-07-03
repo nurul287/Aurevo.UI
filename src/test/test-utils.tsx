@@ -3,11 +3,19 @@ import { render, renderHook, type RenderHookOptions, type RenderOptions } from "
 import type { ReactElement, ReactNode } from "react";
 import { MemoryRouter, type MemoryRouterProps } from "react-router-dom";
 
-/** Fresh QueryClient per render — no retries/caching noise between tests. */
+/**
+ * Fresh QueryClient per render — no retries between tests.
+ *
+ * Deliberately does NOT set `gcTime: 0`: some mutations write to cache keys
+ * that have no active observer in the test (e.g. `setQueryData` for a
+ * profile cache key while only the mutation itself is rendered). A `gcTime`
+ * of 0 schedules those entries for garbage collection almost immediately,
+ * which would make `queryClient.getQueryData(...)` assertions flaky.
+ */
 export function createTestQueryClient() {
   return new QueryClient({
     defaultOptions: {
-      queries: { retry: false, gcTime: 0 },
+      queries: { retry: false },
       mutations: { retry: false },
     },
   });
