@@ -74,6 +74,7 @@ export interface CreateProductVariantParams {
   barcode?: string;
   is_active?: boolean;
   sort_order?: number;
+  stock?: number;
 }
 
 export interface UpdateProductVariantParams {
@@ -275,6 +276,7 @@ export function useCreateProductVariant() {
         barcode: params.barcode,
         isActive: params.is_active,
         sortOrder: params.sort_order,
+        stock: params.stock,
       }),
     onSuccess: (_data, params) => {
       showSuccess("Variant Created", "Product variant has been successfully created");

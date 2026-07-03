@@ -82,6 +82,7 @@ interface VariantFormData {
   barcode: string;
   sort_order: string;
   is_active: boolean;
+  stock: string;
 }
 
 export default function AdminVariantsPage() {
@@ -123,6 +124,7 @@ export default function AdminVariantsPage() {
     barcode: "",
     sort_order: "0",
     is_active: true,
+    stock: "",
   });
 
   // Hooks
@@ -143,6 +145,13 @@ export default function AdminVariantsPage() {
   const deleteVariantMutation = useDeleteProductVariant();
   const bulkUpdateStatusMutation = useBulkUpdateVariantStatus();
   const bulkDeleteVariantsMutation = useBulkDeleteVariants();
+
+  // Stock must be an explicit non-negative integer — same rule as Generate Variants.
+  const createStockTrimmed = formData.stock.trim();
+  const isCreateStockValid =
+    createStockTrimmed.length > 0 &&
+    /^\d+$/.test(createStockTrimmed) &&
+    parseInt(createStockTrimmed, 10) >= 0;
 
   const resetFilters = () => {
     setSearchTerm("");
@@ -197,6 +206,7 @@ export default function AdminVariantsPage() {
       barcode: variant.barcode || "",
       sort_order: variant.sort_order?.toString() || "0",
       is_active: variant.is_active ?? true,
+      stock: "",
     });
     setIsEditDialogOpen(true);
   };
@@ -256,11 +266,20 @@ export default function AdminVariantsPage() {
         alert("Please select a product first.");
         return;
       }
+      if (!isCreateStockValid) {
+        alert("Please enter a valid initial stock (0 or greater).");
+        return;
+      }
+
+      // Mirrors the Generate Variants dialog: name defaults to "Color / Size" when left blank.
+      const derivedName =
+        formData.name.trim() ||
+        [formData.color.trim(), formData.size.trim()].filter(Boolean).join(" / ");
 
       createVariantMutation.mutate({
         product_id: formData.product_id,
         sku: formData.sku,
-        name: formData.name,
+        name: derivedName,
         size: formData.size,
         color: formData.color,
         color_code: formData.color_code,
@@ -271,6 +290,7 @@ export default function AdminVariantsPage() {
         barcode: formData.barcode,
         sort_order: parseInt(formData.sort_order),
         is_active: formData.is_active,
+        stock: parseInt(formData.stock, 10),
       }, { onSuccess: () => setPage(1) });
       setIsAddDialogOpen(false);
     }
@@ -290,6 +310,7 @@ export default function AdminVariantsPage() {
       barcode: "",
       sort_order: "0",
       is_active: true,
+      stock: "",
     });
   };
 
@@ -380,7 +401,7 @@ export default function AdminVariantsPage() {
                   <Input
                     id="name"
                     className="col-span-3"
-                    placeholder="Variant name"
+                    placeholder="Leave empty to use &quot;Color / Size&quot;"
                     value={formData.name}
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, name: e.target.value }))
@@ -459,6 +480,37 @@ export default function AdminVariantsPage() {
                     </p>
                   </div>
                 </div>
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label htmlFor="stock" className="text-right pt-2">
+                    Initial Stock <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="col-span-3 space-y-1">
+                    <Input
+                      id="stock"
+                      type="number"
+                      min={0}
+                      step={1}
+                      placeholder="e.g. 10"
+                      value={formData.stock}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          stock: e.target.value,
+                        }))
+                      }
+                      aria-invalid={createStockTrimmed.length > 0 && !isCreateStockValid}
+                      className={
+                        createStockTrimmed.length > 0 && !isCreateStockValid
+                          ? "border-red-500 focus-visible:ring-red-500"
+                          : undefined
+                      }
+                    />
+                    <p className="text-xs text-gray-500">
+                      Required. Enter <code className="bg-gray-100 px-1 rounded">0</code>{" "}
+                      if you&apos;ll add real stock later.
+                    </p>
+                  </div>
+                </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label className="text-right">Options</Label>
                   <div className="col-span-3 space-y-2">
@@ -482,7 +534,11 @@ export default function AdminVariantsPage() {
                 <Button
                   type="submit"
                   onClick={handleSubmitVariant}
-                  disabled={createVariantMutation.isPending}
+                  disabled={
+                    createVariantMutation.isPending ||
+                    !formData.product_id ||
+                    !isCreateStockValid
+                  }
                 >
                   {createVariantMutation.isPending
                     ? "Creating..."
