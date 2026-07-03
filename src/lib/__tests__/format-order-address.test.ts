@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatOrderShippingLine } from "./format-order-address";
+import { formatOrderShippingLine } from "../format-order-address";
 
 describe("formatOrderShippingLine", () => {
   it("returns an em dash when the address is missing", () => {

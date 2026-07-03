@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatPrice, TAKA_SYMBOL } from "./currency";
+import { formatPrice, TAKA_SYMBOL } from "../currency";
 
 describe("formatPrice", () => {
   it("formats a number with the currency symbol and 2 decimals by default", () => {

@@ -4,7 +4,7 @@ import {
   getMetaPixelNoscriptImageUrl,
   isMetaPixelEnabled,
   shouldTrackRoute,
-} from "./client";
+} from "../client";
 
 describe("getMetaPixelId", () => {
   afterEach(() => {

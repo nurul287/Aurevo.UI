@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getProfileCompletion } from "./profile-completion";
+import { getProfileCompletion } from "../profile-completion";
 import type { UserProfile } from "@/services/types";
 
 describe("getProfileCompletion", () => {

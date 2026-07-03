@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   parseSupabaseOAuthErrorFromUrl,
   stripSupabaseOAuthParamsFromUrl,
-} from "./oauth-error-url";
+} from "../oauth-error-url";
 
 function setUrl(path: string) {
   window.history.pushState({}, "", path);

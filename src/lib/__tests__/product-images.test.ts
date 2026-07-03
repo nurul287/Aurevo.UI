@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getLeadImageUrl, sortProductImages } from "./product-images";
+import { getLeadImageUrl, sortProductImages } from "../product-images";
 
 describe("sortProductImages", () => {
   it("returns an empty array for null or undefined input", () => {

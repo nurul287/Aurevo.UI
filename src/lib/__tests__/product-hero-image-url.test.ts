@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getProductHeroImageUrl } from "./product-hero-image-url";
+import { getProductHeroImageUrl } from "../product-hero-image-url";
 
 describe("getProductHeroImageUrl", () => {
   afterEach(() => {

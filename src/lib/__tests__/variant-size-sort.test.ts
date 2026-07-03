@@ -6,7 +6,7 @@ import {
   parseSizeSortKey,
   sortProductVariants,
   sortUniqueSizeLabels,
-} from "./variant-size-sort";
+} from "../variant-size-sort";
 
 describe("parseSizeSortKey", () => {
   it("extracts a numeric value from a size label", () => {

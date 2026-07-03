@@ -3,7 +3,7 @@ import {
   consumeOAuthLoginPending,
   markOAuthLoginPending,
   peekOAuthLoginPending,
-} from "./oauth-login-flag";
+} from "../oauth-login-flag";
 
 describe("oauth login pending flag", () => {
   afterEach(() => {

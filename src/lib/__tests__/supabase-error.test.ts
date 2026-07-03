@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getSupabaseErrorMessage } from "./supabase-error";
+import { getSupabaseErrorMessage } from "../supabase-error";
 
 describe("getSupabaseErrorMessage", () => {
   it("returns a generic message for null or undefined", () => {

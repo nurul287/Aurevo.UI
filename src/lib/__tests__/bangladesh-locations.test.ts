@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   BANGLADESH_DISTRICTS,
   upazilasForDistrictName,
-} from "./bangladesh-locations";
+} from "../bangladesh-locations";
 
 describe("BANGLADESH_DISTRICTS", () => {
   it("is sorted alphabetically by English name", () => {

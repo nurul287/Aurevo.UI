@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildProfileFieldsFromUserMetadata } from "./profile-from-auth-metadata";
+import { buildProfileFieldsFromUserMetadata } from "../profile-from-auth-metadata";
 
 describe("buildProfileFieldsFromUserMetadata", () => {
   it("uses direct first_name / last_name fields when present", () => {

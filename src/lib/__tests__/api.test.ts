@@ -9,8 +9,8 @@ vi.mock("@/lib/supabase", () => ({
   supabase: createMockSupabaseClient(null),
 }));
 
-import { api, apiFetch, apiFetchForm, apiFetchList } from "./api";
-import { supabase } from "./supabase";
+import { api, apiFetch, apiFetchForm, apiFetchList } from "../api";
+import { supabase } from "../supabase";
 
 describe("apiFetch", () => {
   afterEach(() => {

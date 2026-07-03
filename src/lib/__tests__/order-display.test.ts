@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getOrderCustomerName } from "./order-display";
+import { getOrderCustomerName } from "../order-display";
 import type { Order } from "@/services/types";
 
 type OrderWithUser = Order & {
