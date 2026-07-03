@@ -61,16 +61,8 @@ export interface InventoryMovement {
   };
 }
 
-export interface LowStockItem {
-  product_id: string;
-  product_name: string;
-  variant_id: string;
-  variant_name: string;
-  current_stock: number;
-  low_stock_threshold: number;
-  reorder_point: number;
-  reorder_quantity: number;
-}
+/** Actual shape of a row from GET /inventory/low-stock — same nesting as InventoryRecord. */
+export type LowStockItem = InventoryRecord;
 
 export interface InventorySummary {
   product_id: string;
@@ -108,33 +100,46 @@ export function useInventoryMovements(variantId: string, limit = 50) {
   });
 }
 
+export interface InventoryMovementsResult {
+  data: InventoryMovement[];
+  pagination: PaginationMeta;
+}
+
 export function useAllInventoryMovements(filters?: {
   movement_type?: string;
-  reason?: string;
-  date_from?: string;
-  date_to?: string;
+  search?: string;
+  page?: number;
   limit?: number;
 }) {
+  const page = filters?.page ?? 1;
+  const limit = filters?.limit ?? 20;
+
   return useQuery({
-    queryKey: ["inventory-movements", filters],
-    queryFn: async (): Promise<InventoryMovement[]> => {
-      const q = new URLSearchParams();
+    queryKey: ["inventory-movements", { movement_type: filters?.movement_type, search: filters?.search, page, limit }],
+    queryFn: async (): Promise<InventoryMovementsResult> => {
+      const q = new URLSearchParams({ page: String(page), limit: String(limit) });
       if (filters?.movement_type) q.set("movementType", filters.movement_type);
-      if (filters?.limit) q.set("limit", String(filters.limit));
-      const { data } = await apiFetchList<InventoryMovement>(
-        `/inventory/movements${q.toString() ? `?${q}` : ""}`
-      );
-      return data;
+      if (filters?.search) q.set("search", filters.search);
+      const result = await apiFetchList<InventoryMovement>(`/inventory/movements?${q.toString()}`);
+      return { data: result.data, pagination: result.pagination };
     },
   });
 }
 
-export function useLowStockItems() {
+export interface LowStockResult {
+  data: LowStockItem[];
+  pagination: PaginationMeta;
+}
+
+export function useLowStockItems(filters?: { page?: number; limit?: number }) {
+  const page = filters?.page ?? 1;
+  const limit = filters?.limit ?? 20;
+
   return useQuery({
-    queryKey: ["low-stock-items"],
-    queryFn: async (): Promise<LowStockItem[]> => {
-      const { data } = await apiFetchList<LowStockItem>("/inventory/low-stock");
-      return data;
+    queryKey: ["low-stock-items", { page, limit }],
+    queryFn: async (): Promise<LowStockResult> => {
+      const result = await apiFetchList<LowStockItem>(`/inventory/low-stock?page=${page}&limit=${limit}`);
+      return { data: result.data, pagination: result.pagination };
     },
   });
 }
@@ -221,7 +226,7 @@ export function useOrderInventoryMovements(orderId: string) {
 /** Derive stats from already-fetched inventory + low-stock data — no extra API calls. */
 export function computeInventoryStats(
   stockRecords: InventoryRecord[],
-  lowStockItems: LowStockItem[],
+  lowStockTotal: number,
 ) {
   const totalStockValue = stockRecords.reduce((sum, item) => {
     const qty = Number(item.quantity) || 0;
@@ -237,7 +242,7 @@ export function computeInventoryStats(
 
   return {
     totalStockValue,
-    lowStockCount: lowStockItems.length,
+    lowStockCount: lowStockTotal,
     totalVariants: stockRecords.length,
     totalStockQuantity: stockRecords.reduce(
       (s, r) => s + (Number(r.quantity) || 0),
