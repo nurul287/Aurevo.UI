@@ -32,10 +32,12 @@ export type AdminProductsParams = {
 };
 
 export const productQueryKeys = {
-  adminProducts: (params: AdminProductsParams) => ["products", "admin", params] as const,
+  adminProducts: (params: AdminProductsParams) =>
+    ["products", "admin", params] as const,
   products: (params: PaginationParams) => ["products", "list", params] as const,
   product: (id: string) => ["products", "detail", id] as const,
-  productBySlug: (slug: string) => ["products", "detail", "slug", slug] as const,
+  productBySlug: (slug: string) =>
+    ["products", "detail", "slug", slug] as const,
   productsByCategory: (categoryId: string, params: PaginationParams) =>
     ["products", "category", categoryId, params] as const,
   searchProducts: (query: string, params: PaginationParams) =>
@@ -70,17 +72,18 @@ function buildProductsUrl(params: {
   if (params.categoryId) q.set("categoryId", params.categoryId);
   if (params.brandId) q.set("brandId", params.brandId);
   if (params.isActive !== undefined) q.set("isActive", String(params.isActive));
-  if (params.isFeatured !== undefined) q.set("isFeatured", String(params.isFeatured));
+  if (params.isFeatured !== undefined)
+    q.set("isFeatured", String(params.isFeatured));
   return `/products?${q.toString()}`;
 }
 
 async function fetchPublicProductBySlug(
-  slug: string
+  slug: string,
 ): Promise<PublicProductWithVariants | null> {
   try {
     const data = await apiFetch<PublicProductWithVariants>(
       `/products/by-slug/${encodeURIComponent(slug)}`,
-      { skipAuth: true }
+      { skipAuth: true },
     );
     return data ? withSortedVariants(data) : null;
   } catch (err: unknown) {
@@ -91,12 +94,12 @@ async function fetchPublicProductBySlug(
 
 async function resolvePromotionalBannerProduct(
   role: PromotionalBannerColor,
-  excludeProductIds: string[] = []
+  excludeProductIds: string[] = [],
 ): Promise<PublicProductWithVariants | null> {
   const slugs = PROMOTIONAL_BANNER_PRODUCT_SLUGS[role];
   const results = await Promise.all(slugs.map(fetchPublicProductBySlug));
   const match = results.find(
-    (p) => p !== null && !excludeProductIds.includes(p.id)
+    (p) => p !== null && !excludeProductIds.includes(p.id),
   );
   if (match) return match;
 
@@ -104,13 +107,13 @@ async function resolvePromotionalBannerProduct(
   try {
     const { data } = await apiFetchList<PublicProductWithVariants>(
       "/products?search=vomero&limit=20&isActive=true",
-      { skipAuth: true }
+      { skipAuth: true },
     );
     const products = withSortedVariantsOnProducts(data ?? []).filter(
-      (p) => !excludeProductIds.includes(p.id)
+      (p) => !excludeProductIds.includes(p.id),
     );
     const byColor = products.filter((p) =>
-      productMatchesPromoColorRole(p.variants, role)
+      productMatchesPromoColorRole(p.variants, role),
     );
     if (byColor[0]) return byColor[0];
     if (products.length === 1) return products[0];
@@ -129,7 +132,7 @@ export function useProducts(params: PaginationParams = {}) {
     queryFn: async (): Promise<PaginatedResponse<ProductWithVariants>> => {
       const { data, pagination } = await apiFetchList<ProductWithVariants>(
         buildProductsUrl({ page, limit }),
-        { skipAuth: true }
+        { skipAuth: true },
       );
       return {
         data: withSortedVariantsOnProducts(data),
@@ -143,15 +146,32 @@ export function useProducts(params: PaginationParams = {}) {
   });
 }
 
-export function useAdminProducts(params: AdminProductsParams & { enabled?: boolean } = {}) {
-  const { page = 1, limit = 20, search, isActive, categoryId, brandId, enabled = true } = params;
+export function useAdminProducts(
+  params: AdminProductsParams & { enabled?: boolean } = {},
+) {
+  const {
+    page = 1,
+    limit = 20,
+    search,
+    isActive,
+    categoryId,
+    brandId,
+    enabled = true,
+  } = params;
   return useQuery({
     queryKey: productQueryKeys.adminProducts(params),
     enabled,
     queryFn: async (): Promise<PaginatedResponse<ProductWithVariants>> => {
       const { data, pagination } = await apiFetchList<ProductWithVariants>(
-        buildProductsUrl({ page, limit, search: search || undefined, isActive: isActive ? isActive === "true" : undefined, categoryId, brandId }),
-        { skipAuth: false }
+        buildProductsUrl({
+          page,
+          limit,
+          search: search || undefined,
+          isActive: isActive ? isActive === "true" : undefined,
+          categoryId,
+          brandId,
+        }),
+        { skipAuth: false },
       );
       return {
         data: withSortedVariantsOnProducts(data),
@@ -172,13 +192,19 @@ export type InfiniteProductsFilters = {
 
 export function useInfiniteProducts(
   limit: number = 12,
-  filters: InfiniteProductsFilters = {}
+  filters: InfiniteProductsFilters = {},
 ) {
   const categorySlug = filters.categorySlug?.trim() || null;
   const searchRaw = filters.search?.trim() || null;
 
   return useInfiniteQuery({
-    queryKey: ["products", "infinite", limit, categorySlug ?? "", searchRaw ?? ""],
+    queryKey: [
+      "products",
+      "infinite",
+      limit,
+      categorySlug ?? "",
+      searchRaw ?? "",
+    ],
     queryFn: async ({ pageParam = 1 }) => {
       // Resolve categorySlug → id via BE
       let categoryId: string | null = null;
@@ -186,30 +212,37 @@ export function useInfiniteProducts(
         try {
           const { data: cats } = await apiFetchList<Category>(
             `/categories?limit=100`,
-            { skipAuth: true }
+            { skipAuth: true },
           );
           categoryId =
             cats.find(
-              (c) => c.slug.toLowerCase() === categorySlug.toLowerCase()
+              (c) => c.slug.toLowerCase() === categorySlug.toLowerCase(),
             )?.id ?? null;
           if (!categoryId) {
-            return { data: [], count: 0, page: pageParam, limit, totalPages: 0 };
+            return {
+              data: [],
+              count: 0,
+              page: pageParam,
+              limit,
+              totalPages: 0,
+            };
           }
         } catch {
           return { data: [], count: 0, page: pageParam, limit, totalPages: 0 };
         }
       }
 
-      const { data, pagination } = await apiFetchList<PublicProductWithVariants>(
-        buildProductsUrl({
-          page: pageParam,
-          limit,
-          search: searchRaw,
-          categoryId,
-          isActive: true,
-        }),
-        { skipAuth: true }
-      );
+      const { data, pagination } =
+        await apiFetchList<PublicProductWithVariants>(
+          buildProductsUrl({
+            page: pageParam,
+            limit,
+            search: searchRaw,
+            categoryId,
+            isActive: true,
+          }),
+          { skipAuth: true },
+        );
 
       return {
         data: withSortedVariantsOnProducts(data ?? []),
@@ -233,7 +266,7 @@ export function useProduct(id: string) {
       try {
         const data = await apiFetch<PublicProductWithVariants>(
           `/products/${id}`,
-          { skipAuth: true }
+          { skipAuth: true },
         );
         return data ? withSortedVariants(data) : null;
       } catch (err: unknown) {
@@ -262,11 +295,46 @@ export function usePromotionalBannerProducts() {
       orange: PublicProductWithVariants | null;
       white: PublicProductWithVariants | null;
     }> => {
-      const orange = await resolvePromotionalBannerProduct("orange");
-      const white = await resolvePromotionalBannerProduct(
-        "white",
-        orange ? [orange.id] : []
-      );
+      const allSlugs = [
+        ...new Set([
+          ...PROMOTIONAL_BANNER_PRODUCT_SLUGS.orange,
+          ...PROMOTIONAL_BANNER_PRODUCT_SLUGS.white,
+        ]),
+      ];
+
+      const fetched = await Promise.all(allSlugs.map(fetchPublicProductBySlug));
+      const slugMap = new Map<string, PublicProductWithVariants>();
+      allSlugs.forEach((slug, i) => {
+        if (fetched[i]) slugMap.set(slug, fetched[i]);
+      });
+
+      const pickForRole = (
+        role: PromotionalBannerColor,
+        excludeIds: string[],
+      ): PublicProductWithVariants | null => {
+        const slugs = PROMOTIONAL_BANNER_PRODUCT_SLUGS[role];
+        for (const s of slugs) {
+          const p = slugMap.get(s);
+          if (p && !excludeIds.includes(p.id)) return p;
+        }
+        return null;
+      };
+
+      let orange = pickForRole("orange", []);
+
+      if (!orange) {
+        orange = await resolvePromotionalBannerProduct("orange");
+      }
+
+      let white = pickForRole("white", orange ? [orange.id] : []);
+
+      if (!white) {
+        white = await resolvePromotionalBannerProduct(
+          "white",
+          orange ? [orange.id] : [],
+        );
+      }
+
       return { orange, white };
     },
     staleTime: 10 * 60 * 1000,
@@ -275,16 +343,19 @@ export function usePromotionalBannerProducts() {
 
 export function useProductsByCategory(
   categoryId: string,
-  params: PaginationParams = {}
+  params: PaginationParams = {},
 ) {
   const { page = 1, limit = 10 } = params;
   return useQuery({
     queryKey: productQueryKeys.productsByCategory(categoryId, params),
-    queryFn: async (): Promise<PaginatedResponse<PublicProductWithVariants>> => {
-      const { data, pagination } = await apiFetchList<PublicProductWithVariants>(
-        buildProductsUrl({ page, limit, categoryId }),
-        { skipAuth: true }
-      );
+    queryFn: async (): Promise<
+      PaginatedResponse<PublicProductWithVariants>
+    > => {
+      const { data, pagination } =
+        await apiFetchList<PublicProductWithVariants>(
+          buildProductsUrl({ page, limit, categoryId }),
+          { skipAuth: true },
+        );
       return {
         data: withSortedVariantsOnProducts(data),
         count: pagination.total,
@@ -298,15 +369,26 @@ export function useProductsByCategory(
   });
 }
 
-export function useSearchProducts(query: string, params: PaginationParams = {}) {
+export function useSearchProducts(
+  query: string,
+  params: PaginationParams = {},
+) {
   const { page = 1, limit = 10 } = params;
   return useQuery({
     queryKey: productQueryKeys.searchProducts(query, params),
-    queryFn: async (): Promise<PaginatedResponse<PublicProductWithVariants>> => {
-      const { data, pagination } = await apiFetchList<PublicProductWithVariants>(
-        buildProductsUrl({ page, limit, search: query.trim(), isActive: true }),
-        { skipAuth: true }
-      );
+    queryFn: async (): Promise<
+      PaginatedResponse<PublicProductWithVariants>
+    > => {
+      const { data, pagination } =
+        await apiFetchList<PublicProductWithVariants>(
+          buildProductsUrl({
+            page,
+            limit,
+            search: query.trim(),
+            isActive: true,
+          }),
+          { skipAuth: true },
+        );
       return {
         data: withSortedVariantsOnProducts(data),
         count: pagination.total,
@@ -326,7 +408,7 @@ export function useProductVariants(productId: string) {
     queryFn: async (): Promise<ProductVariant[]> => {
       const { data } = await apiFetchList<ProductVariant>(
         `/products/${productId}/variants`,
-        { skipAuth: true }
+        { skipAuth: true },
       );
       return sortProductVariants(data);
     },
@@ -343,21 +425,32 @@ export type AdminVariantsParams = {
   productId?: string;
 };
 
-export function useAdminVariants(params: AdminVariantsParams & { enabled?: boolean } = {}) {
-  const { page = 1, limit = 20, search, isActive, productId, enabled = true } = params;
+export function useAdminVariants(
+  params: AdminVariantsParams & { enabled?: boolean } = {},
+) {
+  const {
+    page = 1,
+    limit = 20,
+    search,
+    isActive,
+    productId,
+    enabled = true,
+  } = params;
   return useQuery({
     queryKey: ["variants", "admin", params],
     enabled,
-    queryFn: async (): Promise<PaginatedResponse<ProductVariant & { product?: Product }>> => {
+    queryFn: async (): Promise<
+      PaginatedResponse<ProductVariant & { product?: Product }>
+    > => {
       const q = new URLSearchParams();
       q.set("page", String(page));
       q.set("limit", String(limit));
       if (search) q.set("search", search);
       if (isActive) q.set("isActive", isActive);
       if (productId && productId !== "all") q.set("productId", productId);
-      const { data, pagination } = await apiFetchList<ProductVariant & { product?: Product }>(
-        `/variants?${q.toString()}`
-      );
+      const { data, pagination } = await apiFetchList<
+        ProductVariant & { product?: Product }
+      >(`/variants?${q.toString()}`);
       return {
         data: sortAdminVariantRows(data),
         count: pagination.total,
@@ -402,7 +495,8 @@ export function useAdminImages(params: AdminImagesParams = {}) {
 
   return useQuery({
     queryKey: ["admin", "images", { page, limit, search, productId }],
-    queryFn: () => apiFetchList<AdminImageRow>(`/admin/images?${qs.toString()}`),
+    queryFn: () =>
+      apiFetchList<AdminImageRow>(`/admin/images?${qs.toString()}`),
     staleTime: 30 * 1000,
   });
 }
