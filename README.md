@@ -126,16 +126,19 @@ pnpm build        # production build
 ### Environment Variables (`.env.local`)
 
 ```env
-# Supabase (OAuth only — Google/Facebook sign-in redirects)
-VITE_SUPABASE_URL=http://127.0.0.1:54321
-VITE_SUPABASE_ANON_KEY=<local-anon-key>
-
-# Backend REST API
+# Backend REST API (required)
 VITE_API_URL=http://localhost:5000/api
 
-# Optional — production only
-VITE_FACEBOOK_PAGE_ID=your_facebook_page_id
-VITE_META_PIXEL_ID=your_meta_pixel_id
+# Supabase — OAuth only (Google/Facebook sign-in)
+# Not needed if you only use email/password auth.
+VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Facebook Messenger floating chat button
+VITE_FACEBOOK_PAGE_ID=855862097613203
+
+# Meta Pixel (ads & remarketing)
+VITE_META_PIXEL_ID=1409609890385063
 ```
 
 ---
