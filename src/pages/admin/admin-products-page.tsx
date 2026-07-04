@@ -45,7 +45,7 @@ import {
   useCategories,
   useCreateProduct,
   useDeleteProduct,
-  useProducts,
+  useAdminProducts,
   useUpdateProduct,
 } from "@/services/product";
 import {
@@ -54,7 +54,6 @@ import {
 } from "@/services/product/use-product-mutation";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Inventory,
   ProductGender,
   ProductVariant,
   ProductWithVariants,
@@ -68,8 +67,10 @@ import {
   Plus,
   Search,
   Trash2,
+  X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 const statusColors = {
   active: "bg-green-100 text-green-800",
@@ -131,15 +132,10 @@ const EMPTY_PRODUCT_FORM_DATA: ProductFormData = {
 };
 
 function variantAvailableUnits(variant: ProductVariant): number {
-  const inv = variant.inventory;
-  if (inv == null) return 0;
-  const rows: Inventory[] = Array.isArray(inv) ? inv : [inv];
-  return rows.reduce((sum, row) => {
-    const avail =
-      row.available_quantity ??
-      Math.max(0, (row.quantity ?? 0) - (row.reserved_quantity ?? 0));
-    return sum + Math.max(0, avail);
-  }, 0);
+  // product_variants.stock/reserved_stock is the source of truth — the field
+  // order creation/cancellation actually mutates. The nested `inventory`
+  // relation is a separate, legacy table GET /products doesn't even return.
+  return Math.max(0, (variant.stock ?? 0) - (variant.reserved_stock ?? 0));
 }
 
 export default function AdminProductsPage() {
@@ -149,6 +145,9 @@ export default function AdminProductsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [brandFilter, setBrandFilter] = useState("all");
+  const [page, setPage] = useState(1);
+
+  const debouncedSearch = useDebouncedValue(searchTerm, 400);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -187,9 +186,13 @@ export default function AdminProductsPage() {
   };
 
   // Hooks
-  const { data: productsData, isLoading: productsLoading } = useProducts({
-    page: 1,
-    limit: 100,
+  const { data: productsData, isLoading: productsLoading, isFetching: productsFetching } = useAdminProducts({
+    page,
+    limit: 20,
+    search: debouncedSearch || undefined,
+    isActive: statusFilter === "active" ? "true" : statusFilter === "inactive" ? "false" : undefined,
+    categoryId: categoryFilter !== "all" ? categoryFilter : undefined,
+    brandId: brandFilter !== "all" ? brandFilter : undefined,
   });
   const { data: categories } = useCategories();
   const { data: brands } = useBrands();
@@ -201,30 +204,19 @@ export default function AdminProductsPage() {
 
   // Computed values
   const products = productsData?.data || [];
-  const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      const matchesSearch =
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.brand?.name.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredProducts = products;
+  const totalPages = productsData?.totalPages ?? 1;
+  const totalCount = productsData?.count ?? 0;
 
-      const matchesStatus =
-        statusFilter === "all" ||
-        (statusFilter === "active" && product.is_active) ||
-        (statusFilter === "inactive" && !product.is_active) ||
-        (statusFilter === "inactive-brand" &&
-          product.brand &&
-          !product.brand.is_active);
+  const resetFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setCategoryFilter("all");
+    setBrandFilter("all");
+    setPage(1);
+  };
 
-      const matchesCategory =
-        categoryFilter === "all" || product.category_id === categoryFilter;
-
-      const matchesBrand =
-        brandFilter === "all" || product.brand_id === brandFilter;
-
-      return matchesSearch && matchesStatus && matchesCategory && matchesBrand;
-    });
-  }, [products, searchTerm, statusFilter, categoryFilter, brandFilter]);
+  const hasActiveFilters = searchTerm || statusFilter !== "all" || categoryFilter !== "all" || brandFilter !== "all";
 
   // Helper functions
   const formatDate = (dateString: string) => {
@@ -785,12 +777,12 @@ export default function AdminProductsPage() {
                 <Input
                   placeholder="Search products, brands, or SKUs..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                   className="pl-10"
                 />
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -798,10 +790,9 @@ export default function AdminProductsPage() {
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="inactive-brand">Inactive Brand</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setPage(1); }}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
@@ -814,7 +805,7 @@ export default function AdminProductsPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={brandFilter} onValueChange={setBrandFilter}>
+            <Select value={brandFilter} onValueChange={(v) => { setBrandFilter(v); setPage(1); }}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Brand" />
               </SelectTrigger>
@@ -827,6 +818,12 @@ export default function AdminProductsPage() {
                 ))}
               </SelectContent>
             </Select>
+            {hasActiveFilters && (
+              <Button variant="ghost" onClick={resetFilters}>
+                <X className="h-4 w-4 mr-1" />
+                Clear filters
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -835,7 +832,7 @@ export default function AdminProductsPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Products ({filteredProducts.length})</CardTitle>
+            <CardTitle>Products ({totalCount})</CardTitle>
             {selectedProducts.length > 0 && (
               <div className="text-sm text-muted-foreground">
                 {selectedProducts.length} selected
@@ -844,7 +841,12 @@ export default function AdminProductsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="relative rounded-md border">
+            {productsFetching && !productsLoading && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60 rounded-md">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+              </div>
+            )}
             <Table>
               <TableHeader>
                 <TableRow>
@@ -1007,6 +1009,31 @@ export default function AdminProductsPage() {
               </TableBody>
             </Table>
           </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4">
+              <p className="text-sm text-muted-foreground">
+                Page {page} of {totalPages}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

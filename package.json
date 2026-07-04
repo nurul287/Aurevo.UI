@@ -9,24 +9,9 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "preview": "vite preview",
-    "db:validate": "node scripts/db-validate.mjs",
-    "db:start": "pnpm dlx supabase@2.98.2 start",
-    "db:stop": "pnpm dlx supabase@2.98.2 stop",
-    "db:reset": "pnpm dlx supabase@2.98.2 db reset",
-    "db:status": "pnpm dlx supabase@2.98.2 status",
-    "db:push": "pnpm dlx supabase@2.98.2 db push",
-    "db:migrate:local": "pnpm dlx supabase@2.98.2 migration up --local",
-    "db:diff": "pnpm dlx supabase@2.98.2 db diff",
-    "db:lint": "pnpm dlx supabase@2.98.2 db lint",
-    "db:link": "pnpm dlx supabase@2.98.2 link",
-    "db:migration:list": "pnpm dlx supabase@2.98.2 migration list",
-    "db:types": "pnpm dlx supabase@2.98.2 gen types typescript --linked > src/types/database.ts",
-    "db:types:local": "pnpm dlx supabase@2.98.2 gen types typescript --local > src/types/database.ts",
-    "db:dump-prod": "node scripts/db-sync.mjs dump-prod",
-    "db:restore-local": "node scripts/db-sync.mjs restore-local",
-    "db:sync-from-prod": "node scripts/db-sync.mjs sync-from-prod",
-    "db:functions:deploy": "pnpm dlx supabase@2.98.2 functions deploy meta-conversions",
-    "db:functions:serve": "pnpm dlx supabase@2.98.2 functions serve meta-conversions --no-verify-jwt"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
@@ -69,17 +54,24 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/lodash": "^4.17.21",
     "@types/node": "^24.6.0",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.3",
+    "@vitest/coverage-v8": "^4.1.9",
     "eslint": "^9.36.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.4.0",
+    "jsdom": "^29.1.1",
+    "msw": "^2.14.6",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.9.2",
-    "vite": "^7.1.7"
+    "vite": "^7.1.7",
+    "vitest": "^4.1.9"
   }
 }

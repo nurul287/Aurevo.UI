@@ -36,15 +36,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  useAllImages,
+  useAdminImages,
   useBulkDeleteImages,
   useCreateProductImage,
   useDeleteProductImage,
-  useProducts,
   useProductVariants,
   useUpdateProductImage,
 } from "@/services/product";
-import { Product, ProductImage, ProductVariant } from "@/services/types";
+import { ProductCombobox } from "@/components/admin/product-combobox";
+import type { AdminImageRow } from "@/services/product/use-product-query";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import {
   AlertTriangle,
   CloudUpload,
@@ -56,51 +57,56 @@ import {
   Search,
   Star,
   Trash2,
+  X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import BulkImageUploadDialog from "@/components/admin/bulk-image-upload-dialog";
 
-// Form data interfaces
 interface ImageFormData {
   product_id: string;
   variant_id: string;
-  url: string;
+  file: File | null;
   alt_text: string;
   sort_order: string;
   is_primary: boolean;
 }
 
+const EMPTY_FORM: ImageFormData = {
+  product_id: "",
+  variant_id: "",
+  file: null,
+  alt_text: "",
+  sort_order: "0",
+  is_primary: false,
+};
+
 export default function AdminImagesPage() {
-  // State management
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [productFilter, setProductFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const debouncedSearch = useDebouncedValue(searchInput, 400);
+
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isBulkUploadDialogOpen, setIsBulkUploadDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingImage, setEditingImage] = useState<ProductImage | null>(null);
+  const [editingImage, setEditingImage] = useState<AdminImageRow | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [deletingImage, setDeletingImage] = useState<ProductImage | null>(null);
+  const [deletingImage, setDeletingImage] = useState<AdminImageRow | null>(null);
   const [isBulkActionDialogOpen, setIsBulkActionDialogOpen] = useState(false);
 
-  // Form state
-  const [formData, setFormData] = useState<ImageFormData>({
-    product_id: "",
-    variant_id: "",
-    url: "",
-    alt_text: "",
-    sort_order: "0",
-    is_primary: false,
+  const [formData, setFormData] = useState<ImageFormData>(EMPTY_FORM);
+
+  const { data: imagesResult, isLoading: imagesLoading } = useAdminImages({
+    page,
+    limit: 20,
+    search: debouncedSearch || undefined,
+    productId: productFilter !== "all" ? productFilter : undefined,
   });
 
-  // Hooks
-  const { data: productsResponse, isLoading: productsLoading } = useProducts();
-  const { data: allImages, isLoading: imagesLoading } = useAllImages();
+  const images = imagesResult?.data ?? [];
+  const pagination = imagesResult?.pagination;
 
-  // Extract products from paginated response
-  const products = productsResponse?.data || [];
-
-  // Get variants for the selected product
   const { data: productVariants, isLoading: variantsLoading } =
     useProductVariants(formData.product_id);
 
@@ -109,336 +115,247 @@ export default function AdminImagesPage() {
   const deleteImageMutation = useDeleteProductImage();
   const bulkDeleteImagesMutation = useBulkDeleteImages();
 
-  // Computed values
-  const filteredImages = useMemo(() => {
-    if (!allImages) return [];
+  const hasFilters = !!debouncedSearch || productFilter !== "all";
 
-    return allImages.filter((image) => {
-      const matchesSearch =
-        image.url.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        image.alt_text?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        image.product?.name.toLowerCase().includes(searchTerm.toLowerCase());
+  const handleClearFilters = () => {
+    setSearchInput("");
+    setProductFilter("all");
+    setPage(1);
+  };
 
-      const matchesProduct =
-        productFilter === "all" || image.product_id === productFilter;
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    setPage(1);
+  };
 
-      return matchesSearch && matchesProduct;
-    });
-  }, [allImages, searchTerm, productFilter]);
+  const handleProductFilterChange = (value: string) => {
+    setProductFilter(value);
+    setPage(1);
+  };
 
-  // Helper functions
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
-  };
 
-  const getProductName = (image: ProductImage & { product?: Product }) => {
-    return image.product?.name || "Unknown Product";
-  };
-
-  const getVariantName = (
-    image: ProductImage & { variant?: ProductVariant }
-  ) => {
-    if (!image.variant) return "No Variant";
-    return `${image.variant.name || "Variant"} (${
-      image.variant.size || "N/A"
-    })`;
-  };
-
-  // Handle product selection change
   const handleProductChange = (productId: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      product_id: productId,
-      variant_id: "", // Reset variant selection when product changes
-    }));
+    setFormData((prev) => ({ ...prev, product_id: productId, variant_id: "" }));
   };
 
-  // Event handlers
   const handleSelectImage = (imageId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedImages([...selectedImages, imageId]);
-    } else {
-      setSelectedImages(selectedImages.filter((id) => id !== imageId));
-    }
+    setSelectedImages((prev) =>
+      checked ? [...prev, imageId] : prev.filter((id) => id !== imageId)
+    );
   };
 
   const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedImages(filteredImages.map((img) => img.id));
-    } else {
-      setSelectedImages([]);
-    }
+    setSelectedImages(checked ? images.map((img) => img.id) : []);
   };
 
-  const handleEditImage = (image: ProductImage) => {
+  const handleEditImage = (image: AdminImageRow) => {
     setEditingImage(image);
     setFormData({
       product_id: image.product_id,
       variant_id: image.variant_id || "",
-      url: image.url,
+      file: null,
       alt_text: image.alt_text || "",
-      sort_order: image.sort_order?.toString() || "0",
+      sort_order: image.sort_order?.toString() ?? "0",
       is_primary: image.is_primary || false,
     });
     setIsEditDialogOpen(true);
   };
 
-  const handleDeleteImage = (image: ProductImage) => {
+  const handleDeleteImage = (image: AdminImageRow) => {
     setDeletingImage(image);
     setIsDeleteDialogOpen(true);
   };
 
   const handleConfirmDelete = () => {
-    if (deletingImage) {
-      deleteImageMutation.mutate(deletingImage.id);
-      setIsDeleteDialogOpen(false);
-      setDeletingImage(null);
-    }
+    if (!deletingImage) return;
+    deleteImageMutation.mutate({ imageId: deletingImage.id, productId: deletingImage.product_id }, {
+      onSuccess: () => {
+        setIsDeleteDialogOpen(false);
+        setDeletingImage(null);
+      },
+    });
   };
 
   const handleBulkAction = () => {
-    if (selectedImages.length === 0) return;
-
-    bulkDeleteImagesMutation.mutate(selectedImages);
-    setSelectedImages([]);
-    setIsBulkActionDialogOpen(false);
+    if (!selectedImages.length) return;
+    const deleteItems = selectedImages
+      .map((id) => {
+        const img = images.find((i) => i.id === id);
+        return img ? { imageId: id, productId: img.product_id } : null;
+      })
+      .filter(Boolean) as { imageId: string; productId: string }[];
+    bulkDeleteImagesMutation.mutate(deleteItems, {
+      onSuccess: () => {
+        setSelectedImages([]);
+        setIsBulkActionDialogOpen(false);
+      },
+    });
   };
 
   const handleSubmitImage = () => {
     if (editingImage) {
-      // Update existing image
-      updateImageMutation.mutate({
-        id: editingImage.id,
-        url: formData.url,
-        alt_text: formData.alt_text,
-        sort_order: parseInt(formData.sort_order),
-        is_primary: formData.is_primary,
-      });
-      setIsEditDialogOpen(false);
-      setEditingImage(null);
+      updateImageMutation.mutate(
+        {
+          id: editingImage.id,
+          product_id: editingImage.product_id,
+          alt_text: formData.alt_text,
+          sort_order: parseInt(formData.sort_order),
+          is_primary: formData.is_primary,
+        },
+        {
+          onSuccess: () => {
+            setIsEditDialogOpen(false);
+            setEditingImage(null);
+            setFormData(EMPTY_FORM);
+          },
+        }
+      );
     } else {
-      // Create new image
-      if (!formData.product_id) {
-        alert("Please select a product first.");
-        return;
-      }
+      if (!formData.product_id) { alert("Please select a product first."); return; }
+      if (!formData.file) { alert("Please select an image file."); return; }
 
-      if (!formData.variant_id) {
-        alert("Please select a variant first.");
-        return;
-      }
-
-      createImageMutation.mutate({
-        product_id: formData.product_id,
-        variant_id: formData.variant_id,
-        url: formData.url,
-        alt_text: formData.alt_text,
-        sort_order: parseInt(formData.sort_order),
-        is_primary: formData.is_primary,
-      });
-      setIsAddDialogOpen(false);
+      createImageMutation.mutate(
+        {
+          product_id: formData.product_id,
+          variant_id: formData.variant_id || undefined,
+          file: formData.file,
+          alt_text: formData.alt_text,
+          sort_order: parseInt(formData.sort_order),
+          is_primary: formData.is_primary,
+        },
+        {
+          onSuccess: () => {
+            setIsAddDialogOpen(false);
+            setFormData(EMPTY_FORM);
+          },
+        }
+      );
     }
-
-    // Reset form
-    setFormData({
-      product_id: "",
-      variant_id: "",
-      url: "",
-      alt_text: "",
-      sort_order: "0",
-      is_primary: false,
-    });
   };
-
-  if (productsLoading || imagesLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading images...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Product Images Management
-          </h1>
-          <p className="text-muted-foreground">
-            Manage product variant images and galleries
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">Product Images Management</h1>
+          <p className="text-muted-foreground">Manage product variant images and galleries</p>
         </div>
         <div className="flex gap-2">
           {selectedImages.length > 0 && (
-            <Button
-              variant="outline"
-              onClick={() => setIsBulkActionDialogOpen(true)}
-            >
+            <Button variant="outline" onClick={() => setIsBulkActionDialogOpen(true)}>
               Bulk Actions ({selectedImages.length})
             </Button>
           )}
-          <Button
-            onClick={() => setIsBulkUploadDialogOpen(true)}
-            disabled={products.length === 0}
-          >
+          <Button onClick={() => setIsBulkUploadDialogOpen(true)}>
             <CloudUpload className="mr-2 h-4 w-4" />
             Bulk Upload
           </Button>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <Dialog
+            open={isAddDialogOpen}
+            onOpenChange={(open) => { setIsAddDialogOpen(open); if (!open) setFormData(EMPTY_FORM); }}
+          >
             <DialogTrigger asChild>
               <Button variant="outline">
                 <Plus className="mr-2 h-4 w-4" />
-                Add Image
+                Upload Image
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
-                <DialogTitle>Add New Image</DialogTitle>
-                <DialogDescription>
-                  Add a new image for a specific product variant.
-                </DialogDescription>
+                <DialogTitle>Upload Image</DialogTitle>
+                <DialogDescription>Upload a new image for a product or variant.</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="product_id" className="text-right">
-                    Product *
-                  </Label>
-                  <Select
-                    value={formData.product_id}
-                    onValueChange={handleProductChange}
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select a product" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((product: any) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-right">Product *</Label>
+                  <div className="col-span-3">
+                    <ProductCombobox
+                      value={formData.product_id || "all"}
+                      onChange={(v) => handleProductChange(v === "all" ? "" : v)}
+                      className="w-full"
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="variant_id" className="text-right">
-                    Variant *
-                  </Label>
+                  <Label className="text-right">Variant</Label>
                   <Select
                     value={formData.variant_id}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, variant_id: value }))
-                    }
+                    onValueChange={(v) => setFormData((prev) => ({ ...prev, variant_id: v }))}
                     disabled={!formData.product_id || variantsLoading}
                   >
                     <SelectTrigger className="col-span-3">
                       <SelectValue
                         placeholder={
-                          !formData.product_id
-                            ? "Select a product first"
-                            : variantsLoading
-                            ? "Loading variants..."
-                            : "Select a variant"
+                          !formData.product_id ? "Select a product first"
+                            : variantsLoading ? "Loading variants..."
+                            : "Select a variant (optional)"
                         }
                       />
                     </SelectTrigger>
                     <SelectContent>
-                      {productVariants?.map((variant: any) => (
-                        <SelectItem key={variant.id} value={variant.id}>
-                          {variant.name ||
-                            `${variant.color || "Unknown"} - ${
-                              variant.size || "N/A"
-                            }`}
+                      {productVariants?.map((v: any) => (
+                        <SelectItem key={v.id} value={v.id}>
+                          {v.name || `${v.color || "Unknown"} - ${v.size || "N/A"}`}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="url" className="text-right">
-                    Image URL *
-                  </Label>
+                  <Label htmlFor="image_file" className="text-right">Image File *</Label>
                   <Input
-                    id="url"
+                    id="image_file"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
                     className="col-span-3"
-                    placeholder="https://example.com/image.jpg"
-                    value={formData.url}
                     onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, url: e.target.value }))
+                      setFormData((prev) => ({ ...prev, file: e.target.files?.[0] ?? null }))
                     }
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="alt_text" className="text-right">
-                    Alt Text
-                  </Label>
+                  <Label htmlFor="alt_text" className="text-right">Alt Text</Label>
                   <Input
                     id="alt_text"
                     className="col-span-3"
                     placeholder="Image description"
                     value={formData.alt_text}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        alt_text: e.target.value,
-                      }))
-                    }
+                    onChange={(e) => setFormData((prev) => ({ ...prev, alt_text: e.target.value }))}
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="sort_order" className="text-right">
-                    Sort Order
-                  </Label>
+                  <Label htmlFor="sort_order" className="text-right">Sort Order</Label>
                   <Input
                     id="sort_order"
                     type="number"
                     className="col-span-3"
                     placeholder="0"
                     value={formData.sort_order}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        sort_order: e.target.value,
-                      }))
-                    }
+                    onChange={(e) => setFormData((prev) => ({ ...prev, sort_order: e.target.value }))}
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label className="text-right">Options</Label>
-                  <div className="col-span-3 space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="is_primary"
-                        checked={formData.is_primary}
-                        onCheckedChange={(checked) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            is_primary: !!checked,
-                          }))
-                        }
-                      />
-                      <Label htmlFor="is_primary">Primary Image</Label>
-                    </div>
+                  <div className="col-span-3 flex items-center space-x-2">
+                    <Checkbox
+                      id="is_primary"
+                      checked={formData.is_primary}
+                      onCheckedChange={(c) => setFormData((prev) => ({ ...prev, is_primary: !!c }))}
+                    />
+                    <Label htmlFor="is_primary">Primary Image</Label>
                   </div>
                 </div>
               </div>
               <DialogFooter>
-                <Button
-                  type="submit"
-                  onClick={handleSubmitImage}
-                  disabled={createImageMutation.isPending}
-                >
-                  {createImageMutation.isPending
-                    ? "Creating..."
-                    : "Create Image"}
+                <Button onClick={handleSubmitImage} disabled={createImageMutation.isPending}>
+                  {createImageMutation.isPending ? "Uploading..." : "Upload"}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -455,31 +372,25 @@ export default function AdminImagesPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col gap-4 md:flex-row">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search images..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by product name, alt text or URL..."
+                  value={searchInput}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   className="pl-10"
                 />
               </div>
             </div>
-            <Select value={productFilter} onValueChange={setProductFilter}>
-              <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Product" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Products</SelectItem>
-                {products?.map((product: any) => (
-                  <SelectItem key={product.id} value={product.id}>
-                    {product.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ProductCombobox value={productFilter} onChange={handleProductFilterChange} />
+            {hasFilters && (
+              <Button variant="ghost" size="sm" onClick={handleClearFilters} className="shrink-0">
+                <X className="h-4 w-4 mr-1" />
+                Clear filters
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -488,11 +399,11 @@ export default function AdminImagesPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Images ({filteredImages.length})</CardTitle>
+            <CardTitle>
+              Images ({pagination?.total ?? 0})
+            </CardTitle>
             {selectedImages.length > 0 && (
-              <div className="text-sm text-muted-foreground">
-                {selectedImages.length} selected
-              </div>
+              <div className="text-sm text-muted-foreground">{selectedImages.length} selected</div>
             )}
           </div>
         </CardHeader>
@@ -503,10 +414,7 @@ export default function AdminImagesPage() {
                 <TableRow>
                   <TableHead className="w-[50px]">
                     <Checkbox
-                      checked={
-                        selectedImages.length === filteredImages.length &&
-                        filteredImages.length > 0
-                      }
+                      checked={images.length > 0 && selectedImages.length === images.length}
                       onCheckedChange={handleSelectAll}
                     />
                   </TableHead>
@@ -521,7 +429,16 @@ export default function AdminImagesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredImages.length === 0 ? (
+                {imagesLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-8">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                        <p className="text-muted-foreground text-sm">Loading images...</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : images.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8">
                       <div className="flex flex-col items-center gap-2">
@@ -531,43 +448,43 @@ export default function AdminImagesPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredImages.map((image) => {
-                    const isSelected = selectedImages.includes(image.id);
+                  images.map((image) => {
+                    const variantLabel = image.variant_name
+                      || (image.variant_color || image.variant_size
+                          ? [image.variant_color, image.variant_size].filter(Boolean).join(" / ")
+                          : null);
                     return (
                       <TableRow key={image.id}>
                         <TableCell>
                           <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={(checked) =>
-                              handleSelectImage(image.id, !!checked)
-                            }
+                            checked={selectedImages.includes(image.id)}
+                            onCheckedChange={(c) => handleSelectImage(image.id, !!c)}
                           />
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <div className="h-16 w-16 rounded-md border overflow-hidden">
+                            <div className="h-16 w-16 rounded-md border overflow-hidden shrink-0">
                               <img
                                 src={image.url}
                                 alt={image.alt_text || "Product image"}
                                 className="h-full w-full object-cover"
                                 onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.src =
+                                  (e.target as HTMLImageElement).src =
                                     "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNCAyMEg0MFY0NEgyNFYyMFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTI4IDI0SDM2VjQwSDI4VjI0WiIgZmlsbD0iI0U1RTdFQiIvPgo8L3N2Zz4K";
                                 }}
                               />
                             </div>
-                            <div className="text-xs text-muted-foreground max-w-[200px] truncate">
+                            <div className="text-xs text-muted-foreground max-w-[180px] truncate">
                               {image.url}
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>{getProductName(image)}</TableCell>
-                        <TableCell>{getVariantName(image)}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">
-                          {image.alt_text || "No alt text"}
+                        <TableCell className="text-sm">{image.product_name || "—"}</TableCell>
+                        <TableCell className="text-sm">{variantLabel || "No variant"}</TableCell>
+                        <TableCell className="max-w-[180px] truncate text-sm">
+                          {image.alt_text || <span className="text-muted-foreground">—</span>}
                         </TableCell>
-                        <TableCell>{image.sort_order || 0}</TableCell>
+                        <TableCell className="text-sm">{image.sort_order ?? 0}</TableCell>
                         <TableCell>
                           {image.is_primary ? (
                             <Badge className="bg-yellow-100 text-yellow-800">
@@ -575,15 +492,11 @@ export default function AdminImagesPage() {
                               Primary
                             </Badge>
                           ) : (
-                            <span className="text-muted-foreground text-sm">
-                              No
-                            </span>
+                            <span className="text-muted-foreground text-sm">—</span>
                           )}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {image.created_at
-                            ? formatDate(image.created_at)
-                            : "N/A"}
+                          {image.created_at ? formatDate(image.created_at) : "—"}
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>
@@ -593,9 +506,7 @@ export default function AdminImagesPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => handleEditImage(image)}
-                              >
+                              <DropdownMenuItem onClick={() => handleEditImage(image)}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit Image
                               </DropdownMenuItem>
@@ -617,132 +528,104 @@ export default function AdminImagesPage() {
               </TableBody>
             </Table>
           </div>
+
+          {/* Pagination */}
+          {pagination && pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <p className="text-sm text-muted-foreground">
+                Page {pagination.page} of {pagination.totalPages} · {pagination.total} images
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => p - 1)}
+                  disabled={page <= 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={page >= pagination.totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Edit Image Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => { setIsEditDialogOpen(open); if (!open) { setEditingImage(null); setFormData(EMPTY_FORM); } }}
+      >
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Edit Image</DialogTitle>
-            <DialogDescription>Update image information.</DialogDescription>
+            <DialogDescription>Update image metadata.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-product" className="text-right">
-                Product
-              </Label>
-              <div className="col-span-3">
-                <Input
-                  id="edit-product"
-                  value={
-                    editingImage
-                      ? products.find(
-                          (p: any) => p.id === editingImage.product_id
-                        )?.name || "Unknown Product"
-                      : ""
-                  }
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-variant" className="text-right">
-                Variant
-              </Label>
-              <div className="col-span-3">
-                <Input
-                  id="edit-variant"
-                  value={
-                    editingImage && editingImage.variant_id
-                      ? allImages?.find((img) => img.id === editingImage.id)
-                          ?.variant?.name ||
-                        `${
-                          allImages?.find((img) => img.id === editingImage.id)
-                            ?.variant?.color || "Unknown"
-                        } - ${
-                          allImages?.find((img) => img.id === editingImage.id)
-                            ?.variant?.size || "N/A"
-                        }`
-                      : "No Variant"
-                  }
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-url" className="text-right">
-                Image URL *
-              </Label>
+              <Label className="text-right">Product</Label>
               <Input
-                id="edit-url"
-                className="col-span-3"
-                placeholder="https://example.com/image.jpg"
-                value={formData.url}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, url: e.target.value }))
-                }
+                className="col-span-3 bg-muted"
+                value={editingImage?.product_name || "Unknown"}
+                disabled
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-alt_text" className="text-right">
-                Alt Text
-              </Label>
+              <Label className="text-right">Variant</Label>
+              <Input
+                className="col-span-3 bg-muted"
+                value={
+                  editingImage?.variant_id
+                    ? editingImage.variant_name
+                      || [editingImage.variant_color, editingImage.variant_size].filter(Boolean).join(" / ")
+                      || "Variant"
+                    : "No variant"
+                }
+                disabled
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-alt_text" className="text-right">Alt Text</Label>
               <Input
                 id="edit-alt_text"
                 className="col-span-3"
                 placeholder="Image description"
                 value={formData.alt_text}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, alt_text: e.target.value }))
-                }
+                onChange={(e) => setFormData((prev) => ({ ...prev, alt_text: e.target.value }))}
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-sort_order" className="text-right">
-                Sort Order
-              </Label>
+              <Label htmlFor="edit-sort_order" className="text-right">Sort Order</Label>
               <Input
                 id="edit-sort_order"
                 type="number"
                 className="col-span-3"
                 placeholder="0"
                 value={formData.sort_order}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    sort_order: e.target.value,
-                  }))
-                }
+                onChange={(e) => setFormData((prev) => ({ ...prev, sort_order: e.target.value }))}
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Options</Label>
-              <div className="col-span-3 space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="edit-is_primary"
-                    checked={formData.is_primary}
-                    onCheckedChange={(checked) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        is_primary: !!checked,
-                      }))
-                    }
-                  />
-                  <Label htmlFor="edit-is_primary">Primary Image</Label>
-                </div>
+              <div className="col-span-3 flex items-center space-x-2">
+                <Checkbox
+                  id="edit-is_primary"
+                  checked={formData.is_primary}
+                  onCheckedChange={(c) => setFormData((prev) => ({ ...prev, is_primary: !!c }))}
+                />
+                <Label htmlFor="edit-is_primary">Primary Image</Label>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button
-              type="submit"
-              onClick={handleSubmitImage}
-              disabled={updateImageMutation.isPending}
-            >
+            <Button onClick={handleSubmitImage} disabled={updateImageMutation.isPending}>
               {updateImageMutation.isPending ? "Updating..." : "Update Image"}
             </Button>
           </DialogFooter>
@@ -755,8 +638,7 @@ export default function AdminImagesPage() {
           <DialogHeader>
             <DialogTitle>Delete Image</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this image? This action cannot be
-              undone.
+              Are you sure you want to delete this image? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -772,26 +654,19 @@ export default function AdminImagesPage() {
       </Dialog>
 
       {/* Bulk Actions Dialog */}
-      <Dialog
-        open={isBulkActionDialogOpen}
-        onOpenChange={setIsBulkActionDialogOpen}
-      >
+      <Dialog open={isBulkActionDialogOpen} onOpenChange={setIsBulkActionDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Bulk Actions</DialogTitle>
             <DialogDescription>
-              Choose an action to perform on {selectedImages.length} selected
-              images.
+              Choose an action to perform on {selectedImages.length} selected images.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
-              <AlertTriangle className="h-4 w-4 text-red-600" />
-              <p className="text-sm text-red-600">
-                This will permanently delete {selectedImages.length} images.
-                This action cannot be undone.
-              </p>
-            </div>
+          <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
+            <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
+            <p className="text-sm text-red-600">
+              This will permanently delete {selectedImages.length} images. This action cannot be undone.
+            </p>
           </div>
           <DialogFooter>
             <Button
@@ -799,22 +674,17 @@ export default function AdminImagesPage() {
               onClick={handleBulkAction}
               disabled={bulkDeleteImagesMutation.isPending}
             >
-              {bulkDeleteImagesMutation.isPending
-                ? "Processing..."
-                : "Delete Images"}
+              {bulkDeleteImagesMutation.isPending ? "Processing..." : "Delete Images"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Bulk Image Upload Dialog */}
+      {/* Bulk Upload Dialog */}
       <BulkImageUploadDialog
         open={isBulkUploadDialogOpen}
         onOpenChange={setIsBulkUploadDialogOpen}
-        products={products}
-        defaultProductId={
-          productFilter !== "all" ? productFilter : undefined
-        }
+        defaultProductId={productFilter !== "all" ? productFilter : undefined}
       />
     </div>
   );

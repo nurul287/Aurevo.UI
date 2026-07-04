@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { trackMetaPixelAddToCartAfterChange } from "@/lib/meta-pixel";
 import {
   cartQueryKeys,
-  fetchVariantAvailableQuantity,
+  fetchVariantsAvailableQuantities,
   useAddToCart,
   useCartData,
   useClearCart,
@@ -16,10 +16,31 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 /**
+ * Pre-add/update stock checks used to hit `/inventory/availability` via a
+ * raw fetch, bypassing React Query's cache. That's a real duplicate
+ * network call whenever CartSidePanel's batch availability query (same
+ * endpoint, keyed `["inventory","available","batch",...]`) fires right
+ * after — e.g. addItem() opens the panel immediately on success. Using
+ * the same key shape here lets a single-item cart share that cache
+ * entry instead of fetching it twice.
+ */
+async function fetchAvailableUnitsCached(
+  queryClient: ReturnType<typeof useQueryClient>,
+  variantId: string,
+): Promise<number | null> {
+  const map = await queryClient.fetchQuery({
+    queryKey: ["inventory", "available", "batch", variantId],
+    queryFn: () => fetchVariantsAvailableQuantities([variantId]),
+    staleTime: 30 * 1000,
+  });
+  return map[variantId] ?? null;
+}
+
+/**
  * Custom hook that provides a unified cart interface using TanStack Query
  */
 export function useCart() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { sessionId, openCartPanel } = useGuestCart();
   const queryClient = useQueryClient();
   const { showError } = useToast();
@@ -30,15 +51,19 @@ export function useCart() {
       userId: user?.id,
       sessionId: user?.id ? undefined : sessionId,
     }),
-    [user?.id, sessionId]
+    [user?.id, sessionId],
   );
 
-  // Use the optimized combined query instead of 3 separate queries
+  // Wait for auth to resolve before fetching cart to avoid a
+  // throwaway guest-key fetch that gets superseded immediately.
   const {
     data: cartData,
     isLoading: cartLoading,
     error: cartError,
-  } = useCartData(queryParams.userId, queryParams.sessionId);
+  } = useCartData(
+    authLoading ? undefined : queryParams.userId,
+    authLoading ? undefined : queryParams.sessionId,
+  );
 
   // Extract data from the combined query
   const cartItems = cartData?.items || [];
@@ -63,10 +88,10 @@ export function useCart() {
       cartQueryKeys.all(queryParams.userId || "", queryParams.sessionId),
     );
     const existingQty =
-      prevCart?.items.find((item) => item.variant_id === variantId)
-        ?.quantity ?? 0;
+      prevCart?.items.find((item) => item.variant_id === variantId)?.quantity ??
+      0;
 
-    const available = await fetchVariantAvailableQuantity(variantId);
+    const available = await fetchAvailableUnitsCached(queryClient, variantId);
     if (available !== null && existingQty + quantity > available) {
       const remaining = Math.max(0, available - existingQty);
       showError(
@@ -112,7 +137,10 @@ export function useCart() {
     if (quantity > prevQty) {
       const line = prevCart?.items.find((item) => item.id === itemId);
       if (line?.variant_id) {
-        const available = await fetchVariantAvailableQuantity(line.variant_id);
+        const available = await fetchAvailableUnitsCached(
+          queryClient,
+          line.variant_id,
+        );
         if (available !== null && quantity > available) {
           showError(
             "Not enough stock",

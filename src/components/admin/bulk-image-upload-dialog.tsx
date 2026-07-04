@@ -10,19 +10,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
   useBulkUploadProductImages,
   useProductVariants,
 } from "@/services/product";
-import type { Product, ProductVariant } from "@/services/types";
+import type { ProductVariant } from "@/services/types";
+import { ProductCombobox } from "@/components/admin/product-combobox";
 import {
   AlertCircle,
   CheckCircle2,
@@ -37,7 +31,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 interface BulkImageUploadDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  products: Product[];
   defaultProductId?: string;
 }
 
@@ -78,7 +71,6 @@ const formatBytes = (bytes: number) => {
 export const BulkImageUploadDialog = ({
   open,
   onOpenChange,
-  products,
   defaultProductId,
 }: BulkImageUploadDialogProps) => {
   const [productId, setProductId] = useState<string>(defaultProductId ?? "");
@@ -346,22 +338,15 @@ export const BulkImageUploadDialog = ({
 
         <div className="space-y-6 py-4">
           {/* Product */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label>
               Product <span className="text-red-500">*</span>
             </Label>
-            <Select value={productId} onValueChange={setProductId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a product" />
-              </SelectTrigger>
-              <SelectContent>
-                {products.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ProductCombobox
+              value={productId || "all"}
+              onChange={(v) => setProductId(v === "all" ? "" : v)}
+              className="w-full"
+            />
           </div>
 
           {/* Variants */}

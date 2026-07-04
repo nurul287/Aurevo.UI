@@ -36,12 +36,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  useAllVariants,
+  useAdminVariants,
   useBulkDeleteVariants,
   useBulkUpdateVariantStatus,
   useCreateProductVariant,
   useDeleteProductVariant,
-  useProducts,
   useUpdateProductVariant,
 } from "@/services/product";
 import { Product, ProductVariant } from "@/services/types";
@@ -55,11 +54,13 @@ import {
   Search,
   Trash2,
   Wand2,
+  X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
-import GenerateVariantsDialog from "@/components/admin/generate-variants-dialog";
-import { sortAdminVariantRows } from "@/lib/variant-size-sort";
+import { useState } from "react";
+import GenerateVariantsDialog, { slugifyForSku } from "@/components/admin/generate-variants-dialog";
+import { ProductCombobox } from "@/components/admin/product-combobox";
 import { formatPrice } from "@/lib/currency";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 const statusColors = {
   active: "bg-green-100 text-green-800",
@@ -81,13 +82,17 @@ interface VariantFormData {
   barcode: string;
   sort_order: string;
   is_active: boolean;
+  stock: string;
 }
 
 export default function AdminVariantsPage() {
   // State management
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "true" | "false">("all");
   const [productFilter, setProductFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const debouncedSearch = useDebouncedValue(searchTerm, 400);
+  const hasActiveFilters = !!searchTerm || statusFilter !== "all" || productFilter !== "all";
   const [selectedVariants, setSelectedVariants] = useState<string[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
@@ -119,44 +124,41 @@ export default function AdminVariantsPage() {
     barcode: "",
     sort_order: "0",
     is_active: true,
+    stock: "",
   });
 
   // Hooks
-  const { data: productsResponse, isLoading: productsLoading } = useProducts();
-  const { data: allVariants, isLoading: variantsLoading } = useAllVariants();
+  const { data: variantsData, isLoading: variantsLoading, isFetching: variantsFetching } = useAdminVariants({
+    page,
+    limit: 20,
+    search: debouncedSearch || undefined,
+    isActive: statusFilter !== "all" ? statusFilter as "true" | "false" : undefined,
+    productId: productFilter !== "all" ? productFilter : undefined,
+  });
 
-  // Extract products from paginated response
-  const products = productsResponse?.data || [];
+  const variants = variantsData?.data ?? [];
+  const totalPages = variantsData?.totalPages ?? 1;
+  const totalCount = variantsData?.count ?? 0;
+
   const createVariantMutation = useCreateProductVariant();
   const updateVariantMutation = useUpdateProductVariant();
   const deleteVariantMutation = useDeleteProductVariant();
   const bulkUpdateStatusMutation = useBulkUpdateVariantStatus();
   const bulkDeleteVariantsMutation = useBulkDeleteVariants();
 
-  // Computed values
-  const filteredVariants = useMemo(() => {
-    if (!allVariants) return [];
+  // Stock must be an explicit non-negative integer — same rule as Generate Variants.
+  const createStockTrimmed = formData.stock.trim();
+  const isCreateStockValid =
+    createStockTrimmed.length > 0 &&
+    /^\d+$/.test(createStockTrimmed) &&
+    parseInt(createStockTrimmed, 10) >= 0;
 
-    const filtered = allVariants.filter((variant) => {
-      const matchesSearch =
-        variant.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        variant.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        variant.size?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        variant.color?.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchesStatus =
-        statusFilter === "all" ||
-        (statusFilter === "active" && variant.is_active) ||
-        (statusFilter === "inactive" && !variant.is_active);
-
-      const matchesProduct =
-        productFilter === "all" || variant.product_id === productFilter;
-
-      return matchesSearch && matchesStatus && matchesProduct;
-    });
-
-    return sortAdminVariantRows(filtered);
-  }, [allVariants, searchTerm, statusFilter, productFilter]);
+  const resetFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setProductFilter("all");
+    setPage(1);
+  };
 
   // Helper functions
   const formatDate = (dateString: string) => {
@@ -182,7 +184,7 @@ export default function AdminVariantsPage() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedVariants(filteredVariants.map((v) => v.id));
+      setSelectedVariants(variants.map((v) => v.id));
     } else {
       setSelectedVariants([]);
     }
@@ -204,6 +206,7 @@ export default function AdminVariantsPage() {
       barcode: variant.barcode || "",
       sort_order: variant.sort_order?.toString() || "0",
       is_active: variant.is_active ?? true,
+      stock: "",
     });
     setIsEditDialogOpen(true);
   };
@@ -215,7 +218,7 @@ export default function AdminVariantsPage() {
 
   const handleConfirmDelete = () => {
     if (deletingVariant) {
-      deleteVariantMutation.mutate(deletingVariant.id);
+      deleteVariantMutation.mutate({ variantId: deletingVariant.id, productId: deletingVariant.product_id }, { onSuccess: () => setPage(1) });
       setIsDeleteDialogOpen(false);
       setDeletingVariant(null);
     }
@@ -225,12 +228,12 @@ export default function AdminVariantsPage() {
     if (selectedVariants.length === 0) return;
 
     if (bulkAction === "delete") {
-      bulkDeleteVariantsMutation.mutate(selectedVariants);
+      bulkDeleteVariantsMutation.mutate(selectedVariants, { onSuccess: () => setPage(1) });
     } else {
       bulkUpdateStatusMutation.mutate({
         variantIds: selectedVariants,
         isActive: bulkAction === "activate",
-      });
+      }, { onSuccess: () => setPage(1) });
     }
 
     setSelectedVariants([]);
@@ -254,7 +257,7 @@ export default function AdminVariantsPage() {
         barcode: formData.barcode,
         sort_order: parseInt(formData.sort_order),
         is_active: formData.is_active,
-      });
+      }, { onSuccess: () => setPage(1) });
       setIsEditDialogOpen(false);
       setEditingVariant(null);
     } else {
@@ -263,11 +266,28 @@ export default function AdminVariantsPage() {
         alert("Please select a product first.");
         return;
       }
+      if (!formData.size.trim()) {
+        alert("Please enter a size.");
+        return;
+      }
+      if (!isCreateStockValid) {
+        alert("Please enter a valid initial stock (0 or greater).");
+        return;
+      }
+
+      // Mirrors the Generate Variants dialog: name is derived as "Color / Size",
+      // and SKU as "{prefix}-{COLOR}-{SIZE}" when a prefix is given.
+      const derivedName =
+        [formData.color.trim(), formData.size.trim()].filter(Boolean).join(" / ");
+      const skuPrefix = formData.sku.trim();
+      const derivedSku = skuPrefix
+        ? `${skuPrefix.toUpperCase()}-${slugifyForSku(formData.color)}-${slugifyForSku(formData.size)}`
+        : undefined;
 
       createVariantMutation.mutate({
         product_id: formData.product_id,
-        sku: formData.sku,
-        name: formData.name,
+        sku: derivedSku,
+        name: derivedName,
         size: formData.size,
         color: formData.color,
         color_code: formData.color_code,
@@ -278,7 +298,8 @@ export default function AdminVariantsPage() {
         barcode: formData.barcode,
         sort_order: parseInt(formData.sort_order),
         is_active: formData.is_active,
-      });
+        stock: parseInt(formData.stock, 10),
+      }, { onSuccess: () => setPage(1) });
       setIsAddDialogOpen(false);
     }
 
@@ -297,10 +318,11 @@ export default function AdminVariantsPage() {
       barcode: "",
       sort_order: "0",
       is_active: true,
+      stock: "",
     });
   };
 
-  if (productsLoading || variantsLoading) {
+  if (variantsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -335,7 +357,6 @@ export default function AdminVariantsPage() {
           <Button
             variant="outline"
             onClick={() => setIsGenerateDialogOpen(true)}
-            disabled={products.length === 0}
           >
             <Wand2 className="mr-2 h-4 w-4" />
             Generate Variants
@@ -359,55 +380,39 @@ export default function AdminVariantsPage() {
                   <Label htmlFor="product_id" className="text-right">
                     Product *
                   </Label>
-                  <Select
-                    value={formData.product_id}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, product_id: value }))
-                    }
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select a product" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((product: any) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="col-span-3">
+                    <ProductCombobox
+                      value={formData.product_id || "all"}
+                      onChange={(v) => setFormData((prev) => ({ ...prev, product_id: v === "all" ? "" : v }))}
+                      className="w-full"
+                    />
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="sku" className="text-right">
-                    SKU
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label htmlFor="sku" className="text-right pt-2">
+                    SKU prefix
                   </Label>
-                  <Input
-                    id="sku"
-                    className="col-span-3"
-                    placeholder="Variant SKU"
-                    value={formData.sku}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, sku: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Name
-                  </Label>
-                  <Input
-                    id="name"
-                    className="col-span-3"
-                    placeholder="Variant name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, name: e.target.value }))
-                    }
-                  />
+                  <div className="col-span-3 space-y-1">
+                    <Input
+                      id="sku"
+                      placeholder="e.g. ADDIDAS-ADIMULE"
+                      value={formData.sku}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, sku: e.target.value }))
+                      }
+                    />
+                    <p className="text-xs text-gray-500">
+                      Optional. SKU will be generated as{" "}
+                      <code className="text-xs bg-gray-100 px-1 rounded">
+                        {`{prefix}-{COLOR}-{SIZE}`}
+                      </code>
+                      , same as Generate Variants.
+                    </p>
+                  </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="size" className="text-right">
-                    Size
+                    Size <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="size"
@@ -440,18 +445,32 @@ export default function AdminVariantsPage() {
                   <Label htmlFor="color_code" className="text-right">
                     Color Code
                   </Label>
-                  <Input
-                    id="color_code"
-                    className="col-span-3"
-                    placeholder="#FF0000"
-                    value={formData.color_code}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        color_code: e.target.value,
-                      }))
-                    }
-                  />
+                  <div className="col-span-3 flex items-center gap-2 border border-gray-200 rounded-md px-2 py-1 bg-white">
+                    <input
+                      type="color"
+                      value={/^#[0-9a-fA-F]{6}$/.test(formData.color_code) ? formData.color_code : "#000000"}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          color_code: e.target.value,
+                        }))
+                      }
+                      className="w-7 h-7 cursor-pointer border-0 bg-transparent p-0"
+                      aria-label="Color code"
+                    />
+                    <Input
+                      id="color_code"
+                      placeholder="#FF0000"
+                      value={formData.color_code}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          color_code: e.target.value,
+                        }))
+                      }
+                      className="border-0 shadow-none focus-visible:ring-0 px-0"
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-4 items-start gap-4">
                   <Label htmlFor="price" className="text-right pt-2">
@@ -474,6 +493,37 @@ export default function AdminVariantsPage() {
                     <p className="text-xs text-gray-500">
                       Optional. Only set this if this size/color costs more or
                       less than the product&apos;s base price.
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label htmlFor="stock" className="text-right pt-2">
+                    Initial Stock <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="col-span-3 space-y-1">
+                    <Input
+                      id="stock"
+                      type="number"
+                      min={0}
+                      step={1}
+                      placeholder="e.g. 10"
+                      value={formData.stock}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          stock: e.target.value,
+                        }))
+                      }
+                      aria-invalid={createStockTrimmed.length > 0 && !isCreateStockValid}
+                      className={
+                        createStockTrimmed.length > 0 && !isCreateStockValid
+                          ? "border-red-500 focus-visible:ring-red-500"
+                          : undefined
+                      }
+                    />
+                    <p className="text-xs text-gray-500">
+                      Required. Enter <code className="bg-gray-100 px-1 rounded">0</code>{" "}
+                      if you&apos;ll add real stock later.
                     </p>
                   </div>
                 </div>
@@ -500,7 +550,12 @@ export default function AdminVariantsPage() {
                 <Button
                   type="submit"
                   onClick={handleSubmitVariant}
-                  disabled={createVariantMutation.isPending}
+                  disabled={
+                    createVariantMutation.isPending ||
+                    !formData.product_id ||
+                    !formData.size.trim() ||
+                    !isCreateStockValid
+                  }
                 >
                   {createVariantMutation.isPending
                     ? "Creating..."
@@ -528,34 +583,28 @@ export default function AdminVariantsPage() {
                 <Input
                   placeholder="Search variants..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                   className="pl-10"
                 />
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as "all" | "true" | "false"); setPage(1); }}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="true">Active</SelectItem>
+                <SelectItem value="false">Inactive</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={productFilter} onValueChange={setProductFilter}>
-              <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Product" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Products</SelectItem>
-                {products?.map((product: any) => (
-                  <SelectItem key={product.id} value={product.id}>
-                    {product.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ProductCombobox value={productFilter} onChange={(v) => { setProductFilter(v); setPage(1); }} />
+            {hasActiveFilters && (
+              <Button variant="ghost" onClick={resetFilters}>
+                <X className="h-4 w-4 mr-1" />
+                Clear filters
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -564,7 +613,7 @@ export default function AdminVariantsPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Variants ({filteredVariants.length})</CardTitle>
+            <CardTitle>Variants ({totalCount})</CardTitle>
             {selectedVariants.length > 0 && (
               <div className="text-sm text-muted-foreground">
                 {selectedVariants.length} selected
@@ -573,15 +622,20 @@ export default function AdminVariantsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="relative rounded-md border">
+            {variantsFetching && !variantsLoading && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60 rounded-md">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+              </div>
+            )}
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[50px]">
                     <Checkbox
                       checked={
-                        selectedVariants.length === filteredVariants.length &&
-                        filteredVariants.length > 0
+                        variants.length > 0 &&
+                        variants.every((v) => selectedVariants.includes(v.id))
                       }
                       onCheckedChange={handleSelectAll}
                     />
@@ -597,7 +651,7 @@ export default function AdminVariantsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredVariants.length === 0 ? (
+                {variants.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8">
                       <div className="flex flex-col items-center gap-2">
@@ -609,7 +663,7 @@ export default function AdminVariantsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredVariants.map((variant) => {
+                  variants.map((variant) => {
                     const isSelected = selectedVariants.includes(variant.id);
                     return (
                       <TableRow key={variant.id}>
@@ -718,6 +772,21 @@ export default function AdminVariantsPage() {
               </TableBody>
             </Table>
           </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4">
+              <p className="text-sm text-muted-foreground">
+                Page {page} of {totalPages}
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>
+                  Previous
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -738,9 +807,7 @@ export default function AdminVariantsPage() {
                   id="edit-product"
                   value={
                     editingVariant
-                      ? products.find(
-                          (p: any) => p.id === editingVariant.product_id
-                        )?.name || "Unknown Product"
+                      ? (editingVariant as ProductVariant & { product?: Product }).product?.name || "Unknown Product"
                       : ""
                   }
                   disabled
@@ -945,11 +1012,8 @@ export default function AdminVariantsPage() {
       {/* Generate Variants Dialog */}
       <GenerateVariantsDialog
         open={isGenerateDialogOpen}
-        onOpenChange={setIsGenerateDialogOpen}
-        products={products}
-        defaultProductId={
-          productFilter !== "all" ? productFilter : undefined
-        }
+        onOpenChange={(open) => { setIsGenerateDialogOpen(open); if (!open) setPage(1); }}
+        defaultProductId={productFilter !== "all" ? productFilter : undefined}
       />
     </div>
   );

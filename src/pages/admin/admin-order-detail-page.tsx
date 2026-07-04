@@ -35,11 +35,7 @@ import {
   useUpdateOrderStatus,
   useUpdatePaymentStatus,
 } from "@/services/order/use-order-mutation";
-import {
-  useOrder,
-  useOrderItems,
-  useOrderPayments,
-} from "@/services/order/use-order-query";
+import { useOrder } from "@/services/order/use-order-query";
 import {
   FulfillmentStatus,
   OrderStatus,
@@ -87,7 +83,8 @@ function getCustomerDisplayName(order: {
   billing_address?: unknown;
 }): string {
   if (order.user) {
-    const n = `${order.user.first_name || ""} ${order.user.last_name || ""}`.trim();
+    const n =
+      `${order.user.first_name || ""} ${order.user.last_name || ""}`.trim();
     if (n) return n;
   }
   const fromShip = nameFromAddressJson(order.shipping_address);
@@ -239,10 +236,8 @@ export default function AdminOrderDetailPage() {
 
   // API hooks
   const { data: order, isLoading: orderLoading } = useOrder(orderId || "");
-  const { data: orderItems, isLoading: itemsLoading } = useOrderItems(
-    orderId || ""
-  );
-  const { data: payments } = useOrderPayments(orderId || "");
+  const orderItems = order?.items;
+  const itemsLoading = orderLoading;
 
   // Mutation hooks
   const updateOrderStatusMutation = useUpdateOrderStatus();
@@ -381,7 +376,7 @@ export default function AdminOrderDetailPage() {
             Back to Orders
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
+            <h1 className="text-xl font-bold tracking-tight">
               Order {order.order_number}
             </h1>
             <p className="text-muted-foreground">
@@ -426,9 +421,8 @@ export default function AdminOrderDetailPage() {
                   variant="outline"
                   className={cn(
                     "border-transparent font-semibold capitalize",
-                    statusColors[
-                      order.status as keyof typeof statusColors
-                    ] ?? "bg-gray-100 text-gray-800",
+                    statusColors[order.status as keyof typeof statusColors] ??
+                      "bg-gray-100 text-gray-800",
                   )}
                 >
                   {order.status}
@@ -505,9 +499,7 @@ export default function AdminOrderDetailPage() {
                         <TableRow key={item.id}>
                           <TableCell>
                             <div className="font-medium text-foreground">
-                              {item.product_name?.trim() ||
-                                item.product?.name ||
-                                "—"}
+                              {item.product_name?.trim() || "—"}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -535,86 +527,6 @@ export default function AdminOrderDetailPage() {
               )}
             </CardContent>
           </Card>
-
-          {/* Payment History */}
-          {payments && payments.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment History</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Payment Method</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Date</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {payments.map((payment) => (
-                        <TableRow key={payment.id}>
-                          <TableCell>{payment.payment_method}</TableCell>
-                          <TableCell>
-                            {(() => {
-                              const pAmt = toMoneyAmount(payment.amount);
-                              const oTot = toMoneyAmount(order.total_amount);
-                              const singleRow = payments.length === 1;
-                              const legacyShort =
-                                singleRow &&
-                                oTot > pAmt + 0.01 &&
-                                Math.abs(
-                                  pAmt - toMoneyAmount(order.subtotal)
-                                ) < 0.02;
-                              const displayAmt = legacyShort ? oTot : pAmt;
-                              return (
-                                <div>
-                                  <span className="font-medium tabular-nums">
-                                    {formatCurrency(displayAmt)}
-                                  </span>
-                                  {legacyShort && (
-                                    <p className="text-[10px] text-muted-foreground mt-1 leading-snug max-w-[200px]">
-                                      Stored payment row was{" "}
-                                      {formatCurrency(pAmt)} (items only).
-                                      Showing full order total.
-                                    </p>
-                                  )}
-                                </div>
-                              );
-                            })()}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "border-transparent font-semibold capitalize",
-                                payment.status === "succeeded"
-                                  ? "bg-green-100 text-green-800"
-                                  : payment.status === "failed"
-                                  ? "bg-red-100 text-red-800"
-                                  : payment.status === "refunded"
-                                  ? "bg-gray-100 text-gray-800"
-                                  : "bg-yellow-100 text-yellow-800",
-                              )}
-                            >
-                              {payment.status === "succeeded"
-                                ? "paid"
-                                : payment.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {formatDate(payment.created_at || "")}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
         {/* Order Summary & Customer Info */}
@@ -697,7 +609,9 @@ export default function AdminOrderDetailPage() {
                 {customerEmailDisplay ? (
                   <p className="text-sm break-all">{customerEmailDisplay}</p>
                 ) : (
-                  <p className="text-sm font-mono text-muted-foreground">null</p>
+                  <p className="text-sm font-mono text-muted-foreground">
+                    null
+                  </p>
                 )}
               </div>
               <div>

@@ -44,11 +44,8 @@ import {
   useUpdateOrderStatus,
   useUpdatePaymentStatus,
 } from "@/services/order/use-order-mutation";
-import {
-  useOrders,
-  useOrderStats,
-  useSearchOrders,
-} from "@/services/order/use-order-query";
+import { useOrders, useOrderStats } from "@/services/order/use-order-query";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import {
   FulfillmentStatus,
   Order,
@@ -61,8 +58,9 @@ import {
   MoreHorizontal,
   Search,
   Square,
+  X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 /** Badge uses `variant="outline"` so Tailwind colors stay on hover (default Badge uses primary hover). */
@@ -159,8 +157,10 @@ export default function AdminOrdersPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
-  const [currentPage] = useState(1);
-  const [pageSize] = useState(20);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
+
+  const debouncedSearch = useDebouncedValue(searchTerm, 400);
 
   // Dialog states
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
@@ -192,14 +192,13 @@ export default function AdminOrdersPage() {
   const {} = useToast();
 
   // API hooks
-  const { data: ordersResponse, isLoading: ordersLoading } = useOrders({
+  const { data: ordersResponse, isLoading } = useOrders({
     page: currentPage,
     limit: pageSize,
+    search: debouncedSearch || undefined,
+    status: statusFilter !== "all" ? statusFilter : undefined,
+    paymentStatus: paymentStatusFilter !== "all" ? paymentStatusFilter : undefined,
   });
-  const { data: searchResponse, isLoading: searchLoading } = useSearchOrders(
-    searchTerm,
-    { page: currentPage, limit: pageSize }
-  );
   const { data: stats, isLoading: statsLoading } = useOrderStats();
 
   // Mutation hooks
@@ -210,28 +209,9 @@ export default function AdminOrdersPage() {
   const bulkUpdateOrderStatusMutation = useBulkUpdateOrderStatus();
   const cancelOrderMutation = useCancelOrder();
 
-  // Extract orders from response
-  const orders = useMemo(() => {
-    if (searchTerm && searchTerm.length > 2) {
-      return searchResponse?.data || [];
-    }
-    return ordersResponse?.data || [];
-  }, [searchResponse, ordersResponse, searchTerm]);
-
-  const isLoading = ordersLoading || searchLoading;
-
-  // Filter orders based on status and payment status
-  const filteredOrders = useMemo(() => {
-    return orders.filter((order) => {
-      const matchesStatus =
-        statusFilter === "all" || order.status === statusFilter;
-      const matchesPaymentStatus =
-        paymentStatusFilter === "all" ||
-        order.payment_status === paymentStatusFilter;
-
-      return matchesStatus && matchesPaymentStatus;
-    });
-  }, [orders, statusFilter, paymentStatusFilter]);
+  const filteredOrders = ordersResponse?.data ?? [];
+  const totalPages = ordersResponse?.totalPages ?? 1;
+  const totalCount = ordersResponse?.count ?? 0;
 
   // Handle order selection
   const handleSelectOrder = (orderId: string) => {
@@ -248,6 +228,21 @@ export default function AdminOrdersPage() {
     } else {
       setSelectedOrders(filteredOrders.map((order) => order.id));
     }
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
+
+  const handlePaymentStatusFilterChange = (value: string) => {
+    setPaymentStatusFilter(value);
+    setCurrentPage(1);
   };
 
   // Dialog handlers
@@ -416,7 +411,7 @@ export default function AdminOrdersPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalOrders}</div>
+              <div className="text-2xl font-bold">{stats.total_orders}</div>
             </CardContent>
           </Card>
           <Card>
@@ -426,7 +421,7 @@ export default function AdminOrdersPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.pendingOrders}</div>
+              <div className="text-2xl font-bold">{stats.pending_orders}</div>
             </CardContent>
           </Card>
           <Card>
@@ -436,7 +431,7 @@ export default function AdminOrdersPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.processingOrders}</div>
+              <div className="text-2xl font-bold">{stats.processing_orders}</div>
             </CardContent>
           </Card>
           <Card>
@@ -447,7 +442,7 @@ export default function AdminOrdersPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {formatCurrency(stats.totalRevenue)}
+                {formatCurrency(stats.total_revenue)}
               </div>
             </CardContent>
           </Card>
@@ -470,12 +465,12 @@ export default function AdminOrdersPage() {
                 <Input
                   placeholder="Search orders, customers, or order numbers..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   className="pl-10"
                 />
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Order Status" />
               </SelectTrigger>
@@ -492,7 +487,7 @@ export default function AdminOrdersPage() {
             </Select>
             <Select
               value={paymentStatusFilter}
-              onValueChange={setPaymentStatusFilter}
+              onValueChange={handlePaymentStatusFilterChange}
             >
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Payment Status" />
@@ -508,6 +503,15 @@ export default function AdminOrdersPage() {
                 </SelectItem>
               </SelectContent>
             </Select>
+            {(searchTerm || statusFilter !== "all" || paymentStatusFilter !== "all") && (
+              <Button
+                variant="ghost"
+                onClick={() => { setSearchTerm(""); setStatusFilter("all"); setPaymentStatusFilter("all"); setCurrentPage(1); }}
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear filters
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -562,7 +566,7 @@ export default function AdminOrdersPage() {
       {/* Orders Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Orders ({filteredOrders.length})</CardTitle>
+          <CardTitle>Orders ({totalCount})</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border overflow-x-auto">
@@ -782,6 +786,31 @@ export default function AdminOrdersPage() {
               </TableBody>
             </Table>
           </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4 border-t">
+              <p className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages} · {totalCount} orders
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

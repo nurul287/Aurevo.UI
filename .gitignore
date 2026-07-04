@@ -70,3 +70,5 @@ temp/
 
 # Production DB snapshots under manual/ (PII; see supabase/README.md)
 supabase/manual/prod-*.sql
+
+supabase/.env

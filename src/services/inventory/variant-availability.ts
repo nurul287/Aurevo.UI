@@ -1,8 +1,7 @@
-import { supabase } from "@/lib/supabase";
+import { apiFetch } from "@/lib/api";
 
 export type VariantAvailabilityMap = Record<string, number>;
 
-/** Available units = on-hand quantity minus reserved (matches create_order check). */
 export function computeAvailableUnits(
   quantity: number | null | undefined,
   reserved: number | null | undefined,
@@ -10,23 +9,27 @@ export function computeAvailableUnits(
   return Math.max(0, (quantity ?? 0) - (reserved ?? 0));
 }
 
-/** Returns null when no inventory row exists (product may not track stock). */
+type AvailabilityRow = {
+  variant_id: string;
+  quantity: number;
+  reserved_quantity: number;
+};
+
 export async function fetchVariantAvailableQuantity(
   variantId: string,
 ): Promise<number | null> {
-  const { data, error } = await supabase
-    .from("inventory")
-    .select("quantity, reserved_quantity")
-    .eq("variant_id", variantId)
-    .maybeSingle();
-
-  if (error) {
-    console.error("Error fetching variant inventory:", error);
+  try {
+    // `apiFetch` already unwraps the `{ success, data }` envelope and
+    // resolves to `data` directly — do not unwrap it again here.
+    const rows = await apiFetch<AvailabilityRow[]>(
+      `/inventory/availability?variantIds=${encodeURIComponent(variantId)}`,
+    );
+    const row = rows?.[0];
+    if (!row) return null;
+    return computeAvailableUnits(row.quantity, row.reserved_quantity);
+  } catch {
     return 0;
   }
-
-  if (!data) return null;
-  return computeAvailableUnits(data.quantity, data.reserved_quantity);
 }
 
 export async function fetchVariantsAvailableQuantities(
@@ -35,27 +38,28 @@ export async function fetchVariantsAvailableQuantities(
   const uniqueIds = [...new Set(variantIds.filter(Boolean))];
   if (uniqueIds.length === 0) return {};
 
-  const { data, error } = await supabase
-    .from("inventory")
-    .select("variant_id, quantity, reserved_quantity")
-    .in("variant_id", uniqueIds);
-
-  if (error) {
-    console.error("Error fetching variant inventory:", error);
-    return Object.fromEntries(uniqueIds.map((id) => [id, 0]));
-  }
-
   const map: VariantAvailabilityMap = Object.fromEntries(
     uniqueIds.map((id) => [id, 0]),
   );
 
-  for (const row of data ?? []) {
-    if (row.variant_id) {
-      map[row.variant_id] = computeAvailableUnits(
-        row.quantity,
-        row.reserved_quantity,
-      );
+  try {
+    const params = new URLSearchParams();
+    uniqueIds.forEach((id) => params.append("variantIds", id));
+    // `apiFetch` already unwraps the `{ success, data }` envelope and
+    // resolves to `data` directly — do not unwrap it again here.
+    const rows = await apiFetch<AvailabilityRow[]>(
+      `/inventory/availability?${params.toString()}`,
+    );
+    for (const row of rows ?? []) {
+      if (row.variant_id) {
+        map[row.variant_id] = computeAvailableUnits(
+          row.quantity,
+          row.reserved_quantity,
+        );
+      }
     }
+  } catch {
+    // return zeros on failure
   }
 
   return map;

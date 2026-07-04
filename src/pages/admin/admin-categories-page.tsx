@@ -38,7 +38,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { CategoryImageField } from "@/components/admin/category-image-field";
 import { useToast } from "@/hooks/use-toast";
-import { uploadCategoryCoverImage } from "@/lib/upload-category-image";
 import {
   useBulkUpdateCategoryStatus,
   useCreateCategory,
@@ -57,6 +56,7 @@ import {
   Plus,
   Search,
   Trash2,
+  X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -294,67 +294,30 @@ export default function AdminCategoriesPage() {
     setImageUploading(true);
     try {
       if (editingCategory) {
-        let imageUrl: string | null = formData.image_url?.trim() || null;
-        if (categoryImageFile) {
-          try {
-            imageUrl = await uploadCategoryCoverImage(
-              editingCategory.id,
-              categoryImageFile,
-            );
-          } catch (err) {
-            showError(
-              "Image upload failed",
-              err instanceof Error ? err.message : "Upload failed.",
-            );
-            return;
-          }
-        }
-
         await updateCategoryMutation.mutateAsync({
           id: editingCategory.id,
           name: formData.name,
           slug: formData.slug,
           description: formData.description,
           parent_id: formData.parent_id || undefined,
-          image_url: imageUrl,
+          image_url: formData.image_url?.trim() || undefined,
           sort_order: sortOrder,
           is_active: formData.is_active,
+          imageFile: categoryImageFile ?? undefined,
         });
         setIsEditDialogOpen(false);
         setEditingCategory(null);
         resetFormAndImage();
       } else {
-        const created = await createCategoryMutation.mutateAsync({
+        await createCategoryMutation.mutateAsync({
           name: formData.name,
           slug: formData.slug,
           description: formData.description,
           parent_id: formData.parent_id || undefined,
           sort_order: sortOrder,
           is_active: formData.is_active,
+          imageFile: categoryImageFile ?? undefined,
         });
-
-        if (categoryImageFile && created?.id) {
-          try {
-            const url = await uploadCategoryCoverImage(
-              created.id,
-              categoryImageFile,
-            );
-            await updateCategoryMutation.mutateAsync({
-              id: created.id,
-              image_url: url,
-            });
-          } catch (err) {
-            showError(
-              "Image upload failed",
-              err instanceof Error
-                ? err.message
-                : "Category was created but the image could not be saved. Try editing the category to add an image.",
-            );
-            setIsAddDialogOpen(false);
-            resetFormAndImage();
-            return;
-          }
-        }
         setIsAddDialogOpen(false);
         resetFormAndImage();
       }
@@ -596,6 +559,12 @@ export default function AdminCategoriesPage() {
                 <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
+            {(searchTerm || statusFilter !== "all") && (
+              <Button variant="ghost" onClick={() => { setSearchTerm(""); setStatusFilter("all"); }}>
+                <X className="h-4 w-4 mr-1" />
+                Clear filters
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

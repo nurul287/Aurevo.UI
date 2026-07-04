@@ -1,7 +1,4 @@
-import { supabase } from "@/lib/supabase";
-
-/** Same bucket as product images; path prefix must be allowed by Storage RLS policies. */
-export const CATEGORY_IMAGE_BUCKET = "product-images";
+import { apiFetchForm } from "@/lib/api";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED_MIME = new Set([
@@ -12,54 +9,31 @@ const ALLOWED_MIME = new Set([
   "image/avif",
 ]);
 
+interface CategoryImageResult {
+  image_url?: string | null;
+  imageUrl?: string | null;
+}
+
 /**
- * Uploads a single category cover image to Storage and returns its public URL.
- * Uses a stable object key per category so re-uploads replace the same object (`upsert`).
+ * Uploads a category cover image via Aurevo.BE and returns its public URL.
+ * The BE owns storage — no direct Supabase SDK calls.
  */
 export async function uploadCategoryCoverImage(
   categoryId: string,
   file: File,
 ): Promise<string> {
-  if (!categoryId) {
-    throw new Error("Category id is required to upload an image");
-  }
-  if (file.size === 0) {
-    throw new Error("Image file is empty");
-  }
-  if (file.size > MAX_BYTES) {
-    throw new Error("Image must be 5 MB or smaller");
-  }
+  if (!categoryId) throw new Error("Category id is required to upload an image");
+  if (file.size === 0) throw new Error("Image file is empty");
+  if (file.size > MAX_BYTES) throw new Error("Image must be 5 MB or smaller");
+
   const mime = (file.type || "").toLowerCase();
-  if (!ALLOWED_MIME.has(mime)) {
-    throw new Error("Use JPG, PNG, WebP, GIF, or AVIF");
-  }
+  if (!ALLOWED_MIME.has(mime)) throw new Error("Use JPG, PNG, WebP, GIF, or AVIF");
 
-  const extFromMime: Record<string, string> = {
-    "image/jpeg": "jpg",
-    "image/png": "png",
-    "image/webp": "webp",
-    "image/gif": "gif",
-    "image/avif": "avif",
-  };
-  const ext = extFromMime[mime] || "jpg";
+  const formData = new FormData();
+  formData.append("image", file);
 
-  const path = `categories/${categoryId}/cover.${ext}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from(CATEGORY_IMAGE_BUCKET)
-    .upload(path, file, {
-      cacheControl: "3600",
-      upsert: true,
-      contentType: file.type || undefined,
-    });
-
-  if (uploadError) {
-    throw new Error(uploadError.message || "Upload failed");
-  }
-
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from(CATEGORY_IMAGE_BUCKET).getPublicUrl(path);
-
-  return publicUrl;
+  const data = await apiFetchForm<CategoryImageResult>(`/categories/${categoryId}/image`, { formData });
+  const url = data.image_url ?? data.imageUrl;
+  if (!url) throw new Error("Upload succeeded but no image URL returned");
+  return url;
 }

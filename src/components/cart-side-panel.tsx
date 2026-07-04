@@ -39,8 +39,13 @@ const CartSidePanel = () => {
     () => cartItems.map((item) => item.variant_id).filter(Boolean),
     [cartItems],
   );
-  const { data: variantAvailability = {} } =
-    useVariantsAvailableQuantities(cartVariantIds);
+  // CartSidePanel is always mounted (Layout renders it on every page) but its
+  // contents are only visible when the Sheet is open — don't fetch availability
+  // for a drawer nobody can see yet.
+  const { data: variantAvailability = {} } = useVariantsAvailableQuantities(
+    cartVariantIds,
+    { enabled: isCartPanelOpen },
+  );
 
   const maxQuantityForCartItem = (item: (typeof cartItems)[number]) => {
     if (item.product?.track_inventory === false) return 99;

@@ -1,12 +1,12 @@
-/** Product slugs for home promo banners (primary + fallbacks if migration 019 was not applied). */
+/** Product slugs for home promo banners (primary + fallbacks). */
 export type PromotionalBannerColor = "orange" | "white";
 
 export const PROMOTIONAL_BANNER_PRODUCT_SLUGS: Record<
   PromotionalBannerColor,
   readonly string[]
 > = {
-  orange: ["nike-vomero-18-orange", "nike-vomero-18"],
-  white: ["nike-vomero-18-white"],
+  orange: ["nike-vomero-18", "nike-vomero-18-running-shoes1-1"],
+  white: ["nike-vomero-18", "nike-vomero-18-running-shoes1-1"],
 };
 
 const COLOR_HINTS: Record<PromotionalBannerColor, readonly string[]> = {

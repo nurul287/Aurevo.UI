@@ -134,8 +134,11 @@ export interface ProductVariant {
   id: string; // UUID
   product_id: string; // UUID
   sku?: string;
-  /** Nested when selected via `product_variants(..., inventory(*))` */
+  /** Nested when selected via `product_variants(..., inventory(*))` — legacy, not returned by GET /products. */
   inventory?: Inventory | Inventory[] | null;
+  /** Source of truth for purchasable stock — mutated directly by order create/cancel. */
+  stock?: number;
+  reserved_stock?: number;
   name?: string;
   size?: string;
   color?: string;
