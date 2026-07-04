@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import {
   useBulkUpdateOrderStatus,
   useCancelOrder,
+  useDeleteOrder,
   useUpdateFulfillmentStatus,
   useUpdateOrderNotes,
   useUpdateOrderStatus,
@@ -168,6 +169,7 @@ export default function AdminOrdersPage() {
   const [isFulfillmentDialogOpen, setIsFulfillmentDialogOpen] = useState(false);
   const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
 
   // Form states
   const [statusForm, setStatusForm] = useState({
@@ -208,6 +210,7 @@ export default function AdminOrdersPage() {
   const updateOrderNotesMutation = useUpdateOrderNotes();
   const bulkUpdateOrderStatusMutation = useBulkUpdateOrderStatus();
   const cancelOrderMutation = useCancelOrder();
+  const deleteOrderMutation = useDeleteOrder();
 
   const filteredOrders = ordersResponse?.data ?? [];
   const totalPages = ordersResponse?.totalPages ?? 1;
@@ -344,6 +347,12 @@ export default function AdminOrdersPage() {
 
   const handleCancelOrder = (orderId: string) => {
     cancelOrderMutation.mutate(orderId);
+  };
+
+  const handleConfirmDeleteOrder = () => {
+    if (!orderToDelete) return;
+    deleteOrderMutation.mutate(orderToDelete.id);
+    setOrderToDelete(null);
   };
 
   const handleViewOrder = (orderId: string) => {
@@ -776,6 +785,12 @@ export default function AdminOrdersPage() {
                                   Cancel Order
                                 </DropdownMenuItem>
                               )}
+                            <DropdownMenuItem
+                              onClick={() => setOrderToDelete(order)}
+                              className="text-red-600"
+                            >
+                              Delete Order
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -1101,6 +1116,35 @@ export default function AdminOrdersPage() {
               {updateOrderNotesMutation.isPending
                 ? "Updating..."
                 : "Update Notes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Order Confirmation Dialog */}
+      <Dialog
+        open={orderToDelete !== null}
+        onOpenChange={(open) => { if (!open) setOrderToDelete(null); }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Order</DialogTitle>
+            <DialogDescription>
+              This permanently deletes order {orderToDelete?.order_number} and
+              its line items. This cannot be undone — orders with reviews or
+              inventory movement records attached cannot be deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOrderToDelete(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDeleteOrder}
+              disabled={deleteOrderMutation.isPending}
+            >
+              {deleteOrderMutation.isPending ? "Deleting..." : "Delete Order"}
             </Button>
           </DialogFooter>
         </DialogContent>
