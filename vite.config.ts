@@ -1,6 +1,6 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import path from 'path';
 
 // https://vite.dev/config/
@@ -9,6 +9,18 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+    },
+  },
+  test: {
+    environment: "jsdom",
+    globals: true,
+    css: true,
+    setupFiles: ["./src/test/setup.ts"],
+    exclude: ["node_modules", "dist", "e2e/**"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html"],
+      exclude: ["node_modules/", "src/test/", "**/*.d.ts", "**/*.config.*"],
     },
   },
   build: {

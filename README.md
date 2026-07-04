@@ -1,390 +1,238 @@
-# 🛍️ Aurevo Fashion - Premium Footwear E-commerce
+# 🛍️ Aurevo Fashion — Frontend E-commerce Store
 
-A modern, full-stack e-commerce application built with React, TypeScript, and Supabase, featuring a premium UI design and comprehensive shopping experience.
+Aurevo Fashion — Frontend E-commerce SPA. React 19 app built with Vite, TypeScript, TanStack Query, Supabase auth, Tailwind CSS v4, Shadcn/ui, React Router v7, and deployed on Vercel.
 
 ![React](https://img.shields.io/badge/React-19.1.1-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9.2-blue)
+![Vite](https://img.shields.io/badge/Vite-7.1.7-purple)
+![TanStack Query](https://img.shields.io/badge/TanStack_Query-5.90.2-red)
 ![Supabase](https://img.shields.io/badge/Supabase-2.58.0-green)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1.13-cyan)
-![Vite](https://img.shields.io/badge/Vite-7.1.7-purple)
-
-## ✨ Features
-
-### 🎨 **Premium UI/UX**
-
-- **Animated Hero Section** with gradient backgrounds and floating blob animations
-- **Interactive Product Cards** with hover effects, wishlist, and quick view
-- **Responsive Design** optimized for mobile, tablet, and desktop
-- **Modern Typography** with proper hierarchy and spacing
-- **Smooth Animations** and micro-interactions throughout
-
-### 🛒 **Shopping Experience**
-
-- **Product Catalog** with category filtering and pagination
-- **Shopping Cart** supporting both guest and authenticated users
-- **Wishlist Functionality** with heart icons on product cards
-- **Product Search** and filtering capabilities
-- **Order Management** with confirmation and tracking
-
-### 🔐 **Authentication & Security**
-
-- **Supabase Auth** integration with email/password
-- **Row Level Security (RLS)** policies for data protection
-- **Guest User Support** with session-based cart management
-- **Protected Routes** with authentication guards
-- **Admin Dashboard** for product and order management
-
-### 💳 **Payment & Orders**
-
-- **Multiple Payment Methods** (Cash on Delivery, Online)
-- **Order Processing** with stored procedures
-- **Inventory Management** with stock tracking
-- **Order Confirmation** and email notifications
-- **Guest Order Tracking** with unique tokens
-
-### 🗄️ **Database & Backend**
-
-- **PostgreSQL** with Supabase
-- **Stored Procedures** for complex operations
-- **Database Migrations** with version control
-- **Real-time Updates** with Supabase subscriptions
-- **Edge Functions** for serverless operations
-
-## 🚀 Tech Stack
-
-### **Frontend**
-
-- **React 19.1.1** - Latest React with concurrent features
-- **TypeScript 5.9.2** - Type-safe development
-- **Vite 7.1.7** - Fast build tool and dev server
-- **React Router 7.9.3** - Client-side routing
-- **TanStack Query 5.90.2** - Server state management
-- **Tailwind CSS 4.1.13** - Utility-first CSS framework
-
-### **UI Components**
-
-- **Radix UI** - Accessible component primitives
-- **Lucide React** - Beautiful icon library
-- **Shadcn/ui** - Reusable component library
-- **Tailwind Animate** - Animation utilities
-
-### **Backend & Database**
-
-- **Supabase** - Backend-as-a-Service
-- **PostgreSQL** - Relational database
-- **Row Level Security** - Database-level security
-- **Edge Functions** - Serverless functions
-
-### **Development Tools**
-
-- **ESLint** - Code linting
-- **TypeScript** - Static type checking
-- **PNPM** - Fast package manager
-- **Git** - Version control
-
-## 📁 Project Structure
-
-```
-footwear-ecommerce/
-├── 📁 src/
-│   ├── 📁 components/          # Reusable UI components
-│   │   ├── 📁 guards/         # Route protection components
-│   │   └── 📁 ui/             # Shadcn/ui components
-│   ├── 📁 contexts/           # React contexts
-│   │   ├── auth-context.tsx   # Authentication state
-│   │   └── guest-cart-context.tsx # Guest cart management
-│   ├── 📁 hooks/              # Custom React hooks
-│   │   └── use-cart.ts        # Cart operations hook
-│   ├── 📁 lib/                # Utility libraries
-│   │   ├── supabase.ts        # Supabase client
-│   │   └── utils.ts           # Helper functions
-│   ├── 📁 pages/              # Page components
-│   │   ├── home-page.tsx      # Premium home page
-│   │   ├── products-page.tsx  # Product catalog
-│   │   ├── cart-page.tsx      # Shopping cart
-│   │   ├── checkout-page.tsx  # Checkout process
-│   │   └── ...                # Other pages
-│   ├── 📁 routes/             # Route definitions
-│   │   ├── public-routes.tsx  # Public routes
-│   │   ├── protected-routes.tsx # Protected routes
-│   │   └── admin-routes.tsx   # Admin routes
-│   ├── 📁 services/           # API services
-│   │   ├── 📁 auth/           # Authentication services
-│   │   ├── 📁 cart/           # Cart services
-│   │   ├── 📁 product/        # Product services
-│   │   ├── 📁 order/          # Order services
-│   │   └── 📁 user/           # User services
-│   └── 📁 types/              # TypeScript type definitions
-├── 📁 supabase/
-│   ├── 📁 migrations/         # Database migrations
-│   │   ├── 001_initial_schema.sql
-│   │   ├── 002_complete_rls_setup.sql
-│   │   ├── 003_sample_products.sql
-│   │   ├── 007_improved_create_order.sql
-│   │   └── 008_update_payment_method_enum.sql
-│   └── 📁 memory-bank/        # Documentation
-├── 📄 package.json            # Dependencies and scripts
-├── 📄 vite.config.ts          # Vite configuration
-├── 📄 tailwind.config.js      # Tailwind CSS configuration
-├── 📄 tsconfig.json           # TypeScript configuration
-└── 📄 README.md               # This file
-```
-
-## 🛠️ Installation & Setup
-
-### **Prerequisites**
-
-- Node.js 18+
-- PNPM (recommended) or npm
-- Supabase account
-
-### **1. Clone the Repository**
-
-```bash
-git clone https://github.com/yourusername/footwear-ecommerce.git
-cd footwear-ecommerce
-```
-
-### **2. Install Dependencies**
-
-```bash
-pnpm install
-# or
-npm install
-```
-
-### **3. Environment Setup**
-
-Copy the example environment file and configure your variables:
-
-```bash
-cp env.example .env.local
-```
-
-Update `.env.local` with your Supabase credentials:
-
-```env
-# Supabase Configuration
-VITE_SUPABASE_URL=https://your-project-id.supabase.co
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-
-# Facebook Messenger button (optional — hidden until set; opens m.me chat)
-VITE_FACEBOOK_PAGE_ID=your_facebook_page_id
-
-# Meta Pixel for ads / remarketing (optional — omit locally to skip tracking)
-VITE_META_PIXEL_ID=your_meta_pixel_id
-
-```
-
-**Production (Vercel):** Add `VITE_META_PIXEL_ID` under Project → Settings → Environment Variables for **Production** (and Preview if needed), then redeploy. Vite bakes env vars at build time — changing them without redeploying has no effect.
-
-```
-
-### **4. Database Setup**
-
-Use the Supabase CLI (migrations live in `supabase/migrations/`). See **[supabase/README.md](supabase/README.md)** for the full playbook.
-
-```bash
-pnpm install
-pnpm db:link          # one-time: link to your Supabase project
-pnpm db:start         # local Postgres (Docker)
-pnpm db:reset         # apply all migrations locally
-pnpm db:types:local   # regenerate src/types/database.ts
-```
-
-For remote: `pnpm db:push` after linking. CI applies migrations on push to `main` when GitHub secrets are configured.
-
-### **5. Start Development Server**
-
-```bash
-pnpm dev
-# or
-npm run dev
-```
-
-Visit `http://localhost:5173` to see the application.
-
-## 🎯 Available Scripts
-
-```bash
-# Development
-pnpm dev          # Start development server
-pnpm build        # Build for production
-pnpm preview      # Preview production build
-pnpm lint         # Run ESLint
-
-# Database (Supabase CLI)
-pnpm db:validate      # check migration file names
-pnpm db:start         # local stack (Docker)
-pnpm db:reset         # apply migrations + seed
-pnpm db:push          # apply pending migrations to linked remote
-pnpm db:types:local   # TypeScript types from local DB
-pnpm db:types         # TypeScript types from linked remote
-```
-
-## 🎨 Key Features Deep Dive
-
-### **🏠 Premium Home Page**
-
-- **Animated Hero Section** with gradient backgrounds and floating animations
-- **Category Navigation** with pill-shaped buttons and smooth scrolling
-- **Product Grid** with hover effects, wishlist, and quick view buttons
-- **Smart Pagination** with page numbers and navigation controls
-- **Loading States** with skeleton loaders
-- **Empty States** with helpful messaging
-
-### **🛒 Shopping Cart System**
-
-- **Dual Mode Support**: Works for both guest and authenticated users
-- **Session Persistence**: Guest carts persist across browser sessions
-- **Real-time Updates**: Cart updates instantly across the application
-- **Optimistic Updates**: UI updates immediately for better UX
-- **Cart Migration**: Seamless transition from guest to authenticated user
-
-### **🔐 Authentication Flow**
-
-- **Email/Password Registration** with email confirmation
-- **Secure Login/Logout** with session management
-- **Protected Routes** with authentication guards
-- **Guest User Support** with session-based functionality
-- **Admin Dashboard** for product and order management
-
-### **💳 Order Processing**
-
-- **Stored Procedures** for atomic order creation
-- **Inventory Management** with stock validation
-- **Payment Integration** ready for Stripe/PayPal
-- **Order Confirmation** with email notifications
-- **Guest Order Tracking** with unique tokens
-
-## 🗄️ Database Schema
-
-### **Core Tables**
-
-- **`users`** - User profiles and authentication
-- **`products`** - Product catalog with variants
-- **`categories`** - Product categorization
-- **`cart_items`** - Shopping cart items
-- **`orders`** - Order information
-- **`order_items`** - Individual order line items
-- **`payments`** - Payment records
-- **`inventory`** - Stock management
-
-### **Key Features**
-
-- **Row Level Security (RLS)** for data protection
-- **Foreign Key Constraints** for data integrity
-- **Indexes** for optimal query performance
-- **Enums** for consistent data types
-- **Triggers** for automated operations
-
-## 🎭 UI/UX Highlights
-
-### **Design System**
-
-- **Color Palette**: Indigo/Purple gradients with accent colors
-- **Typography**: Clean hierarchy with proper font weights
-- **Spacing**: Consistent padding and margins
-- **Shadows**: Layered shadows for depth
-- **Animations**: Smooth transitions and hover effects
-
-### **Responsive Design**
-
-- **Mobile First**: Optimized for mobile devices
-- **Breakpoints**: sm (640px), md (768px), lg (1024px)
-- **Grid System**: Responsive product grids
-- **Touch Friendly**: Large touch targets for mobile
-
-### **Accessibility**
-
-- **Semantic HTML**: Proper heading hierarchy
-- **ARIA Labels**: Screen reader support
-- **Keyboard Navigation**: Full keyboard accessibility
-- **Color Contrast**: WCAG AA compliant
-- **Focus States**: Visible focus indicators
-
-## 🚀 Performance Optimizations
-
-### **Frontend**
-
-- **Code Splitting**: Lazy loading of routes
-- **Image Optimization**: Lazy loading and proper sizing
-- **Query Caching**: TanStack Query for efficient data fetching
-- **Bundle Optimization**: Vite for fast builds
-- **Tree Shaking**: Unused code elimination
-
-### **Backend**
-
-- **Database Indexes**: Optimized query performance
-- **Connection Pooling**: Efficient database connections
-- **Caching**: Query result caching
-- **Edge Functions**: Serverless operations
-
-## 🔧 Configuration
-
-### **Tailwind CSS**
-
-Custom configuration with:
-
-- Extended color palette
-- Custom animations
-- Component variants
-- Responsive utilities
-
-### **TypeScript**
-
-Strict configuration with:
-
-- Path mapping for clean imports
-- Strict type checking
-- Modern ES features
-- React-specific types
-
-### **ESLint**
-
-Code quality with:
-
-- React hooks rules
-- TypeScript integration
-- Import organization
-- Code formatting
-
-## 📱 Browser Support
-
-- ✅ Chrome 90+
-- ✅ Firefox 88+
-- ✅ Safari 14+
-- ✅ Edge 90+
-- ✅ Mobile browsers
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Supabase** for the amazing backend platform
-- **Radix UI** for accessible component primitives
-- **Tailwind CSS** for the utility-first CSS framework
-- **Vite** for the lightning-fast build tool
-- **React** team for the excellent framework
-
-## 📞 Support
-
-If you have any questions or need help, please:
-
-- Open an issue on GitHub
-- Check the documentation
-- Review the code comments
+![React Router](https://img.shields.io/badge/React_Router-7.9.3-orange)
+![Vercel](https://img.shields.io/badge/Deployed-Vercel-black)
+
+## Tech Stack
+
+| Layer | Library / Version |
+|-------|-------------------|
+| Framework | React 19.1.1 |
+| Build | Vite 7.1.7 |
+| Language | TypeScript 5.9.2 |
+| Routing | React Router 7.9.3 |
+| Server state | TanStack Query v5 |
+| UI primitives | Radix UI + Shadcn/ui |
+| Styling | Tailwind CSS v4 |
+| Icons | Lucide React |
+| Package manager | pnpm |
 
 ---
 
-**Built with ❤️ using React, TypeScript, and Supabase**
+## Screenshots
+
+### Storefront
+![Aurevo Fashion – Storefront](public/aurevo-fashion-ui.png)
+
+### Admin Dashboard
+![Aurevo Fashion – Admin Dashboard](public/aurevo-fahion-dashboard.png)
+
+### Admin – Products Management
+![Aurevo Fashion – Products Management](public/aurevo-fashion-admin.png)
+
+### Admin – Categories Management
+![Aurevo Fashion – Categories Management](public/aurevo-fashion-admin-categories.png)
+
+---
+
+## Features
+
+### Storefront
+- Product catalog with category, brand, gender, price filters + search
+- Product detail with variant picker (size/color/SKU), stock availability
+- Guest + authenticated shopping cart (cart side panel)
+- Wishlist / saved items
+- Checkout with guest order support (no account required)
+- Order confirmation page with itemised receipt and guest token access
+- AI shopping assistant (SSE-streamed, Claude-powered)
+
+### Admin Panel (`/admin`)
+- Dashboard with order stats and revenue summary
+- Products management — create/edit/delete, bulk status toggle, variant management, image uploads
+- Variants — create single or bulk CSV upload, color picker, inventory sync
+- Categories and Brands management with "Clear filters" controls
+- Orders management — server-side pagination, search, status/payment/tracking/fulfillment updates
+- Inventory levels — per-variant stock tracking, low-stock view, movement audit log, .xlsx export
+
+### Authentication
+- Email/password auth proxied through Aurevo.BE (`POST /auth/login`, `POST /auth/register`)
+- Google/Facebook OAuth via Supabase SDK (redirect flow); token is extracted and stored to localStorage after callback
+- JWT stored in localStorage (`aurevo_access_token`), sent as Bearer token to Aurevo.BE
+- Auto-refresh on 401 via `POST /auth/refresh`
+- Guest cart auto-migrates to user account on sign-in
+- Guest order claim on login (matches by session ID, email, phone)
+
+---
+
+## Project Structure
+
+```
+src/
+├── components/           # Shared UI components
+│   ├── ui/               # Shadcn/ui primitives (button, card, dialog, …)
+│   ├── cart-side-panel   # Slide-in cart drawer
+│   └── ...
+├── constants/            # App paths, static config
+├── contexts/             # React contexts (auth, guest cart)
+├── hooks/                # Custom hooks (use-toast, use-cart, …)
+├── lib/
+│   ├── api.ts            # Typed fetch wrapper (api.get / api.post / apiDownloadFile)
+│   ├── currency.ts       # formatPrice (BDT)
+│   └── meta-pixel.ts     # FB Pixel event helpers
+├── pages/
+│   ├── home-page.tsx
+│   ├── products-page.tsx
+│   ├── product-detail-page.tsx
+│   ├── cart-page.tsx
+│   ├── checkout-page.tsx
+│   ├── order-confirmation-page.tsx
+│   └── admin/            # All admin pages
+├── routes/               # Route definitions (public / protected / admin)
+└── services/
+    ├── auth/             # Auth queries & mutations
+    ├── cart/             # Cart queries, mutations, totals helpers
+    ├── order/            # Order queries
+    ├── product/          # Product, variant, category, brand, image mutations
+    ├── inventory/        # Inventory levels, movements, low-stock, export
+    └── types.ts          # Shared TypeScript interfaces
+```
+
+---
+
+## Local Development
+
+### Prerequisites
+- Node.js 20+, pnpm 9+
+- Aurevo.BE running on `http://localhost:5000`
+
+### Setup
+
+```bash
+cd Aurevo.UI
+pnpm install
+cp .env.example .env.local
+pnpm dev          # http://localhost:5173
+pnpm build        # production build
+```
+
+### Environment Variables (`.env.local`)
+
+```env
+# Supabase (OAuth only — Google/Facebook sign-in redirects)
+VITE_SUPABASE_URL=http://127.0.0.1:54321
+VITE_SUPABASE_ANON_KEY=<local-anon-key>
+
+# Backend REST API
+VITE_API_URL=http://localhost:5000/api
+
+# Optional — production only
+VITE_FACEBOOK_PAGE_ID=your_facebook_page_id
+VITE_META_PIXEL_ID=your_meta_pixel_id
+```
+
+---
+
+## Key Patterns
+
+### API Layer (`src/lib/api.ts`)
+
+All REST calls go through the typed `api` wrapper which:
+- Reads `VITE_API_URL`
+- Reads `aurevo_access_token` from localStorage and attaches `Authorization: Bearer <token>`
+- Auto-refreshes on 401: calls `POST /auth/refresh` with `aurevo_refresh_token`, stores new tokens, retries once
+- Attaches `X-Guest-Session: <id>` for guest cart/order calls
+- Returns typed JSON or throws on non-2xx
+
+```ts
+const data = await api.get<Product[]>("/products");
+const order = await api.post<Order>("/orders", payload);
+await apiDownloadFile("/inventory/export");   // triggers browser download
+```
+
+### TanStack Query Cache Keys
+
+Query keys follow a consistent shape so invalidations are precise:
+
+```ts
+// Products
+["admin", "products", filters]
+["admin", "images", productId]
+
+// Inventory
+["inventory-levels", filters]
+["low-stock-items", filters]
+["inventory-movements", filters]
+
+// Cart
+["cart", userId, sessionId]
+```
+
+After any variant create/update/delete, all three inventory key groups are invalidated together via `invalidateInventoryQueries(queryClient)`.
+
+### Cart — Two Stock Sources
+
+- **`product_variants.stock / reserved_stock`** — what cart, availability checks, and checkout read
+- **`inventory.quantity`** — what the Inventory admin page reads (kept in sync by BE on every adjustment)
+
+These are different ledgers. `upsertInventory` syncs both atomically.
+
+### Guest Cart Flow
+
+1. `localStorage` stores `guest_session_id` (format: `guest_<ts>_<rand>`)
+2. Sent as `X-Guest-Session` header on all cart requests
+3. On login → `POST /cart/migrate` with `{ guestSessionId }` → BE merges guest rows into user cart
+4. On success → `localStorage.removeItem("guest_session_id")` prevents re-migration
+
+### Order Confirmation Page
+
+The page reads `?orderId=&orderNumber=&guestToken=` from the URL. The API returns camelCase item fields (`productName`, `variantName`, `unitPrice`, `totalPrice`); the component normalises both casings for backwards compat.
+
+---
+
+## Testing
+
+98 test files across components, hooks, services, and lib utilities.
+
+| Tool | Role |
+|------|------|
+| Vitest 4 | Test runner + coverage (v8) |
+| Testing Library (React + Hooks) | Component / hook rendering |
+| MSW v2 | Network-layer API mocking (intercepts `fetch`) |
+| jsdom | Browser environment simulation |
+
+```bash
+pnpm test             # single run (CI)
+pnpm test:watch       # watch mode
+pnpm coverage         # HTML coverage report
+```
+
+See [memory-bank/TESTING.md](memory-bank/TESTING.md) for full details: test infrastructure, patterns, and what each layer covers.
+
+---
+
+## Available Scripts
+
+```bash
+pnpm dev              # dev server (port 5173)
+pnpm build            # production build
+pnpm lint             # ESLint
+pnpm test             # unit tests (single run)
+pnpm test:watch       # unit tests (watch)
+pnpm coverage         # test coverage report
+```
+
+> DB scripts (`db:start`, `db:reset`, `db:migrate:*`, etc.) have moved to `Aurevo.BE` — run them from there.
+
+---
+
+## Browser Support
+
+Chrome 90+, Firefox 88+, Safari 14+, Edge 90+, modern mobile browsers.

@@ -34,19 +34,20 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { formatPrice } from "@/lib/currency";
+import { apiDownloadFile } from "@/lib/api";
 // Toast notifications are handled by the mutation hooks
 import {
+  computeInventoryStats,
   useAllInventoryMovements,
   useDecreaseStock,
   useInventoryLevels,
-  useInventoryStats,
   useLowStockItems,
   useRestockInventory,
 } from "@/services/inventory";
+import { useToast } from "@/hooks/use-toast";
 import {
   AlertTriangle,
   Download,
-  Filter,
   Package,
   Plus,
   RotateCcw,
@@ -54,8 +55,10 @@ import {
   Trash2,
   TrendingDown,
   TrendingUp,
+  X,
 } from "lucide-react";
 import { useState } from "react";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 function unwrapRelation<T>(rel: T | T[] | null | undefined): T | undefined {
   if (rel == null) return undefined;
@@ -69,7 +72,15 @@ function variantProductName(variant: { products?: unknown } | null): string {
 }
 
 export default function AdminInventoryPage() {
+  const { showError } = useToast();
+  const [activeTab, setActiveTab] = useState("inventory");
+  const [isExporting, setIsExporting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const [lowStockPage, setLowStockPage] = useState(1);
+  const [movementsPage, setMovementsPage] = useState(1);
+  const PAGE_SIZE = 20;
+  const debouncedSearch = useDebouncedValue(searchTerm, 400);
   const [selectedMovementType, setSelectedMovementType] =
     useState<string>("all");
   const [isRestockDialogOpen, setIsRestockDialogOpen] = useState(false);
@@ -87,47 +98,71 @@ export default function AdminInventoryPage() {
   // Toast notifications are handled by the mutation hooks
 
   // Queries
-  const { data: inventoryLevels, isLoading: inventoryLoading } =
-    useInventoryLevels();
-  const { data: lowStockItems, isLoading: lowStockLoading } =
-    useLowStockItems();
-  const { data: inventoryStats, isLoading: statsLoading } = useInventoryStats();
-  const { data: movements } = useAllInventoryMovements({
+  const { data: inventoryResult, isLoading: inventoryLoading } = useInventoryLevels({
+    search: debouncedSearch,
+    page,
+    limit: PAGE_SIZE,
+  });
+  const inventoryLevels = inventoryResult?.data ?? [];
+  const pagination = inventoryResult?.pagination;
+
+  const { data: lowStockResult, isLoading: lowStockLoading } = useLowStockItems({
+    page: lowStockPage,
+    limit: PAGE_SIZE,
+  });
+  const lowStockItems = lowStockResult?.data ?? [];
+  const lowStockPagination = lowStockResult?.pagination;
+  const inventoryStats = computeInventoryStats(inventoryLevels, lowStockPagination?.total ?? 0);
+
+  const { data: movementsResult } = useAllInventoryMovements({
     movement_type:
       selectedMovementType === "all" ? undefined : selectedMovementType,
-    limit: 100,
+    search: debouncedSearch,
+    page: movementsPage,
+    limit: PAGE_SIZE,
   });
+  const filteredMovements = movementsResult?.data ?? [];
+  const movementsPagination = movementsResult?.pagination;
 
   // Mutations
   const restockMutation = useRestockInventory();
   const decreaseMutation = useDecreaseStock();
 
-  // Filter inventory levels
-  const filteredInventory =
-    inventoryLevels?.filter(
-      (item) =>
-        item.product_variants.products.name
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        item.product_variants.name
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        item.product_variants.sku
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase())
-    ) || [];
+  // Server-side filtered — use data directly
+  const filteredInventory = inventoryLevels;
 
-  // Filter movements
-  const filteredMovements =
-    movements?.filter(
-      (movement) =>
-        movement.product_variants?.products?.name
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        movement.product_variants?.name
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase())
-    ) || [];
+  const activeTabTotal =
+    activeTab === "inventory"
+      ? pagination?.total
+      : activeTab === "low-stock"
+        ? lowStockPagination?.total
+        : movementsPagination?.total;
+  const isActiveTabEmpty = activeTabTotal === 0;
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      // BE owns the export: it queries the full filtered dataset (no page
+      // limit), builds the .xlsx, and names the file — this just tells it
+      // which tab and filters are active.
+      const q = new URLSearchParams();
+      if (activeTab === "inventory") {
+        q.set("type", "levels");
+        if (debouncedSearch) q.set("search", debouncedSearch);
+      } else if (activeTab === "low-stock") {
+        q.set("type", "low-stock");
+      } else {
+        q.set("type", "movements");
+        if (selectedMovementType !== "all") q.set("movementType", selectedMovementType);
+        if (searchTerm) q.set("search", searchTerm);
+      }
+      await apiDownloadFile(`/inventory/export?${q.toString()}`);
+    } catch (error) {
+      showError("Export failed", "Could not generate the export file. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const resetRestockForm = () => {
     setRestockQuantity("");
@@ -231,7 +266,7 @@ export default function AdminInventoryPage() {
     );
   };
 
-  if (inventoryLoading || lowStockLoading || statsLoading) {
+  if (inventoryLoading || lowStockLoading) {
     return (
       <div className="space-y-6">
         <div className="grid gap-4 md:grid-cols-4">
@@ -265,9 +300,15 @@ export default function AdminInventoryPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void handleExport()}
+            disabled={isExporting || isActiveTabEmpty}
+            title={isActiveTabEmpty ? "No records to export" : undefined}
+          >
             <Download className="h-4 w-4 mr-2" />
-            Export
+            {isExporting ? "Exporting..." : "Export"}
           </Button>
           <Button size="sm" type="button" onClick={openBulkRestock}>
             <Plus className="h-4 w-4 mr-2" />
@@ -459,7 +500,7 @@ export default function AdminInventoryPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="inventory" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="inventory">Inventory Levels</TabsTrigger>
           <TabsTrigger value="low-stock">Low Stock</TabsTrigger>
@@ -474,14 +515,16 @@ export default function AdminInventoryPage() {
               <Input
                 placeholder="Search products, variants, or SKUs..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => { setSearchTerm(e.target.value); setPage(1); setMovementsPage(1); }}
                 className="pl-10"
               />
             </div>
-            <Button variant="outline" size="sm">
-              <Filter className="h-4 w-4 mr-2" />
-              Filter
-            </Button>
+            {searchTerm && (
+              <Button variant="ghost" size="sm" onClick={() => { setSearchTerm(""); setPage(1); setMovementsPage(1); }}>
+                <X className="h-4 w-4 mr-1" />
+                Clear filters
+              </Button>
+            )}
           </div>
 
           <Card>
@@ -553,6 +596,34 @@ export default function AdminInventoryPage() {
               </Table>
             </CardContent>
           </Card>
+          {pagination && pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4">
+              <p className="text-sm text-muted-foreground">
+                Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, pagination.total)} of {pagination.total} variants
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm tabular-nums">
+                  Page {page} of {pagination.totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= pagination.totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         {/* Low Stock Tab */}
@@ -578,16 +649,16 @@ export default function AdminInventoryPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {lowStockItems?.map((item) => (
-                    <TableRow key={item.variant_id}>
+                  {lowStockItems.map((item) => (
+                    <TableRow key={item.id}>
                       <TableCell className="font-medium">
-                        {item.product_name}
+                        {item.product_variants.products.name}
                       </TableCell>
-                      <TableCell>{item.variant_name}</TableCell>
+                      <TableCell>{item.product_variants.name}</TableCell>
                       <TableCell className="text-red-600 font-semibold">
-                        {item.current_stock}
+                        {item.quantity}
                       </TableCell>
-                      <TableCell>{item.low_stock_threshold}</TableCell>
+                      <TableCell>{item.product_variants.products.low_stock_threshold}</TableCell>
                       <TableCell>{item.reorder_point}</TableCell>
                       <TableCell>{item.reorder_quantity}</TableCell>
                       <TableCell>
@@ -595,13 +666,7 @@ export default function AdminInventoryPage() {
                           variant="outline"
                           size="sm"
                           type="button"
-                          onClick={() => {
-                            const variant = inventoryLevels?.find(
-                              (inv) =>
-                                inv.product_variants.id === item.variant_id,
-                            )?.product_variants;
-                            if (variant) openSingleRestock(variant);
-                          }}
+                          onClick={() => openSingleRestock(item.product_variants)}
                         >
                           <Plus className="h-3 w-3 mr-1" />
                           Restock
@@ -613,6 +678,34 @@ export default function AdminInventoryPage() {
               </Table>
             </CardContent>
           </Card>
+          {lowStockPagination && lowStockPagination.totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4">
+              <p className="text-sm text-muted-foreground">
+                Showing {(lowStockPage - 1) * PAGE_SIZE + 1}–{Math.min(lowStockPage * PAGE_SIZE, lowStockPagination.total)} of {lowStockPagination.total} items
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={lowStockPage <= 1}
+                  onClick={() => setLowStockPage((p) => p - 1)}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm tabular-nums">
+                  Page {lowStockPage} of {lowStockPagination.totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={lowStockPage >= lowStockPagination.totalPages}
+                  onClick={() => setLowStockPage((p) => p + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         {/* Stock Movements Tab */}
@@ -623,13 +716,13 @@ export default function AdminInventoryPage() {
               <Input
                 placeholder="Search movements..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => { setSearchTerm(e.target.value); setMovementsPage(1); setPage(1); }}
                 className="pl-10"
               />
             </div>
             <Select
               value={selectedMovementType}
-              onValueChange={setSelectedMovementType}
+              onValueChange={(value) => { setSelectedMovementType(value); setMovementsPage(1); }}
             >
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filter by type" />
@@ -644,6 +737,12 @@ export default function AdminInventoryPage() {
                 <SelectItem value="return">Return</SelectItem>
               </SelectContent>
             </Select>
+            {(searchTerm || selectedMovementType !== "all") && (
+              <Button variant="ghost" size="sm" onClick={() => { setSearchTerm(""); setSelectedMovementType("all"); setMovementsPage(1); setPage(1); }}>
+                <X className="h-4 w-4 mr-1" />
+                Clear filters
+              </Button>
+            )}
           </div>
 
           <Card>
@@ -701,6 +800,34 @@ export default function AdminInventoryPage() {
               </Table>
             </CardContent>
           </Card>
+          {movementsPagination && movementsPagination.totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4">
+              <p className="text-sm text-muted-foreground">
+                Showing {(movementsPage - 1) * PAGE_SIZE + 1}–{Math.min(movementsPage * PAGE_SIZE, movementsPagination.total)} of {movementsPagination.total} movements
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={movementsPage <= 1}
+                  onClick={() => setMovementsPage((p) => p - 1)}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm tabular-nums">
+                  Page {movementsPage} of {movementsPagination.totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={movementsPage >= movementsPagination.totalPages}
+                  onClick={() => setMovementsPage((p) => p + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 

@@ -1,7 +1,28 @@
-import { supabase } from "@/lib/supabase";
+import { api, apiFetchList, type PaginationMeta } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 
-// Types
+export interface InventoryRecord {
+  id: string;
+  variant_id: string;
+  location: string;
+  quantity: number;
+  reserved_quantity: number;
+  available_quantity: number;
+  reorder_point: number;
+  reorder_quantity: number;
+  low_stock_threshold?: number;
+  product_variants: {
+    id: string;
+    name: string;
+    sku: string;
+    size?: string;
+    color?: string;
+    price?: number;
+    is_active?: boolean;
+    products: { id: string; name: string; base_price?: number; is_active?: boolean; low_stock_threshold: number };
+  };
+}
+
 export interface InventoryMovement {
   id: string;
   variant_id: string;
@@ -16,18 +37,7 @@ export interface InventoryMovement {
     | "damage"
     | "theft"
     | "transfer";
-  reason:
-    | "purchase_order"
-    | "customer_order"
-    | "checkout_reserve"
-    | "payment_failed"
-    | "order_cancelled"
-    | "customer_return"
-    | "damaged_goods"
-    | "inventory_count"
-    | "theft_loss"
-    | "location_transfer"
-    | "manual_adjustment";
+  reason: string;
   quantity: number;
   previous_quantity: number;
   new_quantity: number;
@@ -47,43 +57,12 @@ export interface InventoryMovement {
     sku: string;
     size?: string;
     color?: string;
-    products: {
-      id: string;
-      name: string;
-    };
+    products?: { id: string; name: string };
   };
 }
 
-export interface LowStockItem {
-  product_id: string;
-  product_name: string;
-  variant_id: string;
-  variant_name: string;
-  current_stock: number;
-  low_stock_threshold: number;
-  reorder_point: number;
-  reorder_quantity: number;
-}
-
-/** Supabase embeds may return a single FK as an object or a one-element array. */
-function unwrapRelation<T>(rel: T | T[] | null | undefined): T | undefined {
-  if (rel == null) return undefined;
-  return Array.isArray(rel) ? rel[0] : rel;
-}
-
-/** Retail unit price for an inventory row: variant override, else product base. */
-function inventoryRowUnitRetailPrice(row: {
-  quantity: number;
-  product_variants: unknown;
-}): number {
-  const variant = unwrapRelation(row.product_variants as any);
-  if (!variant) return 0;
-  const variantPrice = Number(variant.price);
-  if (Number.isFinite(variantPrice) && variantPrice > 0) return variantPrice;
-  const product = unwrapRelation(variant.products);
-  const base = Number(product?.base_price);
-  return Number.isFinite(base) && base > 0 ? base : 0;
-}
+/** Actual shape of a row from GET /inventory/low-stock — same nesting as InventoryRecord. */
+export type LowStockItem = InventoryRecord;
 
 export interface InventorySummary {
   product_id: string;
@@ -108,247 +87,176 @@ export interface InventorySummary {
   }>;
 }
 
-// Get inventory movements for a variant
 export function useInventoryMovements(variantId: string, limit = 50) {
   return useQuery({
     queryKey: ["inventory-movements", variantId, limit],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inventory_movements")
-        .select(
-          `
-          *,
-          product_variants!inner(
-            id,
-            name,
-            sku,
-            size,
-            color,
-            products!inner(
-              id,
-              name
-            )
-          )
-        `
-        )
-        .eq("variant_id", variantId)
-        .order("created_at", { ascending: false })
-        .limit(limit);
-
-      if (error) throw error;
-      return data as InventoryMovement[];
+    queryFn: async (): Promise<InventoryMovement[]> => {
+      const { data } = await apiFetchList<InventoryMovement>(
+        `/inventory/movements?variantId=${variantId}&limit=${limit}`
+      );
+      return data;
     },
     enabled: !!variantId,
   });
 }
 
-// Get all inventory movements with filters
+export interface InventoryMovementsResult {
+  data: InventoryMovement[];
+  pagination: PaginationMeta;
+}
+
 export function useAllInventoryMovements(filters?: {
   movement_type?: string;
-  reason?: string;
-  date_from?: string;
-  date_to?: string;
+  search?: string;
+  page?: number;
   limit?: number;
 }) {
+  const page = filters?.page ?? 1;
+  const limit = filters?.limit ?? 20;
+
   return useQuery({
-    queryKey: ["inventory-movements", filters],
-    queryFn: async () => {
-      let query = supabase
-        .from("inventory_movements")
-        .select(
-          `
-          *,
-          product_variants!inner(
-            id,
-            name,
-            sku,
-            size,
-            color,
-            products!inner(
-              id,
-              name
-            )
-          )
-        `
-        )
-        .order("created_at", { ascending: false });
-
-      if (filters?.movement_type) {
-        query = query.eq("movement_type", filters.movement_type);
-      }
-      if (filters?.reason) {
-        query = query.eq("reason", filters.reason);
-      }
-      if (filters?.date_from) {
-        query = query.gte("created_at", filters.date_from);
-      }
-      if (filters?.date_to) {
-        query = query.lte("created_at", filters.date_to);
-      }
-      if (filters?.limit) {
-        query = query.limit(filters.limit);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as InventoryMovement[];
+    queryKey: ["inventory-movements", { movement_type: filters?.movement_type, search: filters?.search, page, limit }],
+    queryFn: async (): Promise<InventoryMovementsResult> => {
+      const q = new URLSearchParams({ page: String(page), limit: String(limit) });
+      if (filters?.movement_type) q.set("movementType", filters.movement_type);
+      if (filters?.search) q.set("search", filters.search);
+      const result = await apiFetchList<InventoryMovement>(`/inventory/movements?${q.toString()}`);
+      return { data: result.data, pagination: result.pagination };
     },
   });
 }
 
-// Get low stock items
-export function useLowStockItems() {
+export interface LowStockResult {
+  data: LowStockItem[];
+  pagination: PaginationMeta;
+}
+
+export function useLowStockItems(filters?: { page?: number; limit?: number }) {
+  const page = filters?.page ?? 1;
+  const limit = filters?.limit ?? 20;
+
   return useQuery({
-    queryKey: ["low-stock-items"],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("check_low_stock");
-      if (error) throw error;
-      return data as LowStockItem[];
+    queryKey: ["low-stock-items", { page, limit }],
+    queryFn: async (): Promise<LowStockResult> => {
+      const result = await apiFetchList<LowStockItem>(`/inventory/low-stock?page=${page}&limit=${limit}`);
+      return { data: result.data, pagination: result.pagination };
     },
   });
 }
 
-// Get inventory summary for a product
 export function useInventorySummary(productId: string) {
   return useQuery({
     queryKey: ["inventory-summary", productId],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_inventory_summary", {
-        p_product_id: productId,
-      });
-      if (error) throw error;
-      return data as InventorySummary;
+    queryFn: async (): Promise<InventorySummary | null> => {
+      // No dedicated summary endpoint — derive from inventory list filtered by product
+      // This returns InventoryRecord[] per-variant; components that need InventorySummary
+      // shape may need to adapt or a future BE endpoint can be added
+      const { data } = await apiFetchList<InventoryRecord>(`/inventory?limit=1000`);
+      const variants = data.filter(
+        (r) => (r.product_variants as { products?: { id?: string } })?.products?.id === productId
+      );
+      if (!variants.length) return null;
+      return {
+        product_id: productId,
+        total_stock: variants.reduce((s, v) => s + v.quantity, 0),
+        total_reserved: variants.reduce((s, v) => s + (v.reserved_quantity ?? 0), 0),
+        total_available: variants.reduce((s, v) => s + (v.available_quantity ?? v.quantity), 0),
+        low_stock_variants: variants.filter(
+          (v) => v.available_quantity <= (v.reorder_point ?? 0)
+        ).length,
+        total_variants: variants.length,
+        variants: variants.map((v) => ({
+          variant_id: v.variant_id,
+          variant_name: v.product_variants?.name ?? "",
+          sku: v.product_variants?.sku ?? "",
+          size: v.product_variants?.size,
+          color: v.product_variants?.color,
+          stock_quantity: v.quantity,
+          reserved_quantity: v.reserved_quantity ?? 0,
+          available_quantity: v.available_quantity ?? v.quantity,
+          reorder_point: v.reorder_point ?? 0,
+          reorder_quantity: v.reorder_quantity ?? 0,
+          low_stock_threshold: v.low_stock_threshold ?? 0,
+          is_low_stock: (v.available_quantity ?? v.quantity) <= (v.reorder_point ?? 0),
+        })),
+      };
     },
     enabled: !!productId,
   });
 }
 
-// Get inventory levels for all variants
-export function useInventoryLevels() {
+export interface InventoryLevelsResult {
+  data: InventoryRecord[];
+  pagination: PaginationMeta;
+}
+
+export function useInventoryLevels(filters?: {
+  search?: string;
+  page?: number;
+  limit?: number;
+}) {
+  const page = filters?.page ?? 1;
+  const limit = filters?.limit ?? 20;
+  const search = filters?.search ?? "";
+
   return useQuery({
-    queryKey: ["inventory-levels"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inventory")
-        .select(
-          `
-          *,
-          product_variants!inner(
-            id,
-            name,
-            sku,
-            size,
-            color,
-            is_active,
-            products!inner(
-              id,
-              name,
-              is_active,
-              low_stock_threshold
-            )
-          )
-        `
-        )
-        .eq("product_variants.is_active", true)
-        .eq("product_variants.products.is_active", true);
-
-      if (error) throw error;
-
-      // Sort by product name on the client side since we can't order by nested fields in Supabase
-      return data?.sort((a, b) => {
-        const nameA = a.product_variants?.products?.name || "";
-        const nameB = b.product_variants?.products?.name || "";
-        return nameA.localeCompare(nameB);
-      });
+    queryKey: ["inventory-levels", { page, limit, search }],
+    queryFn: async (): Promise<InventoryLevelsResult> => {
+      const q = new URLSearchParams({ page: String(page), limit: String(limit) });
+      if (search) q.set("search", search);
+      const result = await apiFetchList<InventoryRecord>(`/inventory?${q.toString()}`);
+      return { data: result.data, pagination: result.pagination };
     },
   });
 }
 
-// Get inventory movements by order
 export function useOrderInventoryMovements(orderId: string) {
   return useQuery({
     queryKey: ["order-inventory-movements", orderId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inventory_movements")
-        .select(
-          `
-          *,
-          product_variants!inner(
-            id,
-            name,
-            sku,
-            size,
-            color,
-            products!inner(
-              id,
-              name
-            )
-          )
-        `
-        )
-        .eq("order_id", orderId)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data as InventoryMovement[];
+    queryFn: async (): Promise<InventoryMovement[]> => {
+      const { data } = await apiFetchList<InventoryMovement>(
+        `/inventory/movements?orderId=${orderId}`
+      );
+      return data;
     },
     enabled: !!orderId,
   });
 }
 
-// Get inventory statistics
-export function useInventoryStats() {
-  return useQuery({
-    queryKey: ["inventory-stats"],
-    queryFn: async () => {
-      // Get total stock value (using base_price instead of cost_price)
-      const { data: stockValue, error: stockError } = await supabase.from(
-        "inventory"
-      ).select(`
-          quantity,
-          product_variants!inner(
-            price,
-            products!inner(
-              base_price
-            )
-          )
-        `);
+/** Derive stats from already-fetched inventory + low-stock data — no extra API calls. */
+export function computeInventoryStats(
+  stockRecords: InventoryRecord[],
+  lowStockTotal: number,
+) {
+  const totalStockValue = stockRecords.reduce((sum, item) => {
+    const qty = Number(item.quantity) || 0;
+    const variantPrice = Number(item.product_variants?.price) || 0;
+    const basePrice =
+      Number(
+        (item.product_variants as { products?: { base_price?: number } })
+          ?.products?.base_price,
+      ) || 0;
+    const unit = variantPrice > 0 ? variantPrice : basePrice;
+    return sum + qty * unit;
+  }, 0);
 
-      if (stockError) throw stockError;
+  return {
+    totalStockValue,
+    lowStockCount: lowStockTotal,
+    totalVariants: stockRecords.length,
+    totalStockQuantity: stockRecords.reduce(
+      (s, r) => s + (Number(r.quantity) || 0),
+      0,
+    ),
+  };
+}
 
-      // Get low stock count
-      const { data: lowStock, error: lowStockError } = await supabase.rpc(
-        "check_low_stock"
-      );
-      if (lowStockError) throw lowStockError;
-
-      // Get total variants
-      const { count: totalVariants, error: variantsError } = await supabase
-        .from("product_variants")
-        .select("*", { count: "exact", head: true })
-        .eq("is_active", true);
-
-      if (variantsError) throw variantsError;
-
-      // Retail value on hand: sum( qty × unit ), unit = variant.price ?? product.base_price
-      const totalValue =
-        stockValue?.reduce((sum, item) => {
-          const qty = Number(item.quantity) || 0;
-          const unit = inventoryRowUnitRetailPrice(item);
-          return sum + qty * unit;
-        }, 0) || 0;
-
-      return {
-        totalStockValue: totalValue,
-        lowStockCount: lowStock?.length || 0,
-        totalVariants: totalVariants || 0,
-        totalStockQuantity:
-          stockValue?.reduce(
-            (sum, item) => sum + (Number(item.quantity) || 0),
-            0,
-          ) || 0,
-      };
-    },
-  });
+/** Fetch inventory record for a specific variant (needed for adjust mutations). */
+export async function fetchInventoryByVariantId(
+  variantId: string
+): Promise<InventoryRecord | null> {
+  const data = await api.get<{ items: InventoryRecord[] }>(
+    `/inventory?variantId=${variantId}&limit=1`
+  );
+  return (data as unknown as { items: InventoryRecord[] })?.items?.[0] ?? null;
 }

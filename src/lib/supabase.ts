@@ -7,10 +7,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Missing Supabase environment variables");
 }
 
+// Supabase client is kept only for Google/Facebook OAuth redirects.
+// All email/password auth is handled by Aurevo.BE endpoints.
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    autoRefreshToken: true,
-    persistSession: true,
+    autoRefreshToken: false,
+    persistSession: false,
     detectSessionInUrl: true,
   },
 });

@@ -36,6 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { CategoryImageField } from "@/components/admin/category-image-field";
 import {
   useBulkUpdateBrandStatus,
   useCreateBrand,
@@ -47,12 +48,14 @@ import { Brand } from "@/services/types";
 import {
   AlertTriangle,
   Edit,
+  ExternalLink,
   Filter,
   MoreHorizontal,
   Plus,
   Search,
   Tag,
   Trash2,
+  X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -66,7 +69,6 @@ interface BrandFormData {
   name: string;
   slug: string;
   description: string;
-  logo_url: string;
   website_url: string;
   is_active: boolean;
 }
@@ -91,10 +93,10 @@ export default function AdminBrandsPage() {
     name: "",
     slug: "",
     description: "",
-    logo_url: "",
     website_url: "",
     is_active: true,
   });
+  const [logoFile, setLogoFile] = useState<File | null>(null);
 
   // Hooks
   const { data: brands, isLoading: brandsLoading } = useBrands();
@@ -161,10 +163,10 @@ export default function AdminBrandsPage() {
       name: brand.name,
       slug: brand.slug,
       description: brand.description || "",
-      logo_url: brand.logo_url || "",
       website_url: brand.website_url || "",
       is_active: brand.is_active ?? true,
     });
+    setLogoFile(null);
     setIsEditDialogOpen(true);
   };
 
@@ -201,42 +203,36 @@ export default function AdminBrandsPage() {
     setIsBulkActionDialogOpen(false);
   };
 
+  const resetForm = () => {
+    setFormData({ name: "", slug: "", description: "", website_url: "", is_active: true });
+    setLogoFile(null);
+  };
+
   const handleSubmitBrand = () => {
     if (editingBrand) {
-      // Update existing brand
       updateBrandMutation.mutate({
         id: editingBrand.id,
         name: formData.name,
         slug: formData.slug,
         description: formData.description,
-        logo_url: formData.logo_url || undefined,
         website_url: formData.website_url || undefined,
         is_active: formData.is_active,
+        logoFile: logoFile ?? undefined,
       });
       setIsEditDialogOpen(false);
       setEditingBrand(null);
     } else {
-      // Create new brand
       createBrandMutation.mutate({
         name: formData.name,
         slug: formData.slug,
         description: formData.description,
-        logo_url: formData.logo_url || undefined,
         website_url: formData.website_url || undefined,
         is_active: formData.is_active,
+        logoFile: logoFile ?? undefined,
       });
       setIsAddDialogOpen(false);
     }
-
-    // Reset form
-    setFormData({
-      name: "",
-      slug: "",
-      description: "",
-      logo_url: "",
-      website_url: "",
-      is_active: true,
-    });
+    resetForm();
   };
 
   const handleNameChange = (name: string) => {
@@ -320,23 +316,11 @@ export default function AdminBrandsPage() {
                     }
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="logo_url" className="text-right">
-                    Logo URL
-                  </Label>
-                  <Input
-                    id="logo_url"
-                    className="col-span-3"
-                    placeholder="https://example.com/logo.png"
-                    value={formData.logo_url}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        logo_url: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
+                <CategoryImageField
+                  label="Logo"
+                  file={logoFile}
+                  onFileChange={setLogoFile}
+                />
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="website_url" className="text-right">
                     Website URL
@@ -437,6 +421,12 @@ export default function AdminBrandsPage() {
                 <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
+            {(searchTerm || statusFilter !== "all") && (
+              <Button variant="ghost" onClick={() => { setSearchTerm(""); setStatusFilter("all"); }}>
+                <X className="h-4 w-4 mr-1" />
+                Clear filters
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -524,13 +514,15 @@ export default function AdminBrandsPage() {
                               href={brand.website_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline text-sm"
+                              title={brand.website_url}
+                              className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
                             >
                               Visit Website
+                              <ExternalLink className="h-3 w-3" />
                             </a>
                           ) : (
                             <span className="text-muted-foreground text-sm">
-                              No website
+                              —
                             </span>
                           )}
                         </TableCell>
@@ -619,6 +611,36 @@ export default function AdminBrandsPage() {
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, slug: e.target.value }))
                 }
+              />
+            </div>
+            <CategoryImageField
+              label="Logo"
+              existingUrl={editingBrand?.logo_url}
+              file={logoFile}
+              onFileChange={setLogoFile}
+            />
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-website_url" className="text-right">
+                Website URL
+              </Label>
+              <Input
+                id="edit-website_url"
+                className="col-span-3"
+                placeholder="https://brand-website.com"
+                value={formData.website_url}
+                onChange={(e) => setFormData((prev) => ({ ...prev, website_url: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-description" className="text-right">
+                Description
+              </Label>
+              <Textarea
+                id="edit-description"
+                className="col-span-3"
+                placeholder="Brand description"
+                value={formData.description}
+                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">

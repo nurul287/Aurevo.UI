@@ -1,111 +1,164 @@
 # Cart Functionality Fixes
 
-## Issues Fixed
+This file tracks all cart-related bugs that were diagnosed and fixed across Aurevo.UI + Aurevo.BE.
 
-### 1. Cart Count Not Showing in Header ✅
+---
 
-**Problem**: Cart count badge was not displaying in the header navigation.
+## Fix 1 — Cart showing "Product" / ৳0 (blank name and price)
 
-**Solution**:
+**Root cause:** `GET /cart` in the BE did a simple `SELECT * FROM cart_items` with no joins. The frontend expected joined `product` and `variant` objects on each cart item.
 
-- Updated `useCartData` hook to support both user ID and session ID
-- Modified cart query to work for both logged-in and guest users
-- Fixed the cart count logic to properly display the number of unique items
+**BE fix (`cart.service.ts`):**
+- `getCart` now LEFT JOINs `productVariants` and `products`
+- Primary image fetched separately and merged by product ID
+- `addItem` and `updateItem` return joined details via `getCartItemWithDetails()`
 
-### 2. Add to Cart Requires Login ✅
+**Price resolution:** `effectivePrice(variant, product)` = `variant.price ?? product.basePrice ?? "0"`. Variants with `null` price inherit from `product.basePrice`.
 
-**Problem**: Users had to be logged in to add items to cart.
+---
 
-**Solution**:
+## Fix 2 — Cart migration always failing
 
-- Created `GuestCartProvider` context to manage guest session IDs
-- Updated cart mutations to support both `user_id` and `session_id`
-- Modified `useCart` hook to work for both authenticated and guest users
-- Removed login requirement from product detail and products pages
+**Root cause:** Two stacked bugs:
+1. BE `migrateCartSchema` required `guestSessionId` to match `.uuid()`, but the FE generates `guest_<timestamp>_<random>` format (not a UUID)
+2. FE posted `{ sessionId }` but the BE schema expected `{ guestSessionId }`
 
-### 3. No Guest Cart Support ✅
+**BE fix (`cart.schema.ts`):** Relaxed `guestSessionId` from `.uuid()` to `.min(1)`.
 
-**Problem**: No support for guest users to maintain cart items.
+**FE fix (`use-cart-mutation.ts`):** Changed POST body from `{ sessionId }` to `{ guestSessionId: sessionId }`.
 
-**Solution**:
+---
 
-- Added `session_id` support to cart database operations
-- Created guest cart context with persistent session ID storage
-- Implemented cart migration when guest users log in
-- Updated all cart operations to work with both user and session IDs
+## Fix 3 — `guest_session_id` never cleared after migration (infinite re-sends)
 
-### 4. No User Generation During Checkout ✅
+**Root cause:** `useMigrateGuestCart.onSuccess` did not remove the session ID from localStorage, so every subsequent login triggered a new migration attempt.
 
-**Problem**: No way to create user accounts during checkout process.
+**FE fix (`use-cart-mutation.ts`):**
+```ts
+onSuccess: (_, variables) => {
+  queryClient.removeQueries({ queryKey: cartQueryKeys.all("", variables.sessionId) });
+  queryClient.invalidateQueries({ queryKey: cartQueryKeys.all(variables.userId) });
+  localStorage.removeItem("guest_session_id");   // ← added
+},
+```
 
-**Solution**:
+---
 
-- Created `useCreateUserFromCheckout` hook for user account creation
-- Added `useMigrateGuestCartToNewUser` hook for cart migration
-- Updated checkout page to create user accounts when email is provided
-- Made email field required in checkout form
+## Fix 4 — Cart availability API firing on every page load
 
-## Technical Implementation
+**Root cause:** `useVariantsAvailableQuantities` had no `enabled` guard, so it fired even when the cart side panel was closed.
 
-### New Files Created
+**FE fix (`cart-side-panel.tsx`):**
+```ts
+const { data: availability } = useVariantsAvailableQuantities(variantIds, {
+  enabled: isCartPanelOpen,   // ← added
+});
+```
 
-1. `src/contexts/guest-cart-context.tsx` - Guest cart session management
-2. `src/services/user/use-user-generation.ts` - User creation during checkout
-3. `src/utils/cart-test.ts` - Testing utilities
+---
 
-### Modified Files
+## Fix 5 — Products page showing "Out of Stock" incorrectly
 
-1. `src/services/cart/use-cart-query.ts` - Added session ID support
-2. `src/services/cart/use-cart-mutation.ts` - Added guest cart mutations
-3. `src/hooks/use-cart.ts` - Updated to support both user and guest carts
-4. `src/contexts/auth-context.tsx` - Added cart migration on login
-5. `src/App.tsx` - Added GuestCartProvider
-6. `src/pages/product-detail-page.tsx` - Removed login requirement
-7. `src/pages/products-page.tsx` - Removed login requirement
-8. `src/pages/checkout-page.tsx` - Added user creation and cart migration
+**Root cause:** `variantAvailableUnits()` in `admin-products-page.tsx` was reading `variant.inventory` (a field that `GET /products` does not return) and falling through to 0.
 
-### Database Schema
+**FE fix (`admin-products-page.tsx`):**
+```ts
+// Before
+const qty = variant.inventory?.quantity ?? 0;
 
-The existing database schema already supported guest carts with the `session_id` field in the `cart_items` table, so no database migrations were needed.
+// After — reads the fields that GET /products actually returns
+const qty = (variant.stock ?? 0) - (variant.reserved_stock ?? 0);
+```
 
-## User Flow
+**Types fix (`services/types.ts`):** Added `stock?: number` and `reserved_stock?: number` to `ProductVariant` interface.
 
-### Guest User Flow
+---
 
-1. User visits site without logging in
-2. Guest session ID is automatically generated and stored in localStorage
-3. User can add items to cart (stored with session_id)
-4. Cart count shows in header
-5. User proceeds to checkout
-6. User provides email, phone, and other details
-7. User account is created automatically
-8. Guest cart is migrated to the new user account
-9. Order is processed
+## Fix 6 — Inventory showing stock but products still "Out of Stock"
 
-### Logged-in User Flow
+**Root cause:** `product_variants.stock` was `0` while `inventory.quantity` was `7`. `upsertInventory` only updated the `inventory` table but not `product_variants.stock`.
 
-1. User logs in with existing account
-2. If guest cart exists, it's automatically migrated to user account
-3. User can add items to cart (stored with user_id)
-4. Cart count shows in header
-5. User proceeds to checkout
-6. Order is processed with existing account
+**BE fix (`inventory.service.ts`):** `upsertInventory` now wraps both updates in a transaction:
+```ts
+await db.transaction(async (tx) => {
+  await tx.insert(inventory).values(...).onConflictDoUpdate(...);
+  await tx.update(productVariants).set({ stock: input.quantity })
+    .where(eq(productVariants.id, input.variantId));
+});
+```
 
-## Testing
+---
 
-To test the cart functionality:
+## Fix 7 — New variants not appearing in Inventory admin page
 
-1. Open browser console
-2. Run `testCartFunctionality()` to check basic functionality
-3. Add items to cart without logging in
-4. Verify cart count appears in header
-5. Proceed to checkout and create account
-6. Verify cart items are preserved after account creation
+**Root cause:** `createVariant` and `bulkCreateVariants` inserted into `product_variants` but never created a matching `inventory` row, so those variants were invisible in the Inventory page.
 
-## Benefits
+**BE fix (`variants.service.ts`):** Both functions now run inside a transaction that inserts the inventory row:
+```ts
+return db.transaction(async (tx) => {
+  const [variant] = await tx.insert(productVariants).values(variantData).returning();
+  await tx.insert(inventory).values({
+    variantId: variant!.id,
+    location: "main",
+    quantity: input.stock ?? 0,
+  });
+  return variant!;
+});
+```
 
-1. **Improved User Experience**: Users can shop without creating an account first
-2. **Higher Conversion Rates**: Reduced friction in the shopping process
-3. **Seamless Account Creation**: Users get accounts automatically during checkout
-4. **Cart Persistence**: Cart items are preserved when users log in or create accounts
-5. **Better Analytics**: Track both guest and registered user behavior
+---
+
+## Fix 8 — Inventory queries not refreshing after variant operations
+
+**Root cause:** `invalidateQueries({ queryKey: ["inventory"] })` did not match the actual query keys `["inventory-levels"]`, `["low-stock-items"]`, `["inventory-movements"]`.
+
+**FE fix (`use-product-mutation.ts`):** Centralised helper with all three correct keys:
+```ts
+function invalidateInventoryQueries(queryClient: QueryClient) {
+  queryClient.invalidateQueries({ queryKey: ["inventory-levels"] });
+  queryClient.invalidateQueries({ queryKey: ["low-stock-items"] });
+  queryClient.invalidateQueries({ queryKey: ["inventory-movements"] });
+}
+```
+Called on variant create, update, and delete.
+
+---
+
+## Fix 9 — colorCode validation rejecting empty string
+
+**Root cause:** `z.string().regex(...).optional()` — Zod's `.optional()` only skips validation for `undefined`, not `""`. When the color picker is cleared it sends `""`, which failed the hex regex.
+
+**BE fix (`variants.schema.ts`):**
+```ts
+const optionalHexColor = z.preprocess(
+  (val) => (val === "" ? undefined : val),
+  z.string().regex(/^#[0-9a-fA-F]{3,8}$/, "Must be a valid hex color").optional()
+);
+```
+
+---
+
+## Fix 10 — Order confirmation page not showing product names
+
+**Root cause:** The page was reading `item.product_name`, `item.variant_name`, `item.total_price` (snake_case) but the API returns `item.productName`, `item.variantName`, `item.totalPrice` (camelCase).
+
+**FE fix (`order-confirmation-page.tsx`):** Added normalised aliases with fallback for both casings:
+```ts
+const productName = item.productName || item.product_name;
+const variantName = item.variantName || item.variant_name;
+const totalPrice  = item.totalPrice  || item.total_price;
+const imageUrl    = item.imageUrl    || item.image_url || null;
+```
+
+---
+
+## Two-Ledger Mental Model
+
+There are **two separate stock ledgers**:
+
+| Ledger | Column | Who reads it |
+|--------|--------|-------------|
+| Variant ledger | `product_variants.stock` / `reserved_stock` | Cart, checkout, add-to-cart, availability API |
+| Inventory ledger | `inventory.quantity` | Inventory admin page, low-stock alerts, export |
+
+Every operation that modifies one must also sync the other. Inventory adjust and upsert both run transactions that update both tables. Variant create always inserts an `inventory` row.
