@@ -1,5 +1,4 @@
-import { api } from "@/lib/api";
-import { supabase } from "@/lib/supabase";
+import { api, apiFetchForm } from "@/lib/api";
 import { authQueryKeys } from "@/services/auth/use-auth-query";
 import { UserProfile } from "@/services/types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -62,39 +61,17 @@ export function useCreateUserProfile() {
   });
 }
 
-// Avatar upload stays on Supabase Storage — the BE doesn't host file uploads
 export function useUploadAvatar() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ userId, file }: { userId: string; file: File }) => {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${userId}-${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(filePath);
-
-      // Record the new avatar URL via BE
-      await api.patch("/auth/profile", { avatarUrl: publicUrl });
-
-      return publicUrl;
+    mutationFn: async ({ userId: _userId, file }: { userId: string; file: File }) => {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      return apiFetchForm<UserProfile>("/auth/profile/avatar", { formData });
     },
-    onSuccess: (avatarUrl, variables) => {
-      queryClient.setQueryData(
-        authQueryKeys.userProfile(variables.userId),
-        (oldData: UserProfile | null | undefined) => {
-          if (!oldData) return oldData;
-          return { ...oldData, avatar_url: avatarUrl };
-        }
-      );
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData(authQueryKeys.userProfile(variables.userId), data);
     },
     onError: (error: Error) => {
       console.error("Upload avatar error:", error);
@@ -106,21 +83,8 @@ export function useDeleteAvatar() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      userId: _userId,
-      avatarUrl,
-    }: {
-      userId: string;
-      avatarUrl: string;
-    }) => {
-      const urlParts = avatarUrl.split("/");
-      const fileName = urlParts[urlParts.length - 1];
-      const filePath = `avatars/${fileName}`;
-
-      const { error } = await supabase.storage.from("avatars").remove([filePath]);
-      if (error) throw error;
-
-      await api.patch("/auth/profile", { avatarUrl: null });
+    mutationFn: async ({ userId: _userId }: { userId: string; avatarUrl?: string }) => {
+      return api.delete("/auth/profile/avatar");
     },
     onSuccess: (_, variables) => {
       queryClient.setQueryData(
