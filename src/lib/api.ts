@@ -213,13 +213,16 @@ export async function apiFetch<T>(
     body?: unknown;
     guestSessionId?: string;
     skipAuth?: boolean;
+    /** Skip camelCase → snake_case conversion. Use for endpoints (e.g. auth
+     * token responses) whose consumers expect the BE's raw camelCase shape. */
+    raw?: boolean;
   } = {}
 ): Promise<T> {
   const { json, status } = await makeRequest(path, options);
 
   if (!json.success) throw buildError(json as never, status);
 
-  return snakifyKeys(json.data) as T;
+  return (options.raw ? json.data : snakifyKeys(json.data)) as T;
 }
 
 /**

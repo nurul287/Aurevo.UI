@@ -33,7 +33,7 @@ export function useSignIn() {
 
   return useMutation({
     mutationFn: async ({ email, password }: SignInData) => {
-      const data = await api.post<AuthTokenResponse>("/auth/login", { email, password }, { skipAuth: true });
+      const data = await api.post<AuthTokenResponse>("/auth/login", { email, password }, { skipAuth: true, raw: true });
       return data;
     },
     onSuccess: (data) => {
@@ -84,7 +84,7 @@ export function useSignUp() {
         password,
         firstName: userData?.first_name,
         lastName: userData?.last_name,
-      }, { skipAuth: true });
+      }, { skipAuth: true, raw: true });
       return data;
     },
     onSuccess: (data) => {
