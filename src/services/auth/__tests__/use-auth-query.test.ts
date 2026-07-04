@@ -1,4 +1,4 @@
-import { http, HttpResponse } from "msw";
+﻿import { http, HttpResponse } from "msw";
 import { waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { renderHookWithQueryClient } from "@/test/test-utils";
@@ -9,7 +9,7 @@ import {
 } from "@/test/mocks/supabase";
 import { supabase } from "@/lib/supabase";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 vi.mock("@/lib/supabase", () => ({
   supabase: createMockSupabaseClient(null),

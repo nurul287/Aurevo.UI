@@ -1,6 +1,6 @@
-import { http, HttpResponse } from "msw";
+﻿import { http, HttpResponse } from "msw";
 
-const API_URL = "http://localhost:3001/api";
+const API_URL = "http://localhost:5000/api";
 
 /**
  * Base MSW request handlers for the BE REST API. These cover the common
