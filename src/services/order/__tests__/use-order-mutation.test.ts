@@ -122,10 +122,7 @@ describe("order mutations", () => {
       http.post(`${API_URL}/orders`, () =>
         HttpResponse.json({
           success: true,
-          data: {
-            order: { id: "o1", order_number: "ORD-1" },
-            guest_token: "tok-1",
-          },
+          data: { id: "o1", order_number: "ORD-1", guest_token: "tok-1" },
         }),
       ),
     );
@@ -155,10 +152,7 @@ describe("order mutations", () => {
         receivedItems = body.items;
         return HttpResponse.json({
           success: true,
-          data: {
-            order: { id: "o1", order_number: "ORD-1" },
-            guest_token: null,
-          },
+          data: { id: "o1", order_number: "ORD-1", guest_token: null },
         });
       }),
     );

@@ -35,7 +35,10 @@ import { useCreateGuestOrder } from "@/services/order/use-order-mutation";
 import { CheckCircle2 } from "lucide-react";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { BANGLADESH_DISTRICTS, upazilasForDistrictName } from "@/lib/bangladesh-locations";
+import {
+  BANGLADESH_DISTRICTS,
+  upazilasForDistrictName,
+} from "@/lib/bangladesh-locations";
 import { useProduct } from "@/services";
 import bkashLogo from "@/assets/image/bkash.png";
 
@@ -173,8 +176,7 @@ const CheckoutPage = () => {
   );
 
   const upazilasData = useMemo(
-    () =>
-      formData.district ? upazilasForDistrictName(formData.district) : [],
+    () => (formData.district ? upazilasForDistrictName(formData.district) : []),
     [formData.district],
   );
 
@@ -271,10 +273,7 @@ const CheckoutPage = () => {
         session_id: user?.id ? undefined : sessionId,
       });
 
-      console.log(
-        "✅ Order created successfully:",
-        orderResult.order.order_number,
-      );
+      console.log("✅ Order created successfully:", orderResult.order_number);
 
       // Clear the cart after successful order (only if not direct checkout)
       if (!directCheckoutItem) {
@@ -287,8 +286,8 @@ const CheckoutPage = () => {
 
       // Redirect to order confirmation
       const params = new URLSearchParams({
-        orderId: orderResult.order.id,
-        orderNumber: orderResult.order.order_number,
+        orderId: orderResult.id,
+        orderNumber: orderResult.order_number,
       });
 
       if (orderResult.guest_token) {

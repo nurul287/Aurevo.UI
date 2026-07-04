@@ -2,16 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { APP_PATHS } from "@/constants/app-paths";
 import { formatPrice } from "@/lib/currency";
-import { getLeadImageUrl } from "@/lib/product-images";
 import { trackMetaPixelPurchase } from "@/lib/meta-pixel";
 import { useFetchOrderWithGuestToken } from "@/services/order/use-order-query";
-import {
-  CheckCircle2,
-  Home,
-  Mail,
-  Package,
-  Sparkles,
-} from "lucide-react";
+import { CheckCircle2, Home, Mail, Package, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -22,10 +15,14 @@ const SUPPORT_EMAIL = "aurevofashion88@gmail.com";
 
 function statusStyles(status: string | undefined) {
   const s = (status || "pending").toLowerCase();
-  if (s === "delivered") return "bg-emerald-100 text-emerald-800 ring-emerald-600/20";
-  if (s === "shipped") return "bg-violet-100 text-violet-800 ring-violet-600/20";
-  if (s === "cancelled" || s === "refunded") return "bg-red-100 text-red-800 ring-red-600/20";
-  if (s === "processing" || s === "confirmed") return "bg-sky-100 text-sky-800 ring-sky-600/20";
+  if (s === "delivered")
+    return "bg-emerald-100 text-emerald-800 ring-emerald-600/20";
+  if (s === "shipped")
+    return "bg-violet-100 text-violet-800 ring-violet-600/20";
+  if (s === "cancelled" || s === "refunded")
+    return "bg-red-100 text-red-800 ring-red-600/20";
+  if (s === "processing" || s === "confirmed")
+    return "bg-sky-100 text-sky-800 ring-sky-600/20";
   return "bg-amber-100 text-amber-900 ring-amber-600/15";
 }
 
@@ -46,7 +43,7 @@ const OrderConfirmationPage = () => {
     error: orderError,
   } = useFetchOrderWithGuestToken(
     orderDetails?.orderId || "",
-    orderDetails?.guestToken
+    orderDetails?.guestToken,
   );
 
   useEffect(() => {
@@ -74,13 +71,13 @@ const OrderConfirmationPage = () => {
         const items =
           (
             orderData as {
-              order_items?: Array<{
+              items?: Array<{
                 variant_id?: string;
                 product_id?: string;
                 quantity?: number;
               }>;
             }
-          ).order_items ?? [];
+          ).items ?? [];
         const contentIds = items
           .map((item) => item.variant_id ?? item.product_id)
           .filter((id): id is string => Boolean(id));
@@ -104,9 +101,12 @@ const OrderConfirmationPage = () => {
     }
   }, [orderData, orderError, orderLoading]);
 
-  const orderItems = fullOrderData?.order_items ?? [];
+  const orderItems = fullOrderData?.items ?? [];
 
-  if (!orderDetails) {
+  const showNotFound =
+    !orderDetails || (!loading && !orderLoading && orderError);
+
+  if (showNotFound) {
     return (
       <div className="min-h-screen bg-[#FAFAF8] py-16 px-4">
         <div className="mx-auto w-full max-w-sm sm:max-w-md text-center px-4">
@@ -116,8 +116,9 @@ const OrderConfirmationPage = () => {
               Order not found
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              We could not load this confirmation link. Check your email for the
-              correct link, or contact us with your order number.
+              {orderError
+                ? "This confirmation link is invalid or has expired. If you placed this order, please sign in to view it from your account."
+                : "We could not load this confirmation link. Check your email for the correct link, or contact us with your order number."}
             </p>
             <Button asChild className="mt-8 w-full rounded-full" size="lg">
               <Link to={APP_PATHS.home}>Back to home</Link>
@@ -197,42 +198,40 @@ const OrderConfirmationPage = () => {
                       </h2>
                       <ul className="space-y-1.5">
                         {orderItems.map((item: any, index: number) => {
-                          const imageUrl = getLeadImageUrl(
-                            item.product?.images,
-                          );
+                          const imageUrl = item.image_url || null;
                           return (
-                          <li
-                            key={item.id ?? index}
-                            className="flex gap-2.5 rounded-lg border border-gray-100 bg-[#FDFCFA] px-2.5 py-2"
-                          >
-                            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white border border-gray-100">
-                              {imageUrl ? (
-                                <img
-                                  src={imageUrl}
-                                  alt={item.product_name || "Product"}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <Package className="h-5 w-5 text-[#E1680B]" />
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="font-medium text-gray-900 text-sm leading-snug">
-                                {item.product_name}
-                              </p>
-                              {item.variant_name && (
-                                <p className="text-xs text-gray-500 mt-0.5">
-                                  {item.variant_name}
+                            <li
+                              key={item.id ?? index}
+                              className="flex gap-2.5 rounded-lg border border-gray-100 bg-[#FDFCFA] px-2.5 py-2"
+                            >
+                              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white border border-gray-100">
+                                {imageUrl ? (
+                                  <img
+                                    src={imageUrl}
+                                    alt={item.product_name || "Product"}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <Package className="h-5 w-5 text-[#E1680B]" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium text-gray-900 text-sm leading-snug">
+                                  {item.product_name}
                                 </p>
-                              )}
-                              <p className="text-[11px] text-gray-400 mt-0.5">
-                                Qty {item.quantity}
+                                {item.variant_name && (
+                                  <p className="text-xs text-gray-500 mt-0.5">
+                                    {item.variant_name}
+                                  </p>
+                                )}
+                                <p className="text-[11px] text-gray-400 mt-0.5">
+                                  Qty {item.quantity}
+                                </p>
+                              </div>
+                              <p className="shrink-0 text-sm font-semibold tabular-nums text-gray-900 self-start">
+                                {formatPrice(item.total_price)}
                               </p>
-                            </div>
-                            <p className="shrink-0 text-sm font-semibold tabular-nums text-gray-900 self-start">
-                              {formatPrice(item.total_price)}
-                            </p>
-                          </li>
+                            </li>
                           );
                         })}
                       </ul>
@@ -270,7 +269,9 @@ const OrderConfirmationPage = () => {
                   {fullOrderData.subtotal == null &&
                     fullOrderData.shipping_amount == null && (
                       <div className="flex justify-between items-baseline gap-4 border-t border-gray-100 pt-3">
-                        <span className="text-sm text-gray-500">Total paid</span>
+                        <span className="text-sm text-gray-500">
+                          Total paid
+                        </span>
                         <span className="text-lg font-semibold tabular-nums text-gray-900 shrink-0">
                           {formatPrice(fullOrderData.total_amount)}
                         </span>
@@ -285,7 +286,10 @@ const OrderConfirmationPage = () => {
                   What happens next
                 </div>
                 <ol className="mt-2 space-y-1.5 text-xs sm:text-sm text-gray-600 list-decimal list-inside leading-snug">
-                  <li>We will send a confirmation to your email if you provided one.</li>
+                  <li>
+                    We will send a confirmation to your email if you provided
+                    one.
+                  </li>
                   <li>We usually prepare orders within 1–2 business days.</li>
                   <li>We will contact you when your parcel is dispatched.</li>
                   <li>

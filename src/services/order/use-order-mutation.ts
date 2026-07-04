@@ -116,17 +116,22 @@ export function useUpdateOrderStatus() {
 
   return useMutation({
     mutationFn: (params: UpdateOrderStatusParams) =>
-      api.patch<{ id: string; order_number: string }>(`/orders/${params.orderId}/status`, {
-        status: params.status,
-        internalNotes: params.internalNotes,
-      }),
+      api.patch<{ id: string; order_number: string }>(
+        `/orders/${params.orderId}/status`,
+        {
+          status: params.status,
+          internalNotes: params.internalNotes,
+        },
+      ),
     onSuccess: (data, variables) => {
       showSuccess(
         "Order Status Updated",
-        `Order ${data.order_number} status updated to ${ORDER_STATUS_LABELS[variables.status]}`
+        `Order ${data.order_number} status updated to ${ORDER_STATUS_LABELS[variables.status]}`,
       );
       queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: orderQueryKeys.order(variables.orderId) });
+      queryClient.invalidateQueries({
+        queryKey: orderQueryKeys.order(variables.orderId),
+      });
       queryClient.invalidateQueries({ queryKey: ["orders", "stats"] });
     },
     onError: (error: Error) => {
@@ -141,18 +146,22 @@ export function useUpdatePaymentStatus() {
 
   return useMutation({
     mutationFn: (params: UpdatePaymentStatusParams) =>
-      api.patch<{ id: string; order_number: string }>(`/orders/${params.orderId}/payment-status`, {
-        paymentStatus: params.paymentStatus,
-        internalNotes: params.internalNotes,
-      }),
+      api.patch<{ id: string; order_number: string }>(
+        `/orders/${params.orderId}/payment-status`,
+        {
+          paymentStatus: params.paymentStatus,
+          internalNotes: params.internalNotes,
+        },
+      ),
     onSuccess: (data, variables) => {
       showSuccess(
         "Payment Status Updated",
-        `Order ${data.order_number} payment status updated to ${PAYMENT_STATUS_LABELS[variables.paymentStatus]}`
+        `Order ${data.order_number} payment status updated to ${PAYMENT_STATUS_LABELS[variables.paymentStatus]}`,
       );
       queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: orderQueryKeys.order(variables.orderId) });
-      queryClient.invalidateQueries({ queryKey: orderQueryKeys.orderPayments(variables.orderId) });
+      queryClient.invalidateQueries({
+        queryKey: orderQueryKeys.order(variables.orderId),
+      });
       queryClient.invalidateQueries({ queryKey: ["orders", "stats"] });
     },
     onError: (error: Error) => {
@@ -167,19 +176,24 @@ export function useUpdateFulfillmentStatus() {
 
   return useMutation({
     mutationFn: (params: UpdateFulfillmentStatusParams) =>
-      api.patch<{ id: string; order_number: string }>(`/orders/${params.orderId}/fulfillment-status`, {
-        fulfillmentStatus: params.fulfillmentStatus,
-        trackingNumber: params.trackingNumber,
-        estimatedDeliveryDate: params.estimatedDeliveryDate,
-        internalNotes: params.internalNotes,
-      }),
+      api.patch<{ id: string; order_number: string }>(
+        `/orders/${params.orderId}/fulfillment-status`,
+        {
+          fulfillmentStatus: params.fulfillmentStatus,
+          trackingNumber: params.trackingNumber,
+          estimatedDeliveryDate: params.estimatedDeliveryDate,
+          internalNotes: params.internalNotes,
+        },
+      ),
     onSuccess: (data, variables) => {
       showSuccess(
         "Fulfillment Status Updated",
-        `Order ${data.order_number} fulfillment status updated to ${FULFILLMENT_STATUS_LABELS[variables.fulfillmentStatus]}`
+        `Order ${data.order_number} fulfillment status updated to ${FULFILLMENT_STATUS_LABELS[variables.fulfillmentStatus]}`,
       );
       queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: orderQueryKeys.order(variables.orderId) });
+      queryClient.invalidateQueries({
+        queryKey: orderQueryKeys.order(variables.orderId),
+      });
       queryClient.invalidateQueries({ queryKey: ["orders", "stats"] });
     },
     onError: (error: Error) => {
@@ -194,14 +208,22 @@ export function useUpdateOrderNotes() {
 
   return useMutation({
     mutationFn: (params: UpdateOrderNotesParams) =>
-      api.patch<{ id: string; order_number: string }>(`/orders/${params.orderId}`, {
-        notes: params.notes,
-        internalNotes: params.internalNotes,
-      }),
+      api.patch<{ id: string; order_number: string }>(
+        `/orders/${params.orderId}`,
+        {
+          notes: params.notes,
+          internalNotes: params.internalNotes,
+        },
+      ),
     onSuccess: (data) => {
-      showSuccess("Order Notes Updated", `Notes updated for order ${data.order_number}`);
+      showSuccess(
+        "Order Notes Updated",
+        `Notes updated for order ${data.order_number}`,
+      );
       queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: orderQueryKeys.order(data.id) });
+      queryClient.invalidateQueries({
+        queryKey: orderQueryKeys.order(data.id),
+      });
     },
     onError: (error: Error) => {
       showError("Failed to Update Order Notes", error.message);
@@ -220,13 +242,13 @@ export function useBulkUpdateOrderStatus() {
           api.patch(`/orders/${id}/status`, {
             status: params.status,
             internalNotes: params.internalNotes,
-          })
-        )
+          }),
+        ),
       ),
     onSuccess: (_, variables) => {
       showSuccess(
         "Orders Updated",
-        `${variables.orderIds.length} orders updated to ${ORDER_STATUS_LABELS[variables.status]}`
+        `${variables.orderIds.length} orders updated to ${ORDER_STATUS_LABELS[variables.status]}`,
       );
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["orders", "stats"] });
@@ -243,15 +265,37 @@ export function useCancelOrder() {
 
   return useMutation({
     mutationFn: (orderId: string) =>
-      api.patch<{ id: string; order_number: string }>(`/orders/${orderId}/cancel`),
+      api.patch<{ id: string; order_number: string }>(
+        `/orders/${orderId}/cancel`,
+      ),
     onSuccess: (data) => {
-      showSuccess("Order Cancelled", `Order ${data.order_number} has been cancelled`);
+      showSuccess(
+        "Order Cancelled",
+        `Order ${data.order_number} has been cancelled`,
+      );
       queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: orderQueryKeys.order(data.id) });
+      queryClient.invalidateQueries({
+        queryKey: orderQueryKeys.order(data.id),
+      });
       queryClient.invalidateQueries({ queryKey: ["orders", "stats"] });
     },
     onError: (error: Error) => {
       showError("Failed to Cancel Order", error.message);
+    },
+  });
+}
+
+export function useClaimGuestOrders() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: { sessionId?: string; phone?: string }) =>
+      api.post<{ claimed: number }>("/orders/claim", {
+        sessionId: params.sessionId,
+        phone: params.phone,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["user", "orders"] });
     },
   });
 }
@@ -262,7 +306,11 @@ export function useCreateGuestOrder() {
 
   return useMutation({
     mutationFn: (params: CreateGuestOrderParams) =>
-      api.post<{ order: { id: string; order_number: string }; guest_token: string | null }>(
+      api.post<{
+        id: string;
+        order_number: string;
+        guest_token: string | null;
+      }>(
         "/orders",
         {
           email: params.email ?? undefined,
@@ -272,18 +320,19 @@ export function useCreateGuestOrder() {
           billingAddress: params.billingAddress
             ? normalizeAddress(params.billingAddress)
             : undefined,
+          shippingAmount: params.shipping_amount ?? 0,
+          sessionId: params.session_id ?? undefined,
           notes: params.notes ?? "",
-          // BE only needs variantId + quantity — price is resolved server-side
           items: params.items
             .filter((i) => !!i.variant_id)
             .map((i) => ({ variantId: i.variant_id!, quantity: i.quantity })),
         },
-        { skipAuth: !params.user_id }
+        { skipAuth: !params.user_id },
       ),
     onSuccess: (data) => {
       showSuccess(
         "Order Created",
-        `Your order ${data.order.order_number} has been created successfully`
+        `Your order ${data.order_number} has been created successfully`,
       );
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["orders", "stats"] });
