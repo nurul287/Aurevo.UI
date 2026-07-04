@@ -1,8 +1,15 @@
-﻿# Aurevo Fashion — Frontend (Aurevo.UI)
+# 🛍️ Aurevo Fashion — Frontend E-commerce Store
 
-React 19 storefront + admin panel for the Aurevo Fashion e-commerce platform. Talks exclusively to **Aurevo.BE** (Express REST API) for all data, auth, and file uploads. Supabase SDK is kept only for Google/Facebook OAuth redirects.
+Aurevo Fashion — Frontend E-commerce SPA. React 19 app built with Vite, TypeScript, TanStack Query, Supabase auth, Tailwind CSS v4, Shadcn/ui, React Router v7, and deployed on Vercel.
 
----
+![React](https://img.shields.io/badge/React-19.1.1-blue)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9.2-blue)
+![Vite](https://img.shields.io/badge/Vite-7.1.7-purple)
+![TanStack Query](https://img.shields.io/badge/TanStack_Query-5.90.2-red)
+![Supabase](https://img.shields.io/badge/Supabase-2.58.0-green)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1.13-cyan)
+![React Router](https://img.shields.io/badge/React_Router-7.9.3-orange)
+![Vercel](https://img.shields.io/badge/Deployed-Vercel-black)
 
 ## Tech Stack
 
