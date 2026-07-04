@@ -40,7 +40,7 @@ async function fetchAvailableUnitsCached(
  * Custom hook that provides a unified cart interface using TanStack Query
  */
 export function useCart() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { sessionId, openCartPanel } = useGuestCart();
   const queryClient = useQueryClient();
   const { showError } = useToast();
@@ -51,15 +51,19 @@ export function useCart() {
       userId: user?.id,
       sessionId: user?.id ? undefined : sessionId,
     }),
-    [user?.id, sessionId]
+    [user?.id, sessionId],
   );
 
-  // Use the optimized combined query instead of 3 separate queries
+  // Wait for auth to resolve before fetching cart to avoid a
+  // throwaway guest-key fetch that gets superseded immediately.
   const {
     data: cartData,
     isLoading: cartLoading,
     error: cartError,
-  } = useCartData(queryParams.userId, queryParams.sessionId);
+  } = useCartData(
+    authLoading ? undefined : queryParams.userId,
+    authLoading ? undefined : queryParams.sessionId,
+  );
 
   // Extract data from the combined query
   const cartItems = cartData?.items || [];
@@ -84,8 +88,8 @@ export function useCart() {
       cartQueryKeys.all(queryParams.userId || "", queryParams.sessionId),
     );
     const existingQty =
-      prevCart?.items.find((item) => item.variant_id === variantId)
-        ?.quantity ?? 0;
+      prevCart?.items.find((item) => item.variant_id === variantId)?.quantity ??
+      0;
 
     const available = await fetchAvailableUnitsCached(queryClient, variantId);
     if (available !== null && existingQty + quantity > available) {
@@ -133,7 +137,10 @@ export function useCart() {
     if (quantity > prevQty) {
       const line = prevCart?.items.find((item) => item.id === itemId);
       if (line?.variant_id) {
-        const available = await fetchAvailableUnitsCached(queryClient, line.variant_id);
+        const available = await fetchAvailableUnitsCached(
+          queryClient,
+          line.variant_id,
+        );
         if (available !== null && quantity > available) {
           showError(
             "Not enough stock",

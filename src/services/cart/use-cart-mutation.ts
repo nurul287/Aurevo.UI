@@ -281,15 +281,12 @@ export function useMigrateGuestCart() {
       await api.post("/cart/migrate", { guestSessionId: sessionId });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
+      queryClient.removeQueries({
         queryKey: cartQueryKeys.all("", variables.sessionId),
       });
       queryClient.invalidateQueries({
         queryKey: cartQueryKeys.all(variables.userId),
       });
-      // Migration is one-shot — without this, every fresh page load for an
-      // already-logged-in user re-sends this request forever, since the
-      // guest session id otherwise lingers in localStorage indefinitely.
       localStorage.removeItem("guest_session_id");
     },
     onError: (error: Error) => {

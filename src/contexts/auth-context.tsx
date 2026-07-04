@@ -2,6 +2,7 @@ import { buildProfileFieldsFromUserMetadata } from "@/lib/profile-from-auth-meta
 import { useAuthMutations, useAuth as useAuthQuery } from "@/services/auth";
 import { authQueryKeys } from "@/services/auth/use-auth-query";
 import { useMigrateGuestCart } from "@/services/cart/use-cart-mutation";
+import { useClaimGuestOrders } from "@/services/order/use-order-mutation";
 import { useCreateUserProfile } from "@/services/user";
 import { UserProfile } from "@/services/types";
 import type { Provider, User } from "@supabase/supabase-js";
@@ -44,8 +45,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     resendConfirmation: resendConfirmationMutation,
   } = useAuthMutations();
 
-  // Cart migration mutation
+  // Cart migration & order claiming mutations
   const migrateGuestCartMutation = useMigrateGuestCart();
+  const claimGuestOrdersMutation = useClaimGuestOrders();
   const migrationAttempted = useRef<string | null>(null);
   const profileBootstrapForUserId = useRef<string | null>(null);
 
@@ -95,20 +97,33 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     queryClient,
   ]);
 
-  // Migrate guest cart to user cart when user logs in
+  // Migrate guest cart and claim guest orders once per browser session
   useEffect(() => {
     if (user?.id && migrationAttempted.current !== user.id) {
+      migrationAttempted.current = user.id;
+
       const guestSessionId = localStorage.getItem("guest_session_id");
+      const claimKey = `orders_claimed_${user.id}`;
+      const alreadyClaimed = sessionStorage.getItem(claimKey);
+
       if (guestSessionId) {
-        console.log("🔄 User logged in, migrating guest cart...");
-        migrationAttempted.current = user.id;
         migrateGuestCartMutation.mutate({
           sessionId: guestSessionId,
           userId: user.id,
         });
       }
+
+      if (!alreadyClaimed) {
+        claimGuestOrdersMutation.mutate(
+          {
+            sessionId: guestSessionId || undefined,
+            phone: user.phone || undefined,
+          },
+          { onSuccess: () => sessionStorage.setItem(claimKey, "1") },
+        );
+      }
     }
-  }, [user?.id, migrateGuestCartMutation]);
+  }, [user?.id, migrateGuestCartMutation, claimGuestOrdersMutation]);
 
   // Wrapper functions to maintain the same API as before
   const signIn = async (email: string, password: string) => {
