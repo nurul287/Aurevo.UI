@@ -5,12 +5,15 @@ import { useMigrateGuestCart } from "@/services/cart/use-cart-mutation";
 import { useClaimGuestOrders } from "@/services/order/use-order-mutation";
 import { useCreateUserProfile } from "@/services/user";
 import { UserProfile } from "@/services/types";
-import type { Provider, User } from "@supabase/supabase-js";
+import type { Provider } from "@supabase/supabase-js";
+import type { StoredSession } from "@/services/auth/use-auth-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { createContext, ReactNode, useContext, useEffect, useRef } from "react";
 
+type AuthUser = StoredSession["user"];
+
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   profile: UserProfile | null;
   loading: boolean;
   isAdmin: boolean;

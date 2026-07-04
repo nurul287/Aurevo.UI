@@ -1,12 +1,28 @@
 import { APP_PATHS } from "@/constants/app-paths";
 import { markOAuthLoginPending } from "@/lib/oauth-login-flag";
 import { useToast } from "@/hooks/use-toast";
-import { api } from "@/lib/api";
+import { api, clearStoredTokens, storeTokens } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { SignInData, SignUpData, UserProfile } from "@/services/types";
 import type { Provider } from "@supabase/supabase-js";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { authQueryKeys } from "./use-auth-query";
+
+interface AuthTokenResponse {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt?: number | null;
+  user: { id: string; email?: string; phone?: string; user_metadata?: Record<string, unknown> };
+  requiresConfirmation?: boolean;
+}
+
+function saveAuthTokens(data: AuthTokenResponse) {
+  storeTokens({
+    accessToken: data.accessToken,
+    refreshToken: data.refreshToken,
+    expiresAt: data.expiresAt,
+  });
+}
 
 /**
  * Hook for sign in mutation
@@ -17,36 +33,22 @@ export function useSignIn() {
 
   return useMutation({
     mutationFn: async ({ email, password }: SignInData) => {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) throw error;
+      const data = await api.post<AuthTokenResponse>("/auth/login", { email, password }, { skipAuth: true });
       return data;
     },
     onSuccess: (data) => {
-      // Update session cache
-      queryClient.setQueryData(authQueryKeys.session, data.session);
-
-      // Invalidate user profile to refetch
-      if (data.user?.id) {
-        queryClient.invalidateQueries({
-          queryKey: authQueryKeys.userProfile(data.user.id),
-        });
-      }
+      saveAuthTokens(data as unknown as AuthTokenResponse);
+      queryClient.invalidateQueries({ queryKey: authQueryKeys.session });
     },
-    onError: (error) => {
-      console.error("Sign in error:", error);
-      showError(
-        "Sign in failed",
-        error.message || "Invalid email or password. Please try again."
-      );
+    onError: (error: Error) => {
+      showError("Sign in failed", error.message || "Invalid email or password. Please try again.");
     },
   });
 }
 
 /**
  * OAuth sign-in (Facebook, Google, etc.). Redirects the browser away from the app.
+ * The Supabase SDK is kept only for this OAuth redirect flow.
  */
 export function useSignInWithOAuth() {
   const { showError } = useToast();
@@ -63,11 +65,7 @@ export function useSignInWithOAuth() {
       if (error) throw error;
     },
     onError: (error: Error) => {
-      console.error("OAuth sign in error:", error);
-      showError(
-        "Sign in failed",
-        error.message || "Could not start social sign-in. Please try again.",
-      );
+      showError("Sign in failed", error.message || "Could not start social sign-in. Please try again.");
     },
   });
 }
@@ -81,33 +79,24 @@ export function useSignUp() {
 
   return useMutation({
     mutationFn: async ({ email, password, userData }: SignUpData) => {
-      const { data, error } = await supabase.auth.signUp({
+      const data = await api.post<AuthTokenResponse>("/auth/register", {
         email,
         password,
-        options: {
-          data: userData,
-        },
-      });
-      if (error) throw error;
+        firstName: userData?.first_name,
+        lastName: userData?.last_name,
+      }, { skipAuth: true });
       return data;
     },
     onSuccess: (data) => {
-      // Update session cache if user is immediately signed in
-      if (data.session) {
-        queryClient.setQueryData(authQueryKeys.session, data.session);
+      const result = data as unknown as AuthTokenResponse;
+      if (!result.requiresConfirmation) {
+        saveAuthTokens(result);
+        queryClient.invalidateQueries({ queryKey: authQueryKeys.session });
       }
-
-      showSuccess(
-        "Account created!",
-        "Please check your email to confirm your account"
-      );
+      showSuccess("Account created!", "Please check your email to confirm your account");
     },
-    onError: (error) => {
-      console.error("Sign up error:", error);
-      showError(
-        "Sign up failed",
-        error.message || "Something went wrong. Please try again."
-      );
+    onError: (error: Error) => {
+      showError("Sign up failed", error.message || "Something went wrong. Please try again.");
     },
   });
 }
@@ -121,25 +110,19 @@ export function useSignOut() {
 
   return useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      await api.post("/auth/logout");
     },
     onSuccess: () => {
-      // Clear all auth-related cache
+      clearStoredTokens();
       queryClient.setQueryData(authQueryKeys.session, null);
       queryClient.removeQueries({ queryKey: ["auth", "profile"] });
-
-      showSuccess(
-        "Signed out successfully",
-        "You have been logged out of your account"
-      );
+      showSuccess("Signed out successfully", "You have been logged out of your account");
     },
-    onError: (error) => {
-      console.error("Sign out error:", error);
-      showError(
-        "Sign out failed",
-        error.message || "Something went wrong. Please try again."
-      );
+    onError: (error: Error) => {
+      // Clear tokens even on error — best effort
+      clearStoredTokens();
+      queryClient.setQueryData(authQueryKeys.session, null);
+      showError("Sign out failed", error.message || "Something went wrong. Please try again.");
     },
   });
 }
@@ -160,13 +143,9 @@ export function useUpdateProfile() {
       return await api.patch<UserProfile>("/auth/profile", updates);
     },
     onSuccess: (data, variables) => {
-      // Update profile cache
-      queryClient.setQueryData(
-        authQueryKeys.userProfile(variables.userId),
-        data
-      );
+      queryClient.setQueryData(authQueryKeys.userProfile(variables.userId), data);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Update profile error:", error);
     },
   });
@@ -178,14 +157,9 @@ export function useUpdateProfile() {
 export function useResendConfirmation() {
   return useMutation({
     mutationFn: async (email: string) => {
-      const { data, error } = await supabase.auth.resend({
-        type: "signup",
-        email,
-      });
-      if (error) throw error;
-      return data;
+      return api.post("/auth/resend-confirmation", { email, type: "signup" }, { skipAuth: true });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Resend confirmation error:", error);
     },
   });
@@ -197,13 +171,12 @@ export function useResendConfirmation() {
 export function usePasswordReset() {
   return useMutation({
     mutationFn: async (email: string) => {
-      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      return api.post("/auth/forgot-password", {
+        email,
         redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (error) throw error;
-      return data;
+      }, { skipAuth: true });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Password reset error:", error);
     },
   });
@@ -213,21 +186,11 @@ export function usePasswordReset() {
  * Hook for updating password
  */
 export function useUpdatePassword() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async ({ password }: { password: string }) => {
-      const { data, error } = await supabase.auth.updateUser({
-        password,
-      });
-      if (error) throw error;
-      return data;
+      return api.post("/auth/update-password", { password });
     },
-    onSuccess: (data) => {
-      // Update session cache
-      queryClient.setQueryData(authQueryKeys.session, data.user);
-    },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Update password error:", error);
     },
   });

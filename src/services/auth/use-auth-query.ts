@@ -1,4 +1,4 @@
-import { api } from "@/lib/api";
+import { api, getStoredToken, storeTokens } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { UserProfile } from "@/services/types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -10,8 +10,20 @@ export const authQueryKeys = {
   userProfile: (userId: string) => ["auth", "profile", userId] as const,
 } as const;
 
+export interface StoredSession {
+  user: {
+    id: string;
+    email: string;
+    phone?: string;
+    created_at?: string;
+    user_metadata?: Record<string, unknown>;
+    app_metadata?: Record<string, unknown>;
+  };
+}
+
 /**
- * Hook to get the current authentication session
+ * Hook to get the current authentication session.
+ * Reads access token from localStorage; calls /api/auth/me to hydrate user data.
  */
 export function useSession() {
   const queryClient = useQueryClient();
@@ -22,26 +34,51 @@ export function useSession() {
     error,
   } = useQuery({
     queryKey: authQueryKeys.session,
-    queryFn: async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) throw error;
-      return data.session;
+    queryFn: async (): Promise<StoredSession | null> => {
+      const token = getStoredToken();
+      if (!token) return null;
+      try {
+        const profile = await api.get<UserProfile>("/auth/me");
+        const user = profile as unknown as Record<string, unknown>;
+        return {
+          user: {
+            id: String(user.id ?? ""),
+            email: String(user.email ?? ""),
+            phone: user.phone ? String(user.phone) : undefined,
+            created_at: user.created_at ? String(user.created_at) : undefined,
+            user_metadata: {
+              first_name: user.first_name,
+              last_name: user.last_name,
+              avatar_url: user.avatar_url,
+            },
+          },
+        };
+      } catch {
+        return null;
+      }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 1,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
   });
 
-  // Subscribe to auth state changes
+  // Subscribe to Supabase auth events only for the OAuth callback flow.
+  // After an OAuth redirect, Supabase sets a session in the URL hash;
+  // we extract the token and copy it to localStorage so all subsequent
+  // API calls use the same BE-compatible JWT.
   useEffect(() => {
     const { data: subscription } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        queryClient.setQueryData(authQueryKeys.session, session);
-
-        // Invalidate user profile when auth state changes
-        if (session?.user?.id) {
-          queryClient.invalidateQueries({
-            queryKey: authQueryKeys.userProfile(session.user.id),
+      async (event, oauthSession) => {
+        if (
+          (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") &&
+          oauthSession?.access_token
+        ) {
+          // Copy OAuth token into localStorage so api.ts picks it up
+          storeTokens({
+            accessToken: oauthSession.access_token,
+            refreshToken: oauthSession.refresh_token ?? "",
+            expiresAt: oauthSession.expires_at,
           });
+          queryClient.invalidateQueries({ queryKey: authQueryKeys.session });
         }
       }
     );
@@ -77,7 +114,7 @@ export function useUserProfile(userId?: string) {
       }
     },
     enabled: !!targetUserId,
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 10 * 60 * 1000,
   });
 }
 

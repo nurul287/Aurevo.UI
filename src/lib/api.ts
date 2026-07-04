@@ -1,7 +1,5 @@
-import { supabase } from "./supabase";
-
-const API_URL =
-  (import.meta.env.VITE_API_URL as string) || "http://localhost:3001/api";
+﻿const API_URL =
+  (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/api";
 
 export interface ApiError extends Error {
   code?: string;
@@ -19,6 +17,36 @@ export interface PaginationMeta {
 export interface ApiListResult<T> {
   data: T[];
   pagination: PaginationMeta;
+}
+
+// ── Token helpers ─────────────────────────────────────────────────────────────
+
+export const TOKEN_KEYS = {
+  accessToken: "aurevo_access_token",
+  refreshToken: "aurevo_refresh_token",
+  expiresAt: "aurevo_token_expires_at",
+} as const;
+
+export function getStoredToken(): string | null {
+  return localStorage.getItem(TOKEN_KEYS.accessToken);
+}
+
+export function storeTokens(tokens: {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt?: number | null;
+}) {
+  localStorage.setItem(TOKEN_KEYS.accessToken, tokens.accessToken);
+  localStorage.setItem(TOKEN_KEYS.refreshToken, tokens.refreshToken);
+  if (tokens.expiresAt != null) {
+    localStorage.setItem(TOKEN_KEYS.expiresAt, String(tokens.expiresAt));
+  }
+}
+
+export function clearStoredTokens() {
+  localStorage.removeItem(TOKEN_KEYS.accessToken);
+  localStorage.removeItem(TOKEN_KEYS.refreshToken);
+  localStorage.removeItem(TOKEN_KEYS.expiresAt);
 }
 
 // ── Key conversion ──────────────────────────────────────────────────────────
@@ -43,15 +71,6 @@ function snakifyKeys(val: unknown): unknown {
   return val;
 }
 
-// ── Auth ─────────────────────────────────────────────────────────────────────
-
-async function getToken(): Promise<string | null> {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  return session?.access_token ?? null;
-}
-
 // ── Error ────────────────────────────────────────────────────────────────────
 
 function buildError(
@@ -63,6 +82,46 @@ function buildError(
   err.status = status;
   err.details = json.error?.details;
   return err;
+}
+
+// ── Token refresh ─────────────────────────────────────────────────────────────
+
+let refreshPromise: Promise<string | null> | null = null;
+
+async function tryRefreshToken(): Promise<string | null> {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    const refreshToken = localStorage.getItem(TOKEN_KEYS.refreshToken);
+    if (!refreshToken) return null;
+
+    try {
+      const res = await fetch(`${API_URL}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+      });
+      if (!res.ok) {
+        clearStoredTokens();
+        return null;
+      }
+      const json = await res.json();
+      if (!json.success || !json.data?.accessToken) {
+        clearStoredTokens();
+        return null;
+      }
+      storeTokens({
+        accessToken: json.data.accessToken,
+        refreshToken: json.data.refreshToken,
+        expiresAt: json.data.expiresAt,
+      });
+      return json.data.accessToken as string;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
 }
 
 // ── Core fetch ───────────────────────────────────────────────────────────────
@@ -78,24 +137,34 @@ async function makeRequest(
 ): Promise<{ json: Record<string, unknown>; status: number }> {
   const { method = "GET", body, guestSessionId, skipAuth = false } = options;
 
-  const token = skipAuth ? null : await getToken();
+  const doFetch = async (token: string | null) => {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    if (guestSessionId) headers["X-Guest-Session"] = guestSessionId;
 
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
+    const res = await fetch(`${API_URL}${path}`, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+
+    if (res.status === 204) return { json: { success: true, data: undefined }, status: 204 };
+    const json = await res.json();
+    return { json, status: res.status };
   };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  if (guestSessionId) headers["X-Guest-Session"] = guestSessionId;
 
-  const res = await fetch(`${API_URL}${path}`, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  const token = skipAuth ? null : getStoredToken();
+  const result = await doFetch(token);
 
-  if (res.status === 204) return { json: { success: true, data: undefined }, status: 204 };
+  // Auto-refresh on 401 (token expired)
+  if (result.status === 401 && !skipAuth && token) {
+    const newToken = await tryRefreshToken();
+    if (newToken) return doFetch(newToken);
+  }
 
-  const json = await res.json();
-  return { json, status: res.status };
+  return result;
 }
 
 /**
@@ -111,16 +180,23 @@ export async function apiFetchForm<T>(
   }
 ): Promise<T> {
   const { method = "POST", formData, guestSessionId } = options;
-  const token = await getToken();
 
-  const headers: Record<string, string> = {};
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  if (guestSessionId) headers["X-Guest-Session"] = guestSessionId;
+  const doFetch = async (token: string | null) => {
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    if (guestSessionId) headers["X-Guest-Session"] = guestSessionId;
+    return fetch(`${API_URL}${path}`, { method, headers, body: formData });
+  };
 
-  const res = await fetch(`${API_URL}${path}`, { method, headers, body: formData });
+  const token = getStoredToken();
+  let res = await doFetch(token);
+
+  if (res.status === 401 && token) {
+    const newToken = await tryRefreshToken();
+    if (newToken) res = await doFetch(newToken);
+  }
 
   if (res.status === 204) return undefined as T;
-
   const json = await res.json();
   if (!json.success) throw buildError(json, res.status);
   return snakifyKeys(json.data) as T;
@@ -180,7 +256,7 @@ export async function apiFetchList<T>(
  * header — the server owns the naming, not the client.
  */
 export async function apiDownloadFile(path: string): Promise<void> {
-  const token = await getToken();
+  const token = getStoredToken();
   const headers: Record<string, string> = {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
