@@ -285,6 +285,23 @@ export function useCancelOrder() {
   });
 }
 
+export function useDeleteOrder() {
+  const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
+
+  return useMutation({
+    mutationFn: (orderId: string) => api.delete(`/orders/${orderId}`),
+    onSuccess: () => {
+      showSuccess("Order Deleted", "The order has been permanently deleted");
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["orders", "stats"] });
+    },
+    onError: (error: Error) => {
+      showError("Failed to Delete Order", error.message);
+    },
+  });
+}
+
 export function useClaimGuestOrders() {
   const queryClient = useQueryClient();
   return useMutation({
