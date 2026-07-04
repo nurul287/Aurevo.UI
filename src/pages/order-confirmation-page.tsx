@@ -198,7 +198,10 @@ const OrderConfirmationPage = () => {
                       </h2>
                       <ul className="space-y-1.5">
                         {orderItems.map((item: any, index: number) => {
-                          const imageUrl = item.image_url || null;
+                          const imageUrl = item.imageUrl || item.image_url || null;
+                          const productName = item.productName || item.product_name;
+                          const variantName = item.variantName || item.variant_name;
+                          const totalPrice = item.totalPrice || item.total_price;
                           return (
                             <li
                               key={item.id ?? index}
@@ -208,7 +211,7 @@ const OrderConfirmationPage = () => {
                                 {imageUrl ? (
                                   <img
                                     src={imageUrl}
-                                    alt={item.product_name || "Product"}
+                                    alt={productName || "Product"}
                                     className="h-full w-full object-cover"
                                   />
                                 ) : (
@@ -217,11 +220,11 @@ const OrderConfirmationPage = () => {
                               </div>
                               <div className="min-w-0 flex-1">
                                 <p className="font-medium text-gray-900 text-sm leading-snug">
-                                  {item.product_name}
+                                  {productName}
                                 </p>
-                                {item.variant_name && (
+                                {variantName && (
                                   <p className="text-xs text-gray-500 mt-0.5">
-                                    {item.variant_name}
+                                    {variantName}
                                   </p>
                                 )}
                                 <p className="text-[11px] text-gray-400 mt-0.5">
@@ -229,7 +232,7 @@ const OrderConfirmationPage = () => {
                                 </p>
                               </div>
                               <p className="shrink-0 text-sm font-semibold tabular-nums text-gray-900 self-start">
-                                {formatPrice(item.total_price)}
+                                {formatPrice(totalPrice)}
                               </p>
                             </li>
                           );
