@@ -4,10 +4,18 @@ import { UserProfile } from "@/services/types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 
-// Query keys for consistent cache management
+// Query keys for consistent cache management.
+// `session` and `userProfile` are deliberately aliased to the same array value
+// as `me` (React Query compares keys by value, not identity) — both used to
+// point at independent cache entries that both fetched the identical /auth/me
+// payload, causing a duplicate network request on every mount. Keeping them
+// as aliases means every existing invalidateQueries/setQueryData call site
+// (login, logout, profile updates, etc.) keeps working against the single
+// shared `me` cache entry without needing to touch each call site.
 export const authQueryKeys = {
-  session: ["auth", "session"] as const,
-  userProfile: (userId: string) => ["auth", "profile", userId] as const,
+  me: ["auth", "me"] as const,
+  session: ["auth", "me"] as const,
+  userProfile: (_userId: string) => ["auth", "me"] as const,
 } as const;
 
 export interface StoredSession {
@@ -21,6 +29,23 @@ export interface StoredSession {
   };
 }
 
+function useMeQuery() {
+  const token = getStoredToken();
+  return useQuery({
+    queryKey: authQueryKeys.me,
+    queryFn: async (): Promise<UserProfile | null> => {
+      try {
+        return await api.get<UserProfile>("/auth/me");
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!token,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+}
+
 /**
  * Hook to get the current authentication session.
  * Reads access token from localStorage; calls /api/auth/me to hydrate user data.
@@ -28,38 +53,23 @@ export interface StoredSession {
 export function useSession() {
   const queryClient = useQueryClient();
 
-  const {
-    data: session,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: authQueryKeys.session,
-    queryFn: async (): Promise<StoredSession | null> => {
-      const token = getStoredToken();
-      if (!token) return null;
-      try {
-        const profile = await api.get<UserProfile>("/auth/me");
-        const user = profile as unknown as Record<string, unknown>;
-        return {
-          user: {
-            id: String(user.id ?? ""),
-            email: String(user.email ?? ""),
-            phone: user.phone ? String(user.phone) : undefined,
-            created_at: user.created_at ? String(user.created_at) : undefined,
-            user_metadata: {
-              first_name: user.first_name,
-              last_name: user.last_name,
-              avatar_url: user.avatar_url,
-            },
+  const { data: profile, isLoading, error } = useMeQuery();
+  const user = profile as unknown as Record<string, unknown> | null;
+  const session: StoredSession | null = user
+    ? {
+        user: {
+          id: String(user.id ?? ""),
+          email: String(user.email ?? ""),
+          phone: user.phone ? String(user.phone) : undefined,
+          created_at: user.created_at ? String(user.created_at) : undefined,
+          user_metadata: {
+            first_name: user.first_name,
+            last_name: user.last_name,
+            avatar_url: user.avatar_url,
           },
-        };
-      } catch {
-        return null;
+        },
       }
-    },
-    staleTime: 5 * 60 * 1000,
-    retry: false,
-  });
+    : null;
 
   // Subscribe to Supabase auth events only for the OAuth callback flow.
   // After an OAuth redirect, Supabase sets a session in the URL hash;
@@ -78,7 +88,7 @@ export function useSession() {
             refreshToken: oauthSession.refresh_token ?? "",
             expiresAt: oauthSession.expires_at,
           });
-          queryClient.invalidateQueries({ queryKey: authQueryKeys.session });
+          queryClient.invalidateQueries({ queryKey: authQueryKeys.me });
         }
       }
     );
@@ -96,26 +106,13 @@ export function useSession() {
 }
 
 /**
- * Hook to get user profile data
+ * Hook to get user profile data. `userId` is accepted for API-compatibility
+ * with existing callers, but every caller passes the current session's own
+ * id — this always resolves to the same /auth/me payload as useSession, so
+ * it shares that query instead of firing an independent request.
  */
-export function useUserProfile(userId?: string) {
-  const { user } = useSession();
-  const targetUserId = userId || user?.id;
-
-  return useQuery({
-    queryKey: authQueryKeys.userProfile(targetUserId!),
-    queryFn: async (): Promise<UserProfile | null> => {
-      if (!targetUserId) return null;
-      try {
-        return await api.get<UserProfile>("/auth/me");
-      } catch (err: unknown) {
-        if ((err as { status?: number }).status === 404) return null;
-        throw err;
-      }
-    },
-    enabled: !!targetUserId,
-    staleTime: 10 * 60 * 1000,
-  });
+export function useUserProfile(_userId?: string) {
+  return useMeQuery();
 }
 
 /**
