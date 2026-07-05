@@ -59,7 +59,11 @@ export function useSignInWithOAuth() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}${APP_PATHS.dashboard}`,
+          // Must redirect to a non-guarded page (home) so the Supabase SDK can
+          // exchange the PKCE `?code=` before any auth guard navigates away and
+          // strips the code from the URL. OAuthSuccessLandingRedirect on "/" then
+          // waits for the session and forwards the user to /dashboard.
+          redirectTo: `${window.location.origin}/`,
         },
       });
       if (error) throw error;
