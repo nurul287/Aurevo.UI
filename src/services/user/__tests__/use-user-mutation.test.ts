@@ -39,7 +39,8 @@ describe("useUpdateUserProfile", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(receivedBody).toMatchObject({ firstName: "Jane" });
-    expect(queryClient.getQueryData(["auth", "profile", "user-1"])).toEqual({
+    // authQueryKeys.userProfile() aliases ["auth","me"] after the /auth/me dedup refactor
+    expect(queryClient.getQueryData(["auth", "me"])).toEqual({
       id: "user-1",
       first_name: "Jane",
     });

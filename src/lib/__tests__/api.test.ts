@@ -2,6 +2,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { server } from "@/test/msw/server";
 import { createMockSupabaseClient } from "@/test/mocks/supabase";
+// Note: api.ts reads tokens from localStorage (not Supabase SDK session).
+// Tests that exercise auth headers must write to localStorage directly.
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -10,14 +12,10 @@ vi.mock("@/lib/supabase", () => ({
 }));
 
 import { api, apiFetch, apiFetchForm, apiFetchList } from "../api";
-import { supabase } from "../supabase";
 
 describe("apiFetch", () => {
   afterEach(() => {
-    vi.mocked(supabase.auth.getSession).mockResolvedValue({
-      data: { session: null },
-      error: null,
-    } as never);
+    localStorage.removeItem("aurevo_access_token");
   });
 
   it("converts camelCase response keys to snake_case", async () => {
@@ -39,11 +37,8 @@ describe("apiFetch", () => {
     expect(result).toEqual({ id: "1", is_active: true, base_price: 100 });
   });
 
-  it("attaches a bearer token from the Supabase session when not skipping auth", async () => {
-    vi.mocked(supabase.auth.getSession).mockResolvedValue({
-      data: { session: { access_token: "test-token" } },
-      error: null,
-    } as never);
+  it("attaches a bearer token from localStorage when not skipping auth", async () => {
+    localStorage.setItem("aurevo_access_token", "test-token");
 
     let receivedAuthHeader: string | null = null;
     server.use(

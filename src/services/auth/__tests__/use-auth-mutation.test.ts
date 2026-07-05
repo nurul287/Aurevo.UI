@@ -1,9 +1,12 @@
+import { http, HttpResponse } from "msw";
 import { waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderHookWithQueryClient } from "@/test/test-utils";
-import { createMockSession, createMockSupabaseClient } from "@/test/mocks/supabase";
-import { supabase } from "@/lib/supabase";
+import { server } from "@/test/msw/server";
+import { createMockSupabaseClient } from "@/test/mocks/supabase";
 import { useToast } from "@/hooks/use-toast";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 vi.mock("@/lib/supabase", () => ({
   supabase: createMockSupabaseClient(null),
@@ -18,6 +21,9 @@ const mockUseToast = vi.mocked(useToast);
 import { useSignIn, useSignInWithOAuth, useSignOut, useSignUp } from "../use-auth-mutation";
 import { authQueryKeys } from "../use-auth-query";
 
+// Auth mutations call the custom backend (not Supabase SDK directly).
+// Supabase SDK is only used for signInWithOAuth redirect flow.
+
 describe("auth mutations", () => {
   const showSuccess = vi.fn();
   const showError = vi.fn();
@@ -25,43 +31,62 @@ describe("auth mutations", () => {
   beforeEach(() => {
     showSuccess.mockClear();
     showError.mockClear();
-    mockUseToast.mockReturnValue({ showSuccess, showError } as unknown as ReturnType<
-      typeof useToast
-    >);
+    mockUseToast.mockReturnValue({ showSuccess, showError } as unknown as ReturnType<typeof useToast>);
   });
 
-  it("useSignIn signs in and caches the new session", async () => {
-    const session = createMockSession();
-    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({
-      data: { session, user: session.user },
-      error: null,
-    } as never);
+  afterEach(() => {
+    localStorage.removeItem("aurevo_access_token");
+    localStorage.removeItem("aurevo_refresh_token");
+  });
 
-    const { result, queryClient } = renderHookWithQueryClient(() => useSignIn());
+  it("useSignIn stores tokens in localStorage on success", async () => {
+    server.use(
+      http.post(`${API_URL}/auth/login`, () =>
+        HttpResponse.json({
+          success: true,
+          data: {
+            accessToken: "tok-access",
+            refreshToken: "tok-refresh",
+            expiresAt: 9999999999,
+            user: { id: "user-1", email: "jane@example.com" },
+          },
+        }),
+      ),
+    );
+
+    const { result } = renderHookWithQueryClient(() => useSignIn());
     result.current.mutate({ email: "jane@example.com", password: "hunter2" });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(queryClient.getQueryData(authQueryKeys.session)).toEqual(session);
+    expect(localStorage.getItem("aurevo_access_token")).toBe("tok-access");
   });
 
   it("useSignIn shows an error toast on invalid credentials", async () => {
-    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({
-      data: { session: null, user: null },
-      error: { message: "Invalid login credentials" },
-    } as never);
+    server.use(
+      http.post(`${API_URL}/auth/login`, () =>
+        HttpResponse.json(
+          { success: false, error: { code: "INVALID_CREDENTIALS", message: "Invalid email or password" } },
+          { status: 401 },
+        ),
+      ),
+    );
 
     const { result } = renderHookWithQueryClient(() => useSignIn());
     result.current.mutate({ email: "jane@example.com", password: "wrong" });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(showError).toHaveBeenCalledWith("Sign in failed", "Invalid login credentials");
+    expect(showError).toHaveBeenCalledWith("Sign in failed", expect.stringContaining("Invalid email or password"));
   });
 
   it("useSignUp shows a confirmation success toast", async () => {
-    vi.mocked(supabase.auth.signUp).mockResolvedValue({
-      data: { session: null, user: { id: "user-1" } },
-      error: null,
-    } as never);
+    server.use(
+      http.post(`${API_URL}/auth/register`, () =>
+        HttpResponse.json({
+          success: true,
+          data: { user: { id: "user-1" }, requiresConfirmation: true },
+        }),
+      ),
+    );
 
     const { result } = renderHookWithQueryClient(() => useSignUp());
     result.current.mutate({ email: "jane@example.com", password: "hunter2" });
@@ -69,27 +94,29 @@ describe("auth mutations", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(showSuccess).toHaveBeenCalledWith(
       "Account created!",
-      "Please check your email to confirm your account"
+      "Please check your email to confirm your account",
     );
   });
 
-  it("useSignOut clears the session cache and shows a success toast", async () => {
-    vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: null } as never);
+  it("useSignOut clears tokens and session cache, shows a success toast", async () => {
+    localStorage.setItem("aurevo_access_token", "tok-123");
 
     const { result, queryClient } = renderHookWithQueryClient(() => useSignOut());
-    queryClient.setQueryData(authQueryKeys.session, createMockSession());
+    queryClient.setQueryData(authQueryKeys.session, { user: { id: "user-1" } });
 
     result.current.mutate();
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(queryClient.getQueryData(authQueryKeys.session)).toBeNull();
+    expect(localStorage.getItem("aurevo_access_token")).toBeNull();
     expect(showSuccess).toHaveBeenCalledWith(
       "Signed out successfully",
-      "You have been logged out of your account"
+      "You have been logged out of your account",
     );
   });
 
   it("useSignInWithOAuth marks the OAuth login as pending before redirecting", async () => {
+    const { supabase } = await import("@/lib/supabase");
     vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValue({ error: null } as never);
 
     const { result } = renderHookWithQueryClient(() => useSignInWithOAuth());
