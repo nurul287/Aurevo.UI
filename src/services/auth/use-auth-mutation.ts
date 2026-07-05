@@ -1,9 +1,7 @@
 import { markOAuthLoginPending } from "@/lib/oauth-login-flag";
 import { useToast } from "@/hooks/use-toast";
 import { api, clearStoredTokens, storeTokens } from "@/lib/api";
-import { supabase } from "@/lib/supabase";
 import { SignInData, SignUpData, UserProfile } from "@/services/types";
-import type { Provider } from "@supabase/supabase-js";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { authQueryKeys } from "./use-auth-query";
 
@@ -46,26 +44,20 @@ export function useSignIn() {
 }
 
 /**
- * OAuth sign-in (Facebook, Google, etc.). Redirects the browser away from the app.
- * The Supabase SDK is kept only for this OAuth redirect flow.
+ * OAuth sign-in (Google, Facebook). The backend generates the provider URL
+ * (with PKCE) and owns the callback, so it can reliably revoke the session on logout.
  */
 export function useSignInWithOAuth() {
   const { showError } = useToast();
 
   return useMutation({
-    mutationFn: async (provider: Provider) => {
+    mutationFn: async (provider: "google" | "facebook") => {
       markOAuthLoginPending();
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          // Must redirect to a non-guarded page (home) so the Supabase SDK can
-          // exchange the PKCE `?code=` before any auth guard navigates away and
-          // strips the code from the URL. OAuthSuccessLandingRedirect on "/" then
-          // waits for the session and forwards the user to /dashboard.
-          redirectTo: `${window.location.origin}/`,
-        },
-      });
-      if (error) throw error;
+      const data = await api.get<{ url: string }>(
+        `/auth/oauth/url?provider=${provider}`,
+        { skipAuth: true, raw: true },
+      );
+      window.location.href = (data as unknown as { url: string }).url;
     },
     onError: (error: Error) => {
       showError("Sign in failed", error.message || "Could not start social sign-in. Please try again.");
@@ -113,9 +105,8 @@ export function useSignOut() {
 
   return useMutation({
     mutationFn: async () => {
-      // Sign out from Supabase to kill the OAuth server session.
-      // Errors are swallowed — local cleanup must always succeed.
-      await supabase.auth.signOut().catch(() => {});
+      // Call BE first so the Supabase server session is revoked before we lose the token.
+      await api.post("/auth/logout", undefined).catch(() => {});
       clearStoredTokens();
       queryClient.setQueryData(authQueryKeys.session, null);
       queryClient.removeQueries({ queryKey: ["auth", "profile"] });
