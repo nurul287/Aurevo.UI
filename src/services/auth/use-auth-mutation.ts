@@ -1,4 +1,3 @@
-import { APP_PATHS } from "@/constants/app-paths";
 import { markOAuthLoginPending } from "@/lib/oauth-login-flag";
 import { useToast } from "@/hooks/use-toast";
 import { api, clearStoredTokens, storeTokens } from "@/lib/api";
