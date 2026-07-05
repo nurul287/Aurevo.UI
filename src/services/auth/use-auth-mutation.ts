@@ -113,6 +113,9 @@ export function useSignOut() {
 
   return useMutation({
     mutationFn: async () => {
+      // Sign out from Supabase to kill the OAuth server session.
+      // Errors are swallowed — local cleanup must always succeed.
+      await supabase.auth.signOut().catch(() => {});
       clearStoredTokens();
       queryClient.setQueryData(authQueryKeys.session, null);
       queryClient.removeQueries({ queryKey: ["auth", "profile"] });
