@@ -84,6 +84,7 @@ describe("useMigrateGuestCartToNewUser", () => {
     result.current.mutate({ sessionId: "guest-1", userId: "user-1" });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(receivedBody).toEqual({ sessionId: "guest-1", userId: "user-1" });
+    // Source sends guestSessionId (not sessionId) to match the backend field name
+    expect(receivedBody).toEqual({ guestSessionId: "guest-1", userId: "user-1" });
   });
 });
