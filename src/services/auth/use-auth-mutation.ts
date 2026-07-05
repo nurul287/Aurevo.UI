@@ -1,4 +1,3 @@
-import { APP_PATHS } from "@/constants/app-paths";
 import { markOAuthLoginPending } from "@/lib/oauth-login-flag";
 import { useToast } from "@/hooks/use-toast";
 import { api, clearStoredTokens, storeTokens } from "@/lib/api";
@@ -59,7 +58,11 @@ export function useSignInWithOAuth() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}${APP_PATHS.dashboard}`,
+          // Must redirect to a non-guarded page (home) so the Supabase SDK can
+          // exchange the PKCE `?code=` before any auth guard navigates away and
+          // strips the code from the URL. OAuthSuccessLandingRedirect on "/" then
+          // waits for the session and forwards the user to /dashboard.
+          redirectTo: `${window.location.origin}/`,
         },
       });
       if (error) throw error;
@@ -106,23 +109,16 @@ export function useSignUp() {
  */
 export function useSignOut() {
   const queryClient = useQueryClient();
-  const { showSuccess, showError } = useToast();
+  const { showSuccess } = useToast();
 
   return useMutation({
     mutationFn: async () => {
-      await api.post("/auth/logout");
-    },
-    onSuccess: () => {
       clearStoredTokens();
       queryClient.setQueryData(authQueryKeys.session, null);
       queryClient.removeQueries({ queryKey: ["auth", "profile"] });
-      showSuccess("Signed out successfully", "You have been logged out of your account");
     },
-    onError: (error: Error) => {
-      // Clear tokens even on error — best effort
-      clearStoredTokens();
-      queryClient.setQueryData(authQueryKeys.session, null);
-      showError("Sign out failed", error.message || "Something went wrong. Please try again.");
+    onSuccess: () => {
+      showSuccess("Signed out successfully", "You have been logged out of your account");
     },
   });
 }
