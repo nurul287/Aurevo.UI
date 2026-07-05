@@ -21,6 +21,7 @@ const mockUseToast = vi.mocked(useToast);
 import {
   useCancelOrder,
   useCreateGuestOrder,
+  useDeleteOrder,
   useUpdateOrderStatus,
 } from "../use-order-mutation";
 
@@ -114,6 +115,55 @@ describe("order mutations", () => {
     expect(showError).toHaveBeenCalledWith(
       "Failed to Cancel Order",
       "Order already cancelled",
+    );
+  });
+
+  it("useDeleteOrder deletes the order, shows a success toast, and refreshes the order list", async () => {
+    server.use(
+      http.delete(`${API_URL}/orders/o1`, () =>
+        HttpResponse.json({ success: true, message: "Order deleted" }),
+      ),
+    );
+
+    const { result, queryClient } = renderHookWithQueryClient(() =>
+      useDeleteOrder(),
+    );
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    result.current.mutate("o1");
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(showSuccess).toHaveBeenCalledWith(
+      "Order Deleted",
+      "The order has been permanently deleted",
+    );
+    // Order list and stats queries must be invalidated so the UI refreshes
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["orders"] });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ["orders", "stats"],
+    });
+  });
+
+  it("useDeleteOrder shows an error toast when the order has orders/reviews attached", async () => {
+    server.use(
+      http.delete(`${API_URL}/orders/o1`, () =>
+        HttpResponse.json(
+          {
+            success: false,
+            error: { message: "Cannot delete order — it has 1 review(s) attached." },
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+
+    const { result } = renderHookWithQueryClient(() => useDeleteOrder());
+    result.current.mutate("o1");
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(showError).toHaveBeenCalledWith(
+      "Failed to Delete Order",
+      "Cannot delete order — it has 1 review(s) attached.",
     );
   });
 
