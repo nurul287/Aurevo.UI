@@ -106,23 +106,16 @@ export function useSignUp() {
  */
 export function useSignOut() {
   const queryClient = useQueryClient();
-  const { showSuccess, showError } = useToast();
+  const { showSuccess } = useToast();
 
   return useMutation({
     mutationFn: async () => {
-      await api.post("/auth/logout");
-    },
-    onSuccess: () => {
       clearStoredTokens();
       queryClient.setQueryData(authQueryKeys.session, null);
       queryClient.removeQueries({ queryKey: ["auth", "profile"] });
-      showSuccess("Signed out successfully", "You have been logged out of your account");
     },
-    onError: (error: Error) => {
-      // Clear tokens even on error — best effort
-      clearStoredTokens();
-      queryClient.setQueryData(authQueryKeys.session, null);
-      showError("Sign out failed", error.message || "Something went wrong. Please try again.");
+    onSuccess: () => {
+      showSuccess("Signed out successfully", "You have been logged out of your account");
     },
   });
 }
