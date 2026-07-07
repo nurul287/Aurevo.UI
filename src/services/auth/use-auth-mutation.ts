@@ -109,7 +109,6 @@ export function useSignOut() {
       await api.post("/auth/logout", undefined).catch(() => {});
       clearStoredTokens();
       queryClient.setQueryData(authQueryKeys.session, null);
-      queryClient.removeQueries({ queryKey: ["auth", "profile"] });
     },
     onSuccess: () => {
       showSuccess("Signed out successfully", "You have been logged out of your account");
