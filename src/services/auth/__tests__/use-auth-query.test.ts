@@ -13,10 +13,10 @@ vi.mock("@/lib/supabase", () => ({
 
 import { useAuth, useSession, useUserProfile } from "../use-auth-query";
 
-// useSession / useUserProfile / useAuth all derive state from /auth/me, which
-// is only fetched when a token exists in localStorage (enabled: !!token).
-// Tests that need an authenticated state must write a token to localStorage
-// and register an MSW handler for GET /auth/me.
+// useSession / useUserProfile / useAuth all derive state from /auth/me. The
+// queryFn short-circuits to null (no network request) when no token exists in
+// localStorage. Tests that need an authenticated state must write a token to
+// localStorage and register an MSW handler for GET /auth/me.
 
 afterEach(() => {
   localStorage.removeItem("aurevo_access_token");
@@ -50,9 +50,32 @@ describe("useSession", () => {
 });
 
 describe("useUserProfile", () => {
-  it("does not fetch when there is no token", () => {
+  it("resolves to null without hitting the API when there is no token", async () => {
+    // No MSW handler registered for /auth/me — a network request would fail loudly.
     const { result } = renderHookWithQueryClient(() => useUserProfile());
-    expect(result.current.fetchStatus).toBe("idle");
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toBeNull();
+  });
+
+  it("refetches on invalidation after a token appears (login without navigation)", async () => {
+    server.use(
+      http.get(`${API_URL}/auth/me`, () =>
+        HttpResponse.json({
+          success: true,
+          data: { id: "user-1", first_name: "Jane" },
+        }),
+      ),
+    );
+
+    const { result, queryClient } = renderHookWithQueryClient(() => useUserProfile());
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toBeNull();
+
+    // Simulate login: token stored after render, then cache invalidated.
+    localStorage.setItem("aurevo_access_token", "tok-123");
+    await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+
+    await waitFor(() => expect(result.current.data?.first_name).toBe("Jane"));
   });
 
   it("fetches the profile once a token is available", async () => {
