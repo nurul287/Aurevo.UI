@@ -1,65 +1,57 @@
 import { APP_PATHS } from "@/constants/app-paths";
-import {
-  consumeOAuthLoginPending,
-  peekOAuthLoginPending,
-} from "@/lib/oauth-login-flag";
-import { useSession } from "@/services/auth/use-auth-query";
+import { consumeOAuthLoginPending, peekOAuthLoginPending } from "@/lib/oauth-login-flag";
+import { api, storeTokens } from "@/lib/api";
+import { authQueryKeys } from "@/services/auth/use-auth-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
+interface OAuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number | null;
+}
+
 /**
- * After OAuth, Supabase may send users to Site URL (`/`). Home is not under
- * GuestGuard, so they can stay on the landing page while signed in. If the URL
- * still has OAuth tokens, or we marked an OAuth attempt in sessionStorage,
- * send them to the dashboard as soon as the **session** is ready (do not wait
- * for `profiles` — that was causing a ~1s flash of the marketing home page).
+ * Handles the final leg of the backend-driven OAuth flow.
+ * The BE callback exchanges the provider code and redirects here with
+ * `?oauth_code=<one-time-code>`. We redeem it for real tokens, store them,
+ * and forward to the dashboard.
  */
 export function OAuthSuccessLandingRedirect() {
-  const { user, isLoading: sessionLoading } = useSession();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
 
   const onHome = location.pathname === APP_PATHS.home;
-  const search = new URLSearchParams(location.search);
-  const hash = location.hash;
-  const looksLikeOAuthReturn =
-    search.has("code") ||
-    hash.includes("access_token") ||
-    hash.includes("code=");
+  // Capture the exchange code once on mount so we can clear it in state after use.
+  const [exchangeCode] = useState(() =>
+    new URLSearchParams(location.search).get("oauth_code"),
+  );
+  const [active, setActive] = useState(!!exchangeCode);
+
   const pending = onHome && peekOAuthLoginPending();
-  const showHandoffOverlay =
-    onHome && (pending || looksLikeOAuthReturn) && sessionLoading;
+  const showHandoffOverlay = onHome && active && (!!exchangeCode || pending);
 
   useEffect(() => {
-    if (sessionLoading || location.pathname !== APP_PATHS.home) return;
+    if (!exchangeCode) return;
 
-    const looksLike =
-      new URLSearchParams(location.search).has("code") ||
-      location.hash.includes("access_token") ||
-      location.hash.includes("code=");
-
-    const isPending = peekOAuthLoginPending();
-
-    if (!looksLike && !isPending) return;
-
-    if (!user) {
-      if (isPending && !looksLike) {
+    api
+      .get<OAuthTokens>(`/auth/oauth/session?code=${exchangeCode}`, { skipAuth: true, raw: true })
+      .then((data) => {
+        storeTokens(data as unknown as OAuthTokens);
         consumeOAuthLoginPending();
-      }
-      return;
-    }
-
-    consumeOAuthLoginPending();
-    navigate(APP_PATHS.dashboard, { replace: true });
-  }, [
-    sessionLoading,
-    user,
-    location.pathname,
-    location.search,
-    location.hash,
-    navigate,
-  ]);
+        window.history.replaceState({}, "", "/");
+        queryClient.invalidateQueries({ queryKey: authQueryKeys.me });
+        navigate(APP_PATHS.dashboard, { replace: true });
+      })
+      .catch(() => {
+        consumeOAuthLoginPending();
+        window.history.replaceState({}, "", "/");
+        setActive(false);
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!showHandoffOverlay) return null;
 

@@ -1,8 +1,6 @@
-import { api, getStoredToken, storeTokens } from "@/lib/api";
-import { supabase } from "@/lib/supabase";
+import { api, getStoredToken } from "@/lib/api";
 import { UserProfile } from "@/services/types";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 // Query keys for consistent cache management.
 // `session` and `userProfile` are deliberately aliased to the same array value
@@ -51,8 +49,6 @@ function useMeQuery() {
  * Reads access token from localStorage; calls /api/auth/me to hydrate user data.
  */
 export function useSession() {
-  const queryClient = useQueryClient();
-
   const { data: profile, isLoading, error } = useMeQuery();
   const user = profile as unknown as Record<string, unknown> | null;
   const session: StoredSession | null = user
@@ -70,31 +66,6 @@ export function useSession() {
         },
       }
     : null;
-
-  // Subscribe to Supabase auth events only for the OAuth callback flow.
-  // After an OAuth redirect, Supabase sets a session in the URL hash;
-  // we extract the token and copy it to localStorage so all subsequent
-  // API calls use the same BE-compatible JWT.
-  useEffect(() => {
-    const { data: subscription } = supabase.auth.onAuthStateChange(
-      async (event, oauthSession) => {
-        if (
-          (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") &&
-          oauthSession?.access_token
-        ) {
-          // Copy OAuth token into localStorage so api.ts picks it up
-          storeTokens({
-            accessToken: oauthSession.access_token,
-            refreshToken: oauthSession.refresh_token ?? "",
-            expiresAt: oauthSession.expires_at,
-          });
-          queryClient.invalidateQueries({ queryKey: authQueryKeys.me });
-        }
-      }
-    );
-
-    return () => subscription.subscription.unsubscribe();
-  }, [queryClient]);
 
   return {
     session,

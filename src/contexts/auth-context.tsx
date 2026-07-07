@@ -5,7 +5,6 @@ import { useMigrateGuestCart } from "@/services/cart/use-cart-mutation";
 import { useClaimGuestOrders } from "@/services/order/use-order-mutation";
 import { useCreateUserProfile } from "@/services/user";
 import { UserProfile } from "@/services/types";
-import type { Provider } from "@supabase/supabase-js";
 import type { StoredSession } from "@/services/auth/use-auth-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { createContext, ReactNode, useContext, useEffect, useRef } from "react";
@@ -19,7 +18,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isAuthenticated: boolean;
   signIn: (email: string, password: string) => Promise<any>;
-  signInWithOAuth: (provider: Provider) => Promise<any>;
+  signInWithOAuth: (provider: "google" | "facebook") => Promise<any>;
   signUp: (email: string, password: string, userData?: any) => Promise<any>;
   signOut: () => Promise<void>;
   updateProfile: (updates: any) => Promise<any>;
@@ -138,7 +137,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const signInWithOAuth = async (provider: Provider) => {
+  const signInWithOAuth = async (provider: "google" | "facebook") => {
     try {
       await signInWithOAuthMutation.mutateAsync(provider);
       return { success: true, error: null };

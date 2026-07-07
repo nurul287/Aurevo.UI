@@ -99,6 +99,9 @@ describe("auth mutations", () => {
   });
 
   it("useSignOut clears tokens and session cache, shows a success toast", async () => {
+    server.use(
+      http.post(`${API_URL}/auth/logout`, () => HttpResponse.json({ success: true })),
+    );
     localStorage.setItem("aurevo_access_token", "tok-123");
 
     const { result, queryClient } = renderHookWithQueryClient(() => useSignOut());
@@ -115,15 +118,28 @@ describe("auth mutations", () => {
     );
   });
 
-  it("useSignInWithOAuth marks the OAuth login as pending before redirecting", async () => {
-    const { supabase } = await import("@/lib/supabase");
-    vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValue({ error: null } as never);
+  it("useSignInWithOAuth calls the BE for the provider URL and sets window.location.href", async () => {
+    server.use(
+      http.get(`${API_URL}/auth/oauth/url`, () =>
+        HttpResponse.json({ success: true, data: { url: "https://provider.example.com/oauth" } }),
+      ),
+    );
+
+    const hrefSetter = vi.fn();
+    const originalDescriptor = Object.getOwnPropertyDescriptor(window, "location");
+    Object.defineProperty(window, "location", {
+      value: { ...window.location, set href(v: string) { hrefSetter(v); } },
+      writable: true,
+    });
 
     const { result } = renderHookWithQueryClient(() => useSignInWithOAuth());
-    result.current.mutate("facebook" as never);
+    result.current.mutate("facebook");
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(sessionStorage.getItem("aurevo_oauth_login_pending")).toBe("1");
+    expect(hrefSetter).toHaveBeenCalledWith("https://provider.example.com/oauth");
+
+    if (originalDescriptor) Object.defineProperty(window, "location", originalDescriptor);
     sessionStorage.clear();
   });
 });
