@@ -28,17 +28,20 @@ export interface StoredSession {
 }
 
 function useMeQuery() {
-  const token = getStoredToken();
   return useQuery({
     queryKey: authQueryKeys.me,
+    // Token presence is checked inside queryFn (no request fires without one)
+    // rather than via `enabled` — `enabled` is captured at render time, so a
+    // token stored after render (login/OAuth redeem) would leave the query
+    // disabled and invalidateQueries would never refetch it.
     queryFn: async (): Promise<UserProfile | null> => {
+      if (!getStoredToken()) return null;
       try {
         return await api.get<UserProfile>("/auth/me");
       } catch {
         return null;
       }
     },
-    enabled: !!token,
     staleTime: 5 * 60 * 1000,
     retry: false,
   });

@@ -14,27 +14,37 @@ import { Link } from "react-router-dom";
 const EmailConfirmationPage = () => {
   const [resending, setResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
+  const [resendError, setResendError] = useState<string | null>(null);
   const { resendConfirmation } = useAuth();
 
   const handleResendConfirmation = async () => {
     setResending(true);
     setResendSuccess(false);
+    setResendError(null);
 
-    try {
-      // Get email from URL params or localStorage
-      const email =
-        new URLSearchParams(window.location.search).get("email") ||
-        localStorage.getItem("pendingEmail");
+    // Get email from URL params or localStorage
+    const email =
+      new URLSearchParams(window.location.search).get("email") ||
+      localStorage.getItem("pendingEmail");
 
-      if (email) {
-        await resendConfirmation(email);
-        setResendSuccess(true);
-      }
-    } catch (error) {
-      console.error("Error resending confirmation:", error);
-    } finally {
+    if (!email) {
+      setResendError("We couldn't determine your email address. Please sign up again.");
       setResending(false);
+      return;
     }
+
+    // resendConfirmation never throws — it returns { success, error }
+    const result = await resendConfirmation(email);
+    if (result.success) {
+      setResendSuccess(true);
+    } else {
+      const message =
+        result.error instanceof Error && result.error.message
+          ? result.error.message
+          : "Could not resend the confirmation email. Please try again.";
+      setResendError(message);
+    }
+    setResending(false);
   };
 
   return (
@@ -100,6 +110,12 @@ const EmailConfirmationPage = () => {
               {resendSuccess && (
                 <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md text-sm">
                   ✅ Confirmation email sent! Check your inbox.
+                </div>
+              )}
+
+              {resendError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+                  {resendError}
                 </div>
               )}
 
