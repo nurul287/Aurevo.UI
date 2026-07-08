@@ -39,6 +39,7 @@ import {
   BANGLADESH_DISTRICTS,
   upazilasForDistrictName,
 } from "@/lib/bangladesh-locations";
+import { useAddresses, type UserAddress } from "@/services/user/use-address";
 import { useProduct } from "@/services";
 import bkashLogo from "@/assets/image/bkash.png";
 
@@ -142,6 +143,33 @@ const CheckoutPage = () => {
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Saved addresses (logged-in users): pick one to fill the form.
+  const { data: savedAddresses = [] } = useAddresses(!!user);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const defaultAddressApplied = useRef(false);
+
+  const applySavedAddress = (addr: UserAddress) => {
+    setSelectedAddressId(addr.id);
+    setFormData((prev) => ({
+      ...prev,
+      name: addr.name,
+      phone: addr.phone,
+      address: addr.address,
+      district: addr.district,
+      upazila: addr.upazila,
+    }));
+  };
+
+  useEffect(() => {
+    if (defaultAddressApplied.current || savedAddresses.length === 0) return;
+    defaultAddressApplied.current = true;
+    // Only autofill an untouched form — never overwrite what the user typed.
+    if (formData.name || formData.phone || formData.address) return;
+    const def = savedAddresses.find((a) => a.is_default) ?? savedAddresses[0]!;
+    applySavedAddress(def);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedAddresses]);
+
   useEffect(() => {
     setShippingZone(shippingZoneForDistrict(formData.district));
   }, [formData.district]);
@@ -185,6 +213,8 @@ const CheckoutPage = () => {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    // Manual edits mean the form no longer matches the selected saved address.
+    setSelectedAddressId(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -468,6 +498,48 @@ const CheckoutPage = () => {
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">
                     Your delivery address
                   </h2>
+                  {savedAddresses.length > 0 && (
+                    <div className="mb-5">
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+                        Saved addresses
+                      </p>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {savedAddresses.map((addr) => (
+                          <button
+                            key={addr.id}
+                            type="button"
+                            onClick={() => applySavedAddress(addr)}
+                            className={`rounded-md border p-3 text-left text-sm transition-colors ${
+                              selectedAddressId === addr.id
+                                ? "border-gray-900 bg-gray-50"
+                                : "border-gray-200 hover:border-gray-400"
+                            }`}
+                          >
+                            <span className="flex items-center gap-2 font-semibold">
+                              {addr.label || "Address"}
+                              {addr.is_default && (
+                                <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                                  DEFAULT
+                                </span>
+                              )}
+                              {selectedAddressId === addr.id && (
+                                <CheckCircle2 className="h-4 w-4 text-gray-900" />
+                              )}
+                            </span>
+                            <span className="mt-1 block text-gray-600">
+                              {addr.name} · {addr.phone}
+                            </span>
+                            <span className="block text-gray-500">
+                              {addr.address}, {addr.upazila}, {addr.district}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                      <p className="mt-2 text-xs text-gray-500">
+                        Pick one to fill the form, or type a different address below.
+                      </p>
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label
@@ -570,13 +642,22 @@ const CheckoutPage = () => {
                       </Label>
                       <Select
                         value={formData.upazila}
-                        onValueChange={(value) =>
-                          setFormData((prev) => ({ ...prev, upazila: value }))
-                        }
+                        onValueChange={(value) => {
+                          // Radix fires onValueChange("") on mount when the
+                          // controlled value has no mounted item yet (saved
+                          // address autofill) — a real selection is never empty.
+                          if (!value) return;
+                          setFormData((prev) => ({ ...prev, upazila: value }));
+                        }}
                         disabled={!formData.district}
                       >
                         <SelectTrigger className="mt-1 border-gray-300">
-                          <SelectValue placeholder="Select Upazila" />
+                          {/* Plain span instead of SelectValue: Radix shows the
+                              placeholder for values set programmatically (saved
+                              address autofill) before the dropdown ever opened. */}
+                          <span className={formData.upazila ? "" : "text-muted-foreground"}>
+                            {formData.upazila || "Select Upazila"}
+                          </span>
                         </SelectTrigger>
                         <SelectContent>
                           {upazilasData?.map((upazila: string) => (
