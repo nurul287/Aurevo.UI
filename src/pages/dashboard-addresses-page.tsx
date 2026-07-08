@@ -41,6 +41,8 @@ import { Loader2, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
+const LOCATION_OPTIONS = ["Home", "Office", "Pick Up"] as const;
+
 const EMPTY_FORM: AddressInput = {
   label: "",
   name: "",
@@ -256,13 +258,27 @@ const DashboardAddressesPage = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="addr-label">Label</Label>
-              <Input
-                id="addr-label"
-                placeholder="Home, Work…"
-                value={form.label ?? ""}
-                onChange={(e) => setForm((p) => ({ ...p, label: e.target.value }))}
-              />
+              <Label>Location</Label>
+              <Select
+                value={form.label || ""}
+                onValueChange={(value) => {
+                  if (!value) return;
+                  setForm((p) => ({ ...p, label: value }));
+                }}
+              >
+                <SelectTrigger>
+                  <span className={form.label ? "" : "text-muted-foreground"}>
+                    {form.label || "Select Location"}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  {LOCATION_OPTIONS.map((loc) => (
+                    <SelectItem key={loc} value={loc}>
+                      {loc}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
