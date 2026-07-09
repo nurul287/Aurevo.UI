@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/error-boundary";
 import { MetaPixelTracker } from "@/components/meta-pixel-tracker";
 import { SpeedInsightsTracker } from "@/components/speed-insights-tracker";
 import { VercelAnalyticsTracker } from "@/components/vercel-analytics-tracker";
@@ -25,7 +26,8 @@ function ScrollToTop() {
 
 function App() {
   return (
-    <Router>
+    <ErrorBoundary>
+      <Router>
       <ScrollToTop />
       <MetaPixelTracker />
       <SpeedInsightsTracker />
@@ -39,7 +41,8 @@ function App() {
           <Toaster richColors position="top-center" />
         </GuestCartProvider>
       </AuthProvider>
-    </Router>
+      </Router>
+    </ErrorBoundary>
   );
 }
 
