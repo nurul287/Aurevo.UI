@@ -13,6 +13,7 @@ export const APP_PATHS = {
   orderConfirmation: "/order-confirmation",
   dashboard: "/dashboard",
   dashboardProfile: "/dashboard/profile",
+  dashboardAddresses: "/dashboard/addresses",
   about: "/about",
   terms: "/terms",
   support: "/support",

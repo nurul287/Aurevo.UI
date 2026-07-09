@@ -476,6 +476,24 @@ const DashboardPage = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Saved addresses */}
+        <Card className="border-border/80 shadow-sm">
+          <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="text-xl">Saved addresses</CardTitle>
+              <CardDescription>
+                Delivery addresses you can reuse at checkout.
+              </CardDescription>
+            </div>
+            <Button asChild variant="outline" className="shrink-0">
+              <Link to={APP_PATHS.dashboardAddresses}>
+                Manage addresses
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </CardHeader>
+        </Card>
       </div>
     </div>
   );
