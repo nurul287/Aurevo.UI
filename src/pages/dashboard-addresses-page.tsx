@@ -23,7 +23,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { DropDownList, DropDownListOption } from "@/components/ui/dropdown-list";
 import { APP_PATHS } from "@/constants/app-paths";
