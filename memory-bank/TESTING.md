@@ -4,8 +4,8 @@
 
 - **Framework:** Vitest 4 + Testing Library (React + Hooks) + jsdom
 - **API mocking:** Mock Service Worker (MSW) v2 — intercepts real `fetch` calls at the network layer
-- **Supabase mocking:** `src/test/mocks/supabase.ts` factory, injected via `vi.mock("@/lib/supabase", ...)`
-- **Total test files:** 98 across components, hooks, services, and lib utilities
+- **Auth:** No Supabase client. Tests exercise REST auth via MSW (`/auth/*`) and `localStorage` tokens
+- **Total test files:** ~100 across components, hooks, services, and lib utilities
 
 ---
 
@@ -17,12 +17,16 @@ pnpm test:watch       # watch mode
 pnpm coverage         # run + generate coverage report (v8 provider, HTML output)
 ```
 
+CI runs the same suite in `.github/workflows/ci.yml` (lint → typecheck → test → build).
+
 ---
 
 ## Test Infrastructure (`src/test/`)
 
 ### `setup.ts`
+
 Global setup file wired via `vite.config.ts → test.setupFiles`. Runs before every test file:
+
 - Imports `@testing-library/jest-dom/vitest` matchers (`toBeInTheDocument`, `toHaveTextContent`, etc.)
 - Stubs jsdom APIs that Radix UI components need but jsdom doesn't implement:
   - `window.matchMedia`
@@ -33,10 +37,13 @@ Global setup file wired via `vite.config.ts → test.setupFiles`. Runs before ev
 - Starts the MSW server before all tests, resets handlers after each test, closes after all tests
 
 ### `msw/server.ts`
+
 MSW node server exported as `server`. Used in `setup.ts` lifecycle hooks.
 
 ### `msw/handlers.ts`
+
 Base "happy path" handlers for the most common endpoints:
+
 - `GET /products` → `{ success, data: [], meta: { pagination: ... } }`
 - `GET /categories` → same shape
 - `GET /brands` → same shape
@@ -44,6 +51,7 @@ Base "happy path" handlers for the most common endpoints:
 Individual test files override specific routes with `server.use(http.get(...))` — overrides are reset after each test by `server.resetHandlers()`.
 
 ### `test-utils.tsx`
+
 Re-exports all `@testing-library/react` utilities plus two custom wrappers:
 
 ```ts
@@ -57,9 +65,6 @@ renderHookWithQueryClient(callback, { queryClient? })
 
 `createTestQueryClient()` creates a fresh `QueryClient` with `retry: false` so failed queries don't spin on retries during tests.
 
-### `mocks/supabase.ts`
-Factory: `createMockSupabaseClient(user)` — returns a mock Supabase client with `vi.fn()` stubs for `auth.getUser`, `auth.signInWithPassword`, `storage.from`, etc. Injected per-test via `vi.mock("@/lib/supabase", () => ({ supabase: createMockSupabaseClient(null) }))`.
-
 ---
 
 ## Test Organisation
@@ -72,6 +77,7 @@ src/
 │   ├── guards/__tests__/           # Route guards (auth-guard, admin-guard, guest-guard)
 │   ├── home/__tests__/             # Home page section components
 │   └── admin/__tests__/            # Admin-only components (generate-variants-dialog, etc.)
+├── i18n/__tests__/                 # Language detection + locale loading
 ├── lib/
 │   └── __tests__/                  # Pure utility functions (currency, order-display, api, …)
 └── services/
@@ -82,7 +88,7 @@ src/
     ├── inventory/__tests__/        # use-inventory-query, use-variant-availability
     ├── category/__tests__/
     ├── brand/__tests__/
-    ├── user/__tests__/
+    ├── user/__tests__/             # Saved addresses
     └── admin/__tests__/
 ```
 
@@ -91,25 +97,27 @@ src/
 ## What Each Layer Tests
 
 ### `lib/__tests__/` — Pure functions (no mocking needed)
+
 Unit tests with no mocking. Inputs → expected outputs.
 
-| File | What it covers |
-|------|----------------|
-| `currency.test.ts` | `formatPrice` BDT formatting |
-| `utils.test.ts` | `cn` class merge utility |
-| `api.test.ts` | `api.get/post/patch/delete` wrapper — attaches auth headers, parses JSON, throws on error |
-| `order-display.test.ts` | Order status labels, color helpers |
-| `cart-totals.test.ts` | `getCartLineUnitPrice`, `computeCartTotals` — price priority (variant → product → line price) |
-| `variant-size-sort.test.ts` | Size ordering logic |
-| `format-order-address.test.ts` | Address formatting helper |
-| `bangladesh-locations.test.ts` | District/upazila lookup |
-| `supabase-error.test.ts` | Supabase error normalisation |
-| `oauth-error-url.test.ts` | OAuth error URL parsing |
-| `profile-completion.test.ts` | Profile completeness check |
+| File                           | What it covers                                                                                |
+| ------------------------------ | --------------------------------------------------------------------------------------------- |
+| `currency.test.ts`             | `formatPrice` BDT formatting                                                                  |
+| `utils.test.ts`                | `cn` class merge utility                                                                      |
+| `api.test.ts`                  | `api.get/post/patch/delete` wrapper — attaches auth headers, parses JSON, throws on error     |
+| `order-display.test.ts`        | Order status labels, color helpers                                                            |
+| `cart-totals.test.ts`          | `getCartLineUnitPrice`, `computeCartTotals` — price priority (variant → product → line price) |
+| `variant-size-sort.test.ts`    | Size ordering logic                                                                           |
+| `format-order-address.test.ts` | Address formatting helper                                                                     |
+| `bangladesh-locations.test.ts` | District/upazila lookup                                                                       |
+| `supabase-error.test.ts`       | Legacy OAuth/error URL normalisation helpers                                                  |
+| `oauth-error-url.test.ts`      | OAuth error URL parsing                                                                       |
+| `profile-completion.test.ts`   | Profile completeness check                                                                    |
 
 ### `services/__tests__/` — TanStack Query hooks (MSW + `renderHookWithQueryClient`)
 
 Pattern:
+
 1. Use `server.use(...)` to define the response shape for the specific endpoint
 2. Call `renderHookWithQueryClient(() => useMyHook(args))`
 3. `await waitFor(() => expect(result.current.isSuccess).toBe(true))`
@@ -120,6 +128,7 @@ Mutation tests also verify side effects: cache invalidations, `localStorage` cha
 ### `components/__tests__/` — React components (Testing Library + MSW)
 
 Pattern:
+
 1. `renderWithProviders(<MyComponent />)`
 2. Query DOM with `screen.getByRole`, `screen.getByText`, etc.
 3. Simulate interactions with `userEvent.click`, `userEvent.type`
@@ -129,7 +138,7 @@ Component tests do **not** test implementation details — they test what users 
 
 ### `components/guards/__tests__/` — Route guards
 
-Each guard is tested with three scenarios: unauthenticated, authenticated-non-admin, and authenticated-admin. Supabase client is mocked via `createMockSupabaseClient`.
+Each guard is tested with three scenarios: unauthenticated, authenticated-non-admin, and authenticated-admin. Auth state is simulated via tokens / MSW `/auth/me` responses (no Supabase client mock).
 
 ---
 
@@ -141,8 +150,8 @@ Each guard is tested with three scenarios: unauthenticated, authenticated-non-ad
 it("shows an error toast when the API returns 500", async () => {
   server.use(
     http.post(`${API_URL}/cart/items`, () =>
-      HttpResponse.json({ success: false }, { status: 500 })
-    )
+      HttpResponse.json({ success: false }, { status: 500 }),
+    ),
   );
   // ... test body
 });
@@ -161,15 +170,23 @@ queryClient.setQueryData(["cart", userId], { items: [...] });
 expect(queryClient.getQueryState(["cart", userId])?.isInvalidated).toBe(true);
 ```
 
-### Mocking Supabase auth state
+### Simulating authenticated state
+
+Seed tokens in `localStorage` and stub `GET /auth/me` with MSW:
 
 ```ts
-vi.mock("@/lib/supabase", () => ({
-  supabase: createMockSupabaseClient({ id: "user-1", email: "test@example.com" }),
-}));
+localStorage.setItem("aurevo_access_token", "test-token");
+server.use(
+  http.get(`${API_URL}/auth/me`, () =>
+    HttpResponse.json({
+      success: true,
+      data: { id: "user-1", email: "test@example.com", role: "customer" },
+    }),
+  ),
+);
 ```
 
-Pass `null` to simulate a logged-out user.
+Clear tokens (or omit the handler) to simulate a logged-out user.
 
 ---
 
@@ -197,4 +214,4 @@ test: {
 
 - Page-level components — these require full app context (auth, router state, query providers). Integration/E2E tests would cover these.
 - BE API correctness — that lives in `Aurevo.BE` Vitest + Supertest integration tests.
-- Supabase RLS policies — tested via Supabase local CLI.
+- Database / RLS — owned by Aurevo.BE and its database layer.

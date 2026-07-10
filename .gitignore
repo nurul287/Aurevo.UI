@@ -54,6 +54,12 @@ node_modules/
 coverage/
 *.lcov
 
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # Runtime data
 pids
 *.pid

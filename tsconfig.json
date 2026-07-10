@@ -26,7 +26,7 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "e2e", "playwright.config.ts"],
   "exclude": ["src/components/button-showcase.tsx"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

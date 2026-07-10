@@ -10,6 +10,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -63,6 +73,7 @@ const DashboardAddressesPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<AddressInput>(EMPTY_FORM);
+  const [addressToDelete, setAddressToDelete] = useState<UserAddress | null>(null);
 
   const districtOptions: DropDownListOption[] = useMemo(
     () => BANGLADESH_DISTRICTS.map((d) => ({ value: d.name, label: d.name })),
@@ -119,8 +130,14 @@ const DashboardAddressesPage = () => {
     }
   };
 
-  const handleDelete = async (addr: UserAddress) => {
-    if (!window.confirm(`Delete the "${addr.label || addr.address}" address?`)) return;
+  const handleDelete = (addr: UserAddress) => {
+    setAddressToDelete(addr);
+  };
+
+  const confirmDelete = async () => {
+    if (!addressToDelete) return;
+    const addr = addressToDelete;
+    setAddressToDelete(null);
     try {
       await deleteAddress.mutateAsync(addr.id);
       showSuccess("Address deleted", "The address has been removed.");
@@ -190,7 +207,7 @@ const DashboardAddressesPage = () => {
                 {addresses.map((addr) => (
                   <div
                     key={addr.id}
-                    className={`rounded-lg border p-4 ${
+                    className={`rounded-lg border p-4 transition-colors ${
                       addr.is_default ? "border-gray-900" : "border-gray-200"
                     }`}
                   >
@@ -232,16 +249,19 @@ const DashboardAddressesPage = () => {
                     <p className="text-sm text-gray-500">
                       {addr.address}, {addr.upazila}, {addr.district}
                     </p>
-                    {!addr.is_default && (
-                      <button
-                        type="button"
-                        className="mt-2 text-xs font-semibold underline"
-                        onClick={() => handleSetDefault(addr)}
-                        disabled={updateAddress.isPending}
-                      >
-                        {t("addresses.setDefault")}
-                      </button>
-                    )}
+                    {/* Always rendered (just hidden when already default) so the
+                        card's height never changes when default status flips —
+                        conditionally unmounting this line caused the grid to jump. */}
+                    <button
+                      type="button"
+                      className={`mt-2 cursor-pointer text-xs font-semibold underline ${
+                        addr.is_default ? "invisible" : ""
+                      }`}
+                      onClick={() => handleSetDefault(addr)}
+                      disabled={updateAddress.isPending || addr.is_default}
+                    >
+                      {t("addresses.setDefault")}
+                    </button>
                   </div>
                 ))}
               </div>
@@ -371,6 +391,27 @@ const DashboardAddressesPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!addressToDelete} onOpenChange={(open) => !open && setAddressToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete address</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete the "{addressToDelete?.label || addressToDelete?.address}" address? This
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -505,36 +505,39 @@ const CheckoutPage = () => {
                         {t("checkout.savedAddresses")}
                       </p>
                       <div className="grid gap-2 sm:grid-cols-2">
-                        {savedAddresses.map((addr) => (
-                          <button
-                            key={addr.id}
-                            type="button"
-                            onClick={() => applySavedAddress(addr)}
-                            className={`rounded-md border p-3 text-left text-sm transition-colors ${
-                              selectedAddressId === addr.id
-                                ? "border-gray-900 bg-gray-50"
-                                : "border-gray-200 hover:border-gray-400"
-                            }`}
-                          >
-                            <span className="flex items-center gap-2 font-semibold">
-                              {addr.label || "Address"}
-                              {addr.is_default && (
-                                <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
-                                  {t("checkout.default")}
-                                </span>
-                              )}
-                              {selectedAddressId === addr.id && (
-                                <CheckCircle2 className="h-4 w-4 text-gray-900" />
-                              )}
-                            </span>
-                            <span className="mt-1 block text-gray-600">
-                              {addr.name} · {addr.phone}
-                            </span>
-                            <span className="block text-gray-500">
-                              {addr.address}, {addr.upazila}, {addr.district}
-                            </span>
-                          </button>
-                        ))}
+                        {savedAddresses.map((addr) => {
+                          const selected = selectedAddressId === addr.id;
+                          return (
+                            <button
+                              key={addr.id}
+                              type="button"
+                              onClick={() => applySavedAddress(addr)}
+                              className={`cursor-pointer rounded-md border p-3 text-left text-sm transition-colors ${
+                                selected
+                                  ? "border-gray-900 bg-gray-50"
+                                  : "border-gray-200 hover:border-gray-400"
+                              }`}
+                            >
+                              <span className="flex items-center gap-2 font-semibold">
+                                {addr.label || "Address"}
+                                {addr.is_default && (
+                                  <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                                    {t("checkout.default")}
+                                  </span>
+                                )}
+                                {selected && (
+                                  <CheckCircle2 className="h-4 w-4 text-gray-900" />
+                                )}
+                              </span>
+                              <span className="mt-1 block text-gray-600">
+                                {addr.name} · {addr.phone}
+                              </span>
+                              <span className="block text-gray-500">
+                                {addr.address}, {addr.upazila}, {addr.district}
+                              </span>
+                            </button>
+                          );
+                        })}
                       </div>
                       <p className="mt-2 text-xs text-gray-500">
                         {t("checkout.savedAddressesHint")}
