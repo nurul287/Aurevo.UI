@@ -15,9 +15,13 @@ describe("detectLanguage", () => {
     expect(detectLanguage()).toBe("en");
   });
 
-  it("ignores garbage in storage and falls through to detection", () => {
+  it("defaults to English when nothing is saved", () => {
+    expect(detectLanguage()).toBe("en");
+  });
+
+  it("ignores garbage in storage and defaults to English", () => {
     localStorage.setItem("aurevo_language", "fr");
-    expect(["en", "bn"]).toContain(detectLanguage());
+    expect(detectLanguage()).toBe("en");
   });
 });
 
