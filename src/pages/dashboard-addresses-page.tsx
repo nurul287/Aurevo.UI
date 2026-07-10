@@ -10,6 +10,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -63,6 +73,7 @@ const DashboardAddressesPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<AddressInput>(EMPTY_FORM);
+  const [addressToDelete, setAddressToDelete] = useState<UserAddress | null>(null);
 
   const districtOptions: DropDownListOption[] = useMemo(
     () => BANGLADESH_DISTRICTS.map((d) => ({ value: d.name, label: d.name })),
@@ -119,8 +130,14 @@ const DashboardAddressesPage = () => {
     }
   };
 
-  const handleDelete = async (addr: UserAddress) => {
-    if (!window.confirm(`Delete the "${addr.label || addr.address}" address?`)) return;
+  const handleDelete = (addr: UserAddress) => {
+    setAddressToDelete(addr);
+  };
+
+  const confirmDelete = async () => {
+    if (!addressToDelete) return;
+    const addr = addressToDelete;
+    setAddressToDelete(null);
     try {
       await deleteAddress.mutateAsync(addr.id);
       showSuccess("Address deleted", "The address has been removed.");
@@ -190,65 +207,61 @@ const DashboardAddressesPage = () => {
                 {addresses.map((addr) => (
                   <div
                     key={addr.id}
-                    className={`rounded-lg p-[1.5px] transition-colors ${
-                      addr.is_default
-                        ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
-                        : "bg-gray-200"
+                    className={`rounded-lg border p-4 transition-colors ${
+                      addr.is_default ? "border-gray-900" : "border-gray-200"
                     }`}
                   >
-                    <div className="h-full rounded-[calc(0.5rem-1.5px)] bg-white p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-gray-400" />
-                          <span className="font-semibold text-sm">{addr.label || "Address"}</span>
-                          {addr.is_default && (
-                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">
-                              {t("checkout.default")}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            aria-label="Edit address"
-                            onClick={() => openEdit(addr)}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-red-500 hover:text-red-600"
-                            aria-label="Delete address"
-                            onClick={() => handleDelete(addr)}
-                            disabled={deleteAddress.isPending}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-gray-400" />
+                        <span className="font-semibold text-sm">{addr.label || "Address"}</span>
+                        {addr.is_default && (
+                          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">
+                            {t("checkout.default")}
+                          </Badge>
+                        )}
                       </div>
-                      <p className="mt-2 text-sm font-medium text-gray-900">
-                        {addr.name} · {addr.phone}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {addr.address}, {addr.upazila}, {addr.district}
-                      </p>
-                      {/* Always rendered (just hidden when already default) so the
-                          card's height never changes when default status flips —
-                          conditionally unmounting this line caused the grid to jump. */}
-                      <button
-                        type="button"
-                        className={`mt-2 cursor-pointer text-xs font-semibold underline ${
-                          addr.is_default ? "invisible" : ""
-                        }`}
-                        onClick={() => handleSetDefault(addr)}
-                        disabled={updateAddress.isPending || addr.is_default}
-                      >
-                        {t("addresses.setDefault")}
-                      </button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          aria-label="Edit address"
+                          onClick={() => openEdit(addr)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-red-500 hover:text-red-600"
+                          aria-label="Delete address"
+                          onClick={() => handleDelete(addr)}
+                          disabled={deleteAddress.isPending}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
+                    <p className="mt-2 text-sm font-medium text-gray-900">
+                      {addr.name} · {addr.phone}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {addr.address}, {addr.upazila}, {addr.district}
+                    </p>
+                    {/* Always rendered (just hidden when already default) so the
+                        card's height never changes when default status flips —
+                        conditionally unmounting this line caused the grid to jump. */}
+                    <button
+                      type="button"
+                      className={`mt-2 cursor-pointer text-xs font-semibold underline ${
+                        addr.is_default ? "invisible" : ""
+                      }`}
+                      onClick={() => handleSetDefault(addr)}
+                      disabled={updateAddress.isPending || addr.is_default}
+                    >
+                      {t("addresses.setDefault")}
+                    </button>
                   </div>
                 ))}
               </div>
@@ -378,6 +391,27 @@ const DashboardAddressesPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!addressToDelete} onOpenChange={(open) => !open && setAddressToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete address</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete the "{addressToDelete?.label || addressToDelete?.address}" address? This
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
