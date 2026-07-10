@@ -1,8 +1,8 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_SUPABASE_URL: string;
-  readonly VITE_SUPABASE_ANON_KEY: string;
+  /** Only used to build storage image-transform URLs — the Supabase SDK is gone. */
+  readonly VITE_SUPABASE_URL?: string;
   readonly VITE_FACEBOOK_PAGE_ID?: string;
   readonly VITE_META_PIXEL_ID?: string;
 }

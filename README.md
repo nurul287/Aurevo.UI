@@ -129,10 +129,9 @@ pnpm build        # production build
 # Backend REST API (required)
 VITE_API_URL=http://localhost:5000/api
 
-# Supabase — OAuth only (Google/Facebook sign-in)
-# Not needed if you only use email/password auth.
-VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+# Supabase project URL — optional, only for storage image transforms.
+# All auth (incl. Google/Facebook OAuth) goes through Aurevo.BE.
+# VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
 
 # Facebook Messenger floating chat button
 VITE_FACEBOOK_PAGE_ID=855862097613203

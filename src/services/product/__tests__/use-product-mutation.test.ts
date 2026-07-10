@@ -3,14 +3,9 @@ import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderHookWithQueryClient } from "@/test/test-utils";
 import { server } from "@/test/msw/server";
-import { createMockSupabaseClient } from "@/test/mocks/supabase";
 import { useToast } from "@/hooks/use-toast";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-
-vi.mock("@/lib/supabase", () => ({
-  supabase: createMockSupabaseClient(null),
-}));
 
 vi.mock("@/hooks/use-toast", () => ({
   useToast: vi.fn(),
