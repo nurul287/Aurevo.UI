@@ -190,58 +190,65 @@ const DashboardAddressesPage = () => {
                 {addresses.map((addr) => (
                   <div
                     key={addr.id}
-                    className={`rounded-lg border p-4 ${
-                      addr.is_default ? "border-gray-900" : "border-gray-200"
+                    className={`rounded-lg p-[1.5px] transition-colors ${
+                      addr.is_default
+                        ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
+                        : "bg-gray-200"
                     }`}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-gray-400" />
-                        <span className="font-semibold text-sm">{addr.label || "Address"}</span>
-                        {addr.is_default && (
-                          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">
-                            {t("checkout.default")}
-                          </Badge>
-                        )}
+                    <div className="h-full rounded-[calc(0.5rem-1.5px)] bg-white p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-gray-400" />
+                          <span className="font-semibold text-sm">{addr.label || "Address"}</span>
+                          {addr.is_default && (
+                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">
+                              {t("checkout.default")}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            aria-label="Edit address"
+                            onClick={() => openEdit(addr)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-red-500 hover:text-red-600"
+                            aria-label="Delete address"
+                            onClick={() => handleDelete(addr)}
+                            disabled={deleteAddress.isPending}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          aria-label="Edit address"
-                          onClick={() => openEdit(addr)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-red-500 hover:text-red-600"
-                          aria-label="Delete address"
-                          onClick={() => handleDelete(addr)}
-                          disabled={deleteAddress.isPending}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                    <p className="mt-2 text-sm font-medium text-gray-900">
-                      {addr.name} · {addr.phone}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {addr.address}, {addr.upazila}, {addr.district}
-                    </p>
-                    {!addr.is_default && (
+                      <p className="mt-2 text-sm font-medium text-gray-900">
+                        {addr.name} · {addr.phone}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {addr.address}, {addr.upazila}, {addr.district}
+                      </p>
+                      {/* Always rendered (just hidden when already default) so the
+                          card's height never changes when default status flips —
+                          conditionally unmounting this line caused the grid to jump. */}
                       <button
                         type="button"
-                        className="mt-2 text-xs font-semibold underline"
+                        className={`mt-2 cursor-pointer text-xs font-semibold underline ${
+                          addr.is_default ? "invisible" : ""
+                        }`}
                         onClick={() => handleSetDefault(addr)}
-                        disabled={updateAddress.isPending}
+                        disabled={updateAddress.isPending || addr.is_default}
                       >
                         {t("addresses.setDefault")}
                       </button>
-                    )}
+                    </div>
                   </div>
                 ))}
               </div>

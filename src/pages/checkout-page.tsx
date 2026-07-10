@@ -505,36 +505,45 @@ const CheckoutPage = () => {
                         {t("checkout.savedAddresses")}
                       </p>
                       <div className="grid gap-2 sm:grid-cols-2">
-                        {savedAddresses.map((addr) => (
-                          <button
-                            key={addr.id}
-                            type="button"
-                            onClick={() => applySavedAddress(addr)}
-                            className={`rounded-md border p-3 text-left text-sm transition-colors ${
-                              selectedAddressId === addr.id
-                                ? "border-gray-900 bg-gray-50"
-                                : "border-gray-200 hover:border-gray-400"
-                            }`}
-                          >
-                            <span className="flex items-center gap-2 font-semibold">
-                              {addr.label || "Address"}
-                              {addr.is_default && (
-                                <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
-                                  {t("checkout.default")}
+                        {savedAddresses.map((addr) => {
+                          const selected = selectedAddressId === addr.id;
+                          return (
+                            <div
+                              key={addr.id}
+                              className={`rounded-md p-[1.5px] transition-colors ${
+                                selected
+                                  ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
+                                  : "bg-gray-200 hover:bg-gray-400"
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => applySavedAddress(addr)}
+                                className={`h-full w-full cursor-pointer rounded-[calc(0.375rem-1.5px)] p-3 text-left text-sm transition-colors ${
+                                  selected ? "bg-gray-50" : "bg-white"
+                                }`}
+                              >
+                                <span className="flex items-center gap-2 font-semibold">
+                                  {addr.label || "Address"}
+                                  {addr.is_default && (
+                                    <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                                      {t("checkout.default")}
+                                    </span>
+                                  )}
+                                  {selected && (
+                                    <CheckCircle2 className="h-4 w-4 text-gray-900" />
+                                  )}
                                 </span>
-                              )}
-                              {selectedAddressId === addr.id && (
-                                <CheckCircle2 className="h-4 w-4 text-gray-900" />
-                              )}
-                            </span>
-                            <span className="mt-1 block text-gray-600">
-                              {addr.name} · {addr.phone}
-                            </span>
-                            <span className="block text-gray-500">
-                              {addr.address}, {addr.upazila}, {addr.district}
-                            </span>
-                          </button>
-                        ))}
+                                <span className="mt-1 block text-gray-600">
+                                  {addr.name} · {addr.phone}
+                                </span>
+                                <span className="block text-gray-500">
+                                  {addr.address}, {addr.upazila}, {addr.district}
+                                </span>
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                       <p className="mt-2 text-xs text-gray-500">
                         {t("checkout.savedAddressesHint")}
