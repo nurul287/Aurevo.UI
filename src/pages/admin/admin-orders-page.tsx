@@ -62,7 +62,7 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 /** Badge uses `variant="outline"` so Tailwind colors stay on hover (default Badge uses primary hover). */
 const statusColors = {
@@ -152,10 +152,15 @@ function getCustomerPhone(order: Order): string | undefined {
 
 export default function AdminOrdersPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // State management
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  // The sidebar's Pending/Delivered/Cancelled links navigate to the same
+  // route with a different ?status= — since it's the same path, React Router
+  // updates the URL without remounting this component, so the filter must be
+  // derived from the URL (not a useState that only reads it once on mount).
+  const statusFilter = searchParams.get("status") ?? "all";
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -239,8 +244,13 @@ export default function AdminOrdersPage() {
   };
 
   const handleStatusFilterChange = (value: string) => {
-    setStatusFilter(value);
     setCurrentPage(1);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value === "all") next.delete("status");
+      else next.set("status", value);
+      return next;
+    });
   };
 
   const handlePaymentStatusFilterChange = (value: string) => {
@@ -515,7 +525,16 @@ export default function AdminOrdersPage() {
             {(searchTerm || statusFilter !== "all" || paymentStatusFilter !== "all") && (
               <Button
                 variant="ghost"
-                onClick={() => { setSearchTerm(""); setStatusFilter("all"); setPaymentStatusFilter("all"); setCurrentPage(1); }}
+                onClick={() => {
+                  setSearchTerm("");
+                  setPaymentStatusFilter("all");
+                  setCurrentPage(1);
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.delete("status");
+                    return next;
+                  });
+                }}
               >
                 <X className="h-4 w-4 mr-1" />
                 Clear filters
