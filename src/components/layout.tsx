@@ -391,90 +391,85 @@ const Layout = () => {
               </ul>
             </div>
 
-            {/* Category */}
-            <div>
-              <h3 className="text-base font-semibold mb-3 text-white min-h-[25px]">
-                {t("footer.category")}
-              </h3>
-              <ul className="space-y-3 text-sm">
-                {headerCategories
-                  .filter((cat) => cat.slug)
-                  .map((cat) => (
-                    <li key={cat.id}>
-                      <Link
-                        to={`${APP_PATHS.products}?category=${encodeURIComponent(cat.slug!)}`}
-                        className="text-white hover:text-gray-400 transition-colors"
-                      >
-                        {cat.name}
-                      </Link>
-                    </li>
-                  ))}
-              </ul>
-            </div>
+            {/* Category + About Shop: side-by-side on mobile only */}
+            <div className="grid grid-cols-2 gap-8 sm:contents">
+              {/* Category */}
+              <div>
+                <h3 className="text-base font-semibold mb-3 text-white min-h-[25px]">
+                  {t("footer.category")}
+                </h3>
+                <ul className="space-y-3 text-sm">
+                  {headerCategories
+                    .filter((cat) => cat.slug)
+                    .map((cat) => (
+                      <li key={cat.id}>
+                        <Link
+                          to={`${APP_PATHS.products}?category=${encodeURIComponent(cat.slug!)}`}
+                          className="text-white hover:text-gray-400 transition-colors"
+                        >
+                          {cat.name}
+                        </Link>
+                      </li>
+                    ))}
+                </ul>
+              </div>
 
-            {/* About Shop */}
-            <div>
-              <h3 className="text-base font-semibold mb-3 text-white min-h-[25px]">
-                {t("footer.aboutShop")}
-              </h3>
-              <ul className="space-y-3 text-sm">
-                <li>
-                  <Link
-                    to={APP_PATHS.products}
-                    className="text-white hover:text-gray-400 transition-colors"
-                  >
-                    {t("footer.category")}
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to={APP_PATHS.support}
-                    className="text-white hover:text-gray-400 transition-colors"
-                  >
-                    {t("footer.support")}
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to={APP_PATHS.shipping}
-                    className="text-white hover:text-gray-400 transition-colors"
-                  >
-                    {t("footer.fastDelivery")}
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to={APP_PATHS.payment}
-                    className="text-white hover:text-gray-400 transition-colors"
-                  >
-                    {t("footer.onlinePayment")}
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to={APP_PATHS.tracking}
-                    className="text-white hover:text-gray-400 transition-colors"
-                  >
-                    {t("footer.tracking")}
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to={APP_PATHS.about}
-                    className="text-white hover:text-gray-400 transition-colors"
-                  >
-                    {t("footer.aboutUs")}
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to={APP_PATHS.terms}
-                    className="text-white hover:text-gray-400 transition-colors"
-                  >
-                    {t("footer.terms")}
-                  </Link>
-                </li>
-              </ul>
+              {/* About Shop */}
+              <div>
+                <h3 className="text-base font-semibold mb-3 text-white min-h-[25px]">
+                  {t("footer.aboutShop")}
+                </h3>
+                <ul className="space-y-3 text-sm">
+                  <li>
+                    <Link
+                      to={APP_PATHS.products}
+                      className="text-white hover:text-gray-400 transition-colors"
+                    >
+                      {t("footer.category")}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to={APP_PATHS.support}
+                      className="text-white hover:text-gray-400 transition-colors"
+                    >
+                      {t("footer.support")}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to={APP_PATHS.payment}
+                      className="text-white hover:text-gray-400 transition-colors"
+                    >
+                      {t("footer.onlinePayment")}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to={APP_PATHS.tracking}
+                      className="text-white hover:text-gray-400 transition-colors"
+                    >
+                      {t("footer.tracking")}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to={APP_PATHS.about}
+                      className="text-white hover:text-gray-400 transition-colors"
+                    >
+                      {t("footer.aboutUs")}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to={APP_PATHS.terms}
+                      className="text-white hover:text-gray-400 transition-colors"
+                    >
+                      {t("footer.terms")}
+                    </Link>
+                  </li>
+                </ul>
+              </div>
             </div>
 
             {/* Follow Us & Payment Method */}
