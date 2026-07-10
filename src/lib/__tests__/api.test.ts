@@ -1,15 +1,10 @@
 ﻿import { http, HttpResponse } from "msw";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { server } from "@/test/msw/server";
-import { createMockSupabaseClient } from "@/test/mocks/supabase";
 // Note: api.ts reads tokens from localStorage (not Supabase SDK session).
 // Tests that exercise auth headers must write to localStorage directly.
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-
-vi.mock("@/lib/supabase", () => ({
-  supabase: createMockSupabaseClient(null),
-}));
 
 import { api, apiFetch, apiFetchForm, apiFetchList } from "../api";
 

@@ -31,7 +31,6 @@ export default defineConfig({
           "vendor-react": ["react", "react-dom", "react-router-dom"],
           // Data layer — changes less often than UI
           "vendor-query": ["@tanstack/react-query"],
-          "vendor-supabase": ["@supabase/supabase-js"],
           // Heavy UI primitives — rarely change between deploys
           "vendor-ui": [
             "@radix-ui/react-dialog",

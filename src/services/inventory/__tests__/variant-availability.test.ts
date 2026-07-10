@@ -1,13 +1,8 @@
 ﻿import { http, HttpResponse } from "msw";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { server } from "@/test/msw/server";
-import { createMockSupabaseClient } from "@/test/mocks/supabase";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-
-vi.mock("@/lib/supabase", () => ({
-  supabase: createMockSupabaseClient(null),
-}));
 
 import {
   computeAvailableUnits,

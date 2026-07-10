@@ -1,15 +1,10 @@
-import { http, HttpResponse } from "msw";
+﻿import { http, HttpResponse } from "msw";
 import { waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { renderHookWithQueryClient } from "@/test/test-utils";
 import { server } from "@/test/msw/server";
-import { createMockSupabaseClient } from "@/test/mocks/supabase";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-
-vi.mock("@/lib/supabase", () => ({
-  supabase: createMockSupabaseClient(null),
-}));
 
 import { useAuth, useSession, useUserProfile } from "../use-auth-query";
 
@@ -51,7 +46,7 @@ describe("useSession", () => {
 
 describe("useUserProfile", () => {
   it("resolves to null without hitting the API when there is no token", async () => {
-    // No MSW handler registered for /auth/me — a network request would fail loudly.
+    // No MSW handler registered for /auth/me - a network request would fail loudly.
     const { result } = renderHookWithQueryClient(() => useUserProfile());
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toBeNull();

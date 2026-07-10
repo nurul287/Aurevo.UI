@@ -1,5 +1,3 @@
-import { User } from "@supabase/supabase-js";
-
 // Base API Response type
 export interface ApiResponse<T> {
   data: T | null;
@@ -20,11 +18,6 @@ export interface SignUpData {
 export interface SignInData {
   email: string;
   password: string;
-}
-
-export interface AuthResponse {
-  user: User | null;
-  session: any;
 }
 
 // Database Enums (matching Supabase schema)
