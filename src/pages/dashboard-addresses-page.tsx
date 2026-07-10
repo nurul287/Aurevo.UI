@@ -38,6 +38,7 @@ import {
 } from "@/services/user/use-address";
 import { Loader2, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 const LOCATION_OPTIONS = ["Home", "Office", "Pick Up"] as const;
@@ -52,6 +53,7 @@ const EMPTY_FORM: AddressInput = {
 };
 
 const DashboardAddressesPage = () => {
+  const { t } = useTranslation();
   const { showError, showSuccess } = useToast();
   const { data: addresses = [], isLoading } = useAddresses();
   const createAddress = useCreateAddress();
@@ -145,33 +147,31 @@ const DashboardAddressesPage = () => {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to={APP_PATHS.dashboard}>Account</Link>
+                <Link to={APP_PATHS.dashboard}>{t("dashboard.account")}</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>Saved addresses</BreadcrumbPage>
+              <BreadcrumbPage>{t("addresses.title")}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
 
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Saved addresses</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Manage delivery addresses used at checkout — add a new one or edit an existing entry.
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900">{t("addresses.title")}</h1>
+          <p className="text-sm text-gray-500 mt-1">{t("addresses.subtitle")}</p>
         </div>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <div>
-              <CardTitle>Addresses</CardTitle>
+              <CardTitle>{t("addresses.heading")}</CardTitle>
               <CardDescription>
-                {addresses.length} saved address{addresses.length === 1 ? "" : "es"}
+                {t("addresses.count", { count: addresses.length })}
               </CardDescription>
             </div>
             <Button onClick={openAdd}>
-              <Plus className="h-4 w-4 mr-1" /> Add address
+              <Plus className="h-4 w-4 mr-1" /> {t("addresses.add")}
             </Button>
           </CardHeader>
           <CardContent>
@@ -182,8 +182,8 @@ const DashboardAddressesPage = () => {
             ) : addresses.length === 0 ? (
               <div className="text-center py-10 text-gray-500">
                 <MapPin className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                <p>No saved addresses yet.</p>
-                <p className="text-sm">Add one and it will be ready at checkout.</p>
+                <p>{t("addresses.empty")}</p>
+                <p className="text-sm">{t("addresses.emptyHint")}</p>
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
@@ -200,7 +200,7 @@ const DashboardAddressesPage = () => {
                         <span className="font-semibold text-sm">{addr.label || "Address"}</span>
                         {addr.is_default && (
                           <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">
-                            DEFAULT
+                            {t("checkout.default")}
                           </Badge>
                         )}
                       </div>
@@ -239,7 +239,7 @@ const DashboardAddressesPage = () => {
                         onClick={() => handleSetDefault(addr)}
                         disabled={updateAddress.isPending}
                       >
-                        Set as default
+                        {t("addresses.setDefault")}
                       </button>
                     )}
                   </div>
@@ -253,11 +253,13 @@ const DashboardAddressesPage = () => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingId ? "Edit address" : "Add address"}</DialogTitle>
+            <DialogTitle>
+              {editingId ? t("addresses.edit") : t("addresses.add")}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label>Location</Label>
+              <Label>{t("addresses.location")}</Label>
               <Select
                 value={form.label || ""}
                 onValueChange={(value) => {
@@ -267,7 +269,7 @@ const DashboardAddressesPage = () => {
               >
                 <SelectTrigger>
                   <span className={form.label ? "" : "text-muted-foreground"}>
-                    {form.label || "Select Location"}
+                    {form.label || t("addresses.selectLocation")}
                   </span>
                 </SelectTrigger>
                 <SelectContent>
@@ -282,7 +284,7 @@ const DashboardAddressesPage = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="addr-name">
-                  Name <span className="text-red-500">*</span>
+                  {t("checkout.name")} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="addr-name"
@@ -292,7 +294,7 @@ const DashboardAddressesPage = () => {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="addr-phone">
-                  Phone <span className="text-red-500">*</span>
+                  {t("checkout.phone")} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="addr-phone"
@@ -303,7 +305,7 @@ const DashboardAddressesPage = () => {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="addr-address">
-                Address <span className="text-red-500">*</span>
+                {t("checkout.address")} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="addr-address"
@@ -315,19 +317,19 @@ const DashboardAddressesPage = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>
-                  District <span className="text-red-500">*</span>
+                  {t("checkout.district")} <span className="text-red-500">*</span>
                 </Label>
                 <DropDownList
                   options={districtOptions}
                   value={form.district}
                   onChange={(value) => setForm((p) => ({ ...p, district: value, upazila: "" }))}
-                  placeholder="Select District"
+                  placeholder={t("checkout.selectDistrict")}
                   emptyMessage="No districts found"
                 />
               </div>
               <div className="space-y-1.5">
                 <Label>
-                  Upazila <span className="text-red-500">*</span>
+                  {t("checkout.upazila")} <span className="text-red-500">*</span>
                 </Label>
                 <Select
                   value={form.upazila}
@@ -344,7 +346,7 @@ const DashboardAddressesPage = () => {
                         for values set programmatically (edit mode) before the
                         dropdown ever opened. */}
                     <span className={form.upazila ? "" : "text-muted-foreground"}>
-                      {form.upazila || "Select Upazila"}
+                      {form.upazila || t("checkout.selectUpazila")}
                     </span>
                   </SelectTrigger>
                   <SelectContent>
@@ -360,11 +362,11 @@ const DashboardAddressesPage = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>
-              Cancel
+              {t("addresses.cancel")}
             </Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-              {editingId ? "Save changes" : "Add address"}
+              {editingId ? t("addresses.saveChanges") : t("addresses.add")}
             </Button>
           </DialogFooter>
         </DialogContent>

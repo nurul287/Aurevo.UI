@@ -8,25 +8,15 @@ export type AppLanguage = "en" | "bn";
 const STORAGE_KEY = "aurevo_language";
 
 /**
- * Default-language detection, first match wins:
- * 1. The user's explicit choice (language switcher, persisted)
- * 2. Location — a device in the Asia/Dhaka timezone gets Bangla
- * 3. A Bangla browser locale gets Bangla
- * 4. English
+ * English by default for everyone; Bangla only when the user has explicitly
+ * chosen it via the header toggle (choice is persisted).
  */
 export function detectLanguage(): AppLanguage {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === "en" || saved === "bn") return saved;
-
-    if (Intl.DateTimeFormat().resolvedOptions().timeZone === "Asia/Dhaka") {
-      return "bn";
-    }
-
-    const locales = [navigator.language, ...(navigator.languages ?? [])];
-    if (locales.some((l) => l?.toLowerCase().startsWith("bn"))) return "bn";
   } catch {
-    /* jsdom / privacy modes — fall through to English */
+    /* privacy modes — fall through to English */
   }
   return "en";
 }

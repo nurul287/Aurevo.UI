@@ -35,6 +35,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 type OrderWithItems = Order & { order_items?: OrderItem[] };
 
@@ -59,6 +60,7 @@ function statusBadgeClass(status: string | undefined) {
 }
 
 const DashboardPage = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
 
   const {
@@ -84,7 +86,7 @@ const DashboardPage = () => {
       <div className="min-h-screen flex items-center justify-center bg-muted/20">
         <div className="flex items-center gap-3 text-muted-foreground">
           <Loader2 className="h-8 w-8 animate-spin" />
-          <span>Loading your dashboard…</span>
+          <span>{t("dashboard.loading")}</span>
         </div>
       </div>
     );
@@ -95,14 +97,13 @@ const DashboardPage = () => {
       <div className="container-custom max-w-6xl space-y-10">
         <header className="space-y-2">
           <p className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
-            Account
+            {t("dashboard.account")}
           </p>
           <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-            Welcome back, {displayName}
+            {t("dashboard.welcome", { name: displayName })}
           </h1>
           <p className="max-w-2xl text-muted-foreground">
-            Track orders, keep your details up to date, and pick up where you
-            left off.
+            {t("dashboard.subtitle")}
           </p>
         </header>
 
@@ -112,7 +113,7 @@ const DashboardPage = () => {
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
               <div>
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total orders
+                  {t("dashboard.totalOrders")}
                 </CardTitle>
                 <p className="mt-3 text-3xl font-bold tabular-nums">
                   {orders.length}
@@ -125,8 +126,8 @@ const DashboardPage = () => {
             <CardContent className="pt-0">
               <p className="text-xs text-muted-foreground">
                 {orders.length === 0
-                  ? "Your completed purchases will appear here."
-                  : "All-time orders on this account."}
+                  ? t("dashboard.noOrdersHint")
+                  : t("dashboard.allTimeOrders")}
               </p>
             </CardContent>
           </Card>
@@ -135,9 +136,11 @@ const DashboardPage = () => {
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
               <div>
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Account status
+                  {t("dashboard.accountStatus")}
                 </CardTitle>
-                <p className="mt-3 text-3xl font-bold text-emerald-600">Active</p>
+                <p className="mt-3 text-3xl font-bold text-emerald-600">
+                  {t("dashboard.active")}
+                </p>
               </div>
               <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-700">
                 <UserCheck className="h-5 w-5" />
@@ -145,7 +148,7 @@ const DashboardPage = () => {
             </CardHeader>
             <CardContent className="pt-0">
               <p className="text-xs text-muted-foreground">
-                Member since{" "}
+                {t("dashboard.memberSince")}{" "}
                 {user?.created_at
                   ? new Date(user.created_at).toLocaleDateString(undefined, {
                       year: "numeric",
@@ -161,7 +164,7 @@ const DashboardPage = () => {
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
               <div>
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Profile
+                  {t("dashboard.profile")}
                 </CardTitle>
                 <p
                   className={cn(
@@ -204,14 +207,12 @@ const DashboardPage = () => {
         <Card className="border-border/80 shadow-sm">
           <CardHeader className="flex flex-col gap-1 border-b bg-muted/30 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle className="text-xl">Recent orders</CardTitle>
-              <CardDescription>
-                Order number, delivery address, and current status.
-              </CardDescription>
+              <CardTitle className="text-xl">{t("dashboard.recentOrders")}</CardTitle>
+              <CardDescription>{t("dashboard.recentOrdersDesc")}</CardDescription>
             </div>
             <Button variant="outline" size="sm" asChild className="shrink-0">
               <Link to={APP_PATHS.products}>
-                Shop again
+                {t("dashboard.shopAgain")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -219,9 +220,9 @@ const DashboardPage = () => {
           <CardContent className="p-0 sm:p-0">
             {ordersError ? (
               <div className="p-10 text-center">
-                <p className="text-destructive mb-4">Could not load orders.</p>
+                <p className="text-destructive mb-4">{t("dashboard.couldNotLoadOrders")}</p>
                 <Button variant="outline" onClick={() => window.location.reload()}>
-                  Try again
+                  {t("dashboard.tryAgain")}
                 </Button>
               </div>
             ) : orders.length === 0 ? (
@@ -229,13 +230,12 @@ const DashboardPage = () => {
                 <div className="mb-4 rounded-full bg-muted p-4">
                   <Package className="h-10 w-10 text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-semibold">No orders yet</h3>
+                <h3 className="text-lg font-semibold">{t("dashboard.noOrders")}</h3>
                 <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-                  When you place an order while signed in, it will show up here
-                  with shipping details and status.
+                  {t("dashboard.noOrdersDetail")}
                 </p>
                 <Button className="mt-6" asChild>
-                  <Link to={APP_PATHS.products}>Browse products</Link>
+                  <Link to={APP_PATHS.products}>{t("dashboard.browseProducts")}</Link>
                 </Button>
               </div>
             ) : (
@@ -244,16 +244,16 @@ const DashboardPage = () => {
                   <Table>
                     <TableHeader>
                       <TableRow className="hover:bg-transparent">
-                        <TableHead className="whitespace-nowrap">Order</TableHead>
-                        <TableHead className="whitespace-nowrap">Placed</TableHead>
-                        <TableHead>Items</TableHead>
+                        <TableHead className="whitespace-nowrap">{t("dashboard.colOrder")}</TableHead>
+                        <TableHead className="whitespace-nowrap">{t("dashboard.colPlaced")}</TableHead>
+                        <TableHead>{t("dashboard.colItems")}</TableHead>
                         <TableHead className="max-w-[140px] lg:max-w-[180px]">
-                          Ship to
+                          {t("dashboard.colShipTo")}
                         </TableHead>
                         <TableHead className="whitespace-nowrap text-right">
-                          Total
+                          {t("dashboard.colTotal")}
                         </TableHead>
-                        <TableHead className="text-right">Status</TableHead>
+                        <TableHead className="text-right">{t("dashboard.colStatus")}</TableHead>
                         <TableHead className="w-[100px] text-right">
                           {""}
                         </TableHead>
@@ -311,7 +311,7 @@ const DashboardPage = () => {
                               <Link
                                 to={`${APP_PATHS.orderConfirmation}?orderId=${order.id}&orderNumber=${encodeURIComponent(order.order_number || "")}`}
                               >
-                                View
+                                {t("dashboard.view")}
                                 <ChevronRight className="ml-1 h-4 w-4" />
                               </Link>
                             </Button>
@@ -352,7 +352,7 @@ const DashboardPage = () => {
                       </p>
                       <p className="text-sm leading-relaxed text-muted-foreground border-l-2 border-primary/30 pl-3">
                         <span className="font-medium text-foreground/80">
-                          Ship to:{" "}
+                          {t("dashboard.shipTo")}
                         </span>
                         {formatOrderShippingLine(order.shipping_address)}
                       </p>
@@ -364,7 +364,7 @@ const DashboardPage = () => {
                           <Link
                             to={`${APP_PATHS.orderConfirmation}?orderId=${order.id}&orderNumber=${encodeURIComponent(order.order_number || "")}`}
                           >
-                            Receipt
+                            {t("dashboard.receipt")}
                           </Link>
                         </Button>
                       </div>
@@ -380,24 +380,22 @@ const DashboardPage = () => {
         <Card className="border-border/80 shadow-sm">
           <CardHeader className="flex flex-col gap-4 border-b bg-muted/30 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle className="text-xl">Personal information</CardTitle>
-              <CardDescription>
-                Used for shipping labels and account notifications.
-              </CardDescription>
+              <CardTitle className="text-xl">{t("dashboard.personalInfo")}</CardTitle>
+              <CardDescription>{t("dashboard.personalInfoDesc")}</CardDescription>
             </div>
             <Button asChild className="shrink-0">
               <Link to={APP_PATHS.dashboardProfile}>
                 <Pencil className="mr-2 h-4 w-4" />
-                Edit profile
+                {t("dashboard.editProfile")}
               </Link>
             </Button>
           </CardHeader>
           <CardContent className="pt-6">
             {profileError ? (
               <div className="py-10 text-center">
-                <p className="text-destructive mb-4">Could not load profile.</p>
+                <p className="text-destructive mb-4">{t("dashboard.couldNotLoadProfile")}</p>
                 <Button variant="outline" onClick={() => window.location.reload()}>
-                  Try again
+                  {t("dashboard.tryAgain")}
                 </Button>
               </div>
             ) : profile ? (
@@ -405,7 +403,7 @@ const DashboardPage = () => {
                 <dl className="space-y-4">
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Full name
+                      {t("dashboard.fullName")}
                     </dt>
                     <dd className="mt-1 text-sm font-medium">
                       {[profile.first_name, profile.last_name]
@@ -416,7 +414,7 @@ const DashboardPage = () => {
                   </div>
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Email
+                      {t("dashboard.email")}
                     </dt>
                     <dd className="mt-1 text-sm font-medium break-all">
                       {user?.email?.trim() || "—"}
@@ -424,7 +422,7 @@ const DashboardPage = () => {
                   </div>
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Phone
+                      {t("dashboard.phone")}
                     </dt>
                     <dd className="mt-1 text-sm font-medium">
                       {profile.phone?.trim() || "—"}
@@ -434,7 +432,7 @@ const DashboardPage = () => {
                 <dl className="space-y-4">
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Gender
+                      {t("dashboard.gender")}
                     </dt>
                     <dd className="mt-1 text-sm font-medium capitalize">
                       {profile.gender?.trim() || "—"}
@@ -442,7 +440,7 @@ const DashboardPage = () => {
                   </div>
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Date of birth
+                      {t("dashboard.dateOfBirth")}
                     </dt>
                     <dd className="mt-1 text-sm font-medium">
                       {profile.date_of_birth
@@ -464,13 +462,12 @@ const DashboardPage = () => {
                 <div className="mb-4 rounded-full bg-muted p-4">
                   <User className="h-10 w-10 text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-semibold">Set up your profile</h3>
+                <h3 className="text-lg font-semibold">{t("dashboard.setupProfile")}</h3>
                 <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                  Add your name and contact details so checkout and support go
-                  smoothly.
+                  {t("dashboard.setupProfileDetail")}
                 </p>
                 <Button className="mt-6" asChild>
-                  <Link to={APP_PATHS.dashboardProfile}>Create profile</Link>
+                  <Link to={APP_PATHS.dashboardProfile}>{t("dashboard.createProfile")}</Link>
                 </Button>
               </div>
             )}
@@ -481,14 +478,12 @@ const DashboardPage = () => {
         <Card className="border-border/80 shadow-sm">
           <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle className="text-xl">Saved addresses</CardTitle>
-              <CardDescription>
-                Delivery addresses you can reuse at checkout.
-              </CardDescription>
+              <CardTitle className="text-xl">{t("dashboard.savedAddresses")}</CardTitle>
+              <CardDescription>{t("dashboard.savedAddressesDesc")}</CardDescription>
             </div>
             <Button asChild variant="outline" className="shrink-0">
               <Link to={APP_PATHS.dashboardAddresses}>
-                Manage addresses
+                {t("dashboard.manageAddresses")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>

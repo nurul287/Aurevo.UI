@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 
 function toDateInputValue(iso: string | undefined): string {
@@ -44,6 +45,7 @@ function toDateInputValue(iso: string | undefined): string {
 }
 
 const DashboardProfilePage = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
@@ -111,7 +113,7 @@ const DashboardProfilePage = () => {
   if (!userId) {
     return (
       <div className="min-h-screen py-16 text-center text-muted-foreground">
-        Sign in to edit your profile.
+        {t("profile.signInPrompt")}
       </div>
     );
   }
@@ -131,93 +133,90 @@ const DashboardProfilePage = () => {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to={APP_PATHS.home}>Home</Link>
+                <Link to={APP_PATHS.home}>{t("profile.home")}</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to={APP_PATHS.dashboard}>Dashboard</Link>
+                <Link to={APP_PATHS.dashboard}>{t("nav.dashboard")}</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>Edit profile</BreadcrumbPage>
+              <BreadcrumbPage>{t("profile.editProfile")}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
 
         <Card className="border-border/80 shadow-sm">
           <CardHeader className="border-b bg-card">
-            <CardTitle className="text-xl">Edit personal information</CardTitle>
-            <CardDescription>
-              This information is used for orders and account support. You can
-              update it any time.
-            </CardDescription>
+            <CardTitle className="text-xl">{t("profile.title")}</CardTitle>
+            <CardDescription>{t("profile.description")}</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">First name</Label>
+                  <Label htmlFor="firstName">{t("profile.firstName")}</Label>
                   <Input
                     id="firstName"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     autoComplete="given-name"
-                    placeholder="First name"
+                    placeholder={t("profile.firstName")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Last name</Label>
+                  <Label htmlFor="lastName">{t("profile.lastName")}</Label>
                   <Input
                     id="lastName"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     autoComplete="family-name"
-                    placeholder="Last name"
+                    placeholder={t("profile.lastName")}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label>Email</Label>
+                <Label>{t("profile.email")}</Label>
                 <Input value={user?.email ?? ""} disabled className="bg-muted" />
                 <p className="text-xs text-muted-foreground">
-                  Email is tied to your sign-in and cannot be changed here.
+                  {t("profile.emailNote")}
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
+                <Label htmlFor="phone">{t("profile.phone")}</Label>
                 <Input
                   id="phone"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   autoComplete="tel"
-                  placeholder="Mobile number"
+                  placeholder={t("profile.phonePlaceholder")}
                 />
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Gender</Label>
+                  <Label>{t("profile.gender")}</Label>
                   <Select
                     value={gender || undefined}
                     onValueChange={(v) => setGender(v as UserGender)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select" />
+                      <SelectValue placeholder={t("profile.select")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="male">{t("profile.male")}</SelectItem>
+                      <SelectItem value="female">{t("profile.female")}</SelectItem>
+                      <SelectItem value="other">{t("profile.other")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="dob">Date of birth</Label>
+                  <Label htmlFor="dob">{t("profile.dateOfBirth")}</Label>
                   <Input
                     id="dob"
                     type="date"
@@ -229,13 +228,13 @@ const DashboardProfilePage = () => {
 
               <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
                 <Button type="button" variant="outline" asChild>
-                  <Link to={APP_PATHS.dashboard}>Cancel</Link>
+                  <Link to={APP_PATHS.dashboard}>{t("profile.cancel")}</Link>
                 </Button>
                 <Button type="submit" disabled={pending}>
                   {pending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
                   )}
-                  Save changes
+                  {t("profile.saveChanges")}
                 </Button>
               </div>
             </form>
