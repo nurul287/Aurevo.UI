@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "react-i18next";
 import { APP_PATHS } from "@/constants/app-paths";
 import { useCategories } from "@/services";
 import { useState } from "react";
@@ -95,6 +96,7 @@ function CategoryHexVisual({
 }
 
 export const ProductCategorySection = () => {
+  const { t } = useTranslation();
   const { data: categories = [], isLoading } = useCategories();
 
   const displayCategories = categories.slice(0, 6).map((cat) => ({
@@ -120,7 +122,7 @@ export const ProductCategorySection = () => {
     <section className="bg-white py-10 sm:py-12">
       <div className="container-custom">
         <h2 className="mb-8 text-center sm:text-3xl text-2xl font-bold uppercase tracking-tight text-slate-900 sm:mb-10 md:mb-12">
-          Our product category
+          {t("home.productCategory")}
         </h2>
 
         {isLoading ? (

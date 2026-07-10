@@ -1,0 +1,65 @@
+{
+  "nav": {
+    "search": "Search",
+    "dashboard": "Dashboard",
+    "adminPanel": "Admin Panel",
+    "signOut": "Sign Out",
+    "signIn": "Sign in",
+    "signUp": "Sign Up"
+  },
+  "home": {
+    "productCategory": "Our product category",
+    "newCollection": "New Collection",
+    "ourShop": "Our Shop",
+    "gallery": "Aurevo gallery",
+    "aboutStore": "About The Store",
+    "contactUs": "Contact Us",
+    "storeLocation": "Store Location"
+  },
+  "footer": {
+    "address": "Mirpur-11.5, Housing, Dhaka, Bangladesh",
+    "category": "Category",
+    "aboutShop": "About Shop",
+    "support": "24/7 Support",
+    "fastDelivery": "Fast Delivery",
+    "onlinePayment": "Online Payment",
+    "tracking": "Tracking",
+    "aboutUs": "About Us",
+    "terms": "Terms & Conditions",
+    "followUs": "Follow Us :",
+    "paymentMethod": "Payment Method:",
+    "rights": "All rights reserved."
+  },
+  "cart": {
+    "title": "Shopping Cart",
+    "itemCount_one": "({{count}} item)",
+    "itemCount_other": "({{count}} items)",
+    "empty": "Your cart is empty",
+    "emptyHint": "Looks like you haven't added any items yet.",
+    "continueShopping": "Continue Shopping",
+    "size": "Size:",
+    "subtotal": "Subtotal:",
+    "checkout": "CHECK OUT"
+  },
+  "checkout": {
+    "deliveryAddress": "Your delivery address",
+    "savedAddresses": "Saved addresses",
+    "savedAddressesHint": "Pick one to fill the form, or type a different address below.",
+    "default": "DEFAULT",
+    "name": "Name",
+    "phone": "Phone Number",
+    "email": "Email (Optional)",
+    "address": "Address",
+    "district": "District",
+    "upazila": "Upazilla",
+    "selectDistrict": "Select District",
+    "selectUpazila": "Select Upazila",
+    "shippingMethod": "Shipping Method",
+    "insideDhaka": "Inside Dhaka",
+    "outsideDhaka": "Outside Dhaka",
+    "paymentMethod": "Payment method",
+    "cashOnDelivery": "Cash On Delivery",
+    "orderNow": "Order Now",
+    "placingOrder": "Placing order..."
+  }
+}

@@ -16,12 +16,14 @@ import { useNavigate } from "react-router-dom";
 import { APP_PATHS } from "@/constants/app-paths";
 import NumberStepper from "@/components/NumberStepper";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice } from "@/lib/currency";
 import { getLeadImageUrl } from "@/lib/product-images";
 import { getUniqueSizesFromVariants } from "@/lib/variant-size-sort";
 
 const CartSidePanel = () => {
+  const { t } = useTranslation();
   const { isCartPanelOpen, closeCartPanel } = useGuestCart();
   const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
@@ -117,12 +119,11 @@ const CartSidePanel = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <SheetTitle className="text-lg font-semibold text-gray-900">
-                Shopping Cart
+                {t("cart.title")}
               </SheetTitle>
               {cartItems.length > 0 && (
                 <span className="text-sm text-gray-600">
-                  ({cartItems.length}{" "}
-                  {cartItems.length === 1 ? "item" : "items"})
+                  {t("cart.itemCount", { count: cartItems.length })}
                 </span>
               )}
             </div>
@@ -149,16 +150,14 @@ const CartSidePanel = () => {
             <div className="flex flex-col items-center justify-center h-full text-center py-12">
               <ShoppingCart className="w-16 h-16 text-gray-300 mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Your cart is empty
+                {t("cart.empty")}
               </h3>
-              <p className="text-gray-600 mb-6">
-                Looks like you haven't added any items yet.
-              </p>
+              <p className="text-gray-600 mb-6">{t("cart.emptyHint")}</p>
               <Button
                 onClick={closeCartPanel}
                 className="bg-gray-900 hover:bg-gray-800 text-white"
               >
-                Continue Shopping
+                {t("cart.continueShopping")}
               </Button>
             </div>
           ) : (
@@ -299,7 +298,7 @@ const CartSidePanel = () => {
           <SheetFooter className="flex-col gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
             <div className="flex justify-between items-center w-full">
               <span className="text-base font-semibold text-gray-900">
-                Subtotal:
+                {t("cart.subtotal")}
               </span>
               <span className="text-lg font-bold text-gray-900">
                 {formatPrice(cartTotal)}
@@ -318,7 +317,7 @@ const CartSidePanel = () => {
                 className="w-full bg-gray-900 hover:bg-gray-800 text-white h-11 font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ShoppingBagIcon className="w-5 h-5 text-white" />
-                CHECK OUT
+                {t("cart.checkout")}
               </Button>
             </div>
           </SheetFooter>
@@ -342,6 +341,7 @@ function CartItemSizeSelector({
   onSizeChange: (size: string, variantId: string) => void;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation();
   const { data: product } = useProduct(productId);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -354,7 +354,7 @@ function CartItemSizeSelector({
   if (availableSizes.length <= 1) {
     return (
       <div className="text-xs text-gray-600">
-        Size: <span className="font-medium">{currentSize}</span>
+        {t("cart.size")} <span className="font-medium">{currentSize}</span>
       </div>
     );
   }

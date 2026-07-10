@@ -3,8 +3,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export const ContactUsSection = () => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -29,7 +31,7 @@ export const ContactUsSection = () => {
     <section className="py-16 bg-white">
       <div className="container-custom">
         <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-900">
-          Contact Us
+          {t("home.contactUs")}
         </h2>
 
         <div className="max-w-2xl mx-auto">

@@ -14,6 +14,8 @@ import { APP_PATHS } from "@/constants/app-paths";
 import { useCategories } from "@/services";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { HeaderProductSearch } from "@/components/header-product-search";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
 import AurevoBlack from "@/assets/icon/aurevo-black";
 import AurevoWhite from "@/assets/icon/aurevo-white";
@@ -37,6 +39,7 @@ import visaImg from "@/assets/image/visa.png";
 import masterCardImg from "@/assets/image/master-card.png";
 
 const Layout = () => {
+  const { t } = useTranslation();
   const { user, isAdmin, signOut } = useAuth();
   const { itemCount: cartItemCount } = useCart();
   const { openCartPanel } = useGuestCart();
@@ -146,6 +149,8 @@ const Layout = () => {
                 inputClassName="w-[200px] xl:w-[320px] h-[44px] rounded-full border-2 border-gray-200 bg-white pr-12 pl-4 text-gray-900 shadow-sm placeholder:text-gray-600 focus-visible:border-[#111111] focus-visible:bg-white focus-visible:shadow-md focus-visible:ring-0 focus-visible:ring-offset-0"
               />
 
+              <LanguageSwitcher />
+
               {/* Cart */}
               <button
                 onClick={openCartPanel}
@@ -178,7 +183,7 @@ const Layout = () => {
                         onClick={closeUserMenu}
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       >
-                        Dashboard
+                        {t("nav.dashboard")}
                       </Link>
                       {isAdmin && (
                         <Link
@@ -186,14 +191,14 @@ const Layout = () => {
                           onClick={closeUserMenu}
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         >
-                          Admin Panel
+                          {t("nav.adminPanel")}
                         </Link>
                       )}
                       <button
                         onClick={handleSignOut}
                         className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       >
-                        Sign Out
+                        {t("nav.signOut")}
                       </button>
                     </div>
                   )}
@@ -204,7 +209,7 @@ const Layout = () => {
                   className="hidden lg:flex rounded-full px-6 xl:px-8 py-5"
                   asChild
                 >
-                  <Link to="/login">Sign in</Link>
+                  <Link to="/login">{t("nav.signIn")}</Link>
                 </Button>
               )}
 
@@ -262,7 +267,7 @@ const Layout = () => {
                     onClick={closeMobileMenu}
                     className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md"
                   >
-                    Dashboard
+                    {t("nav.dashboard")}
                   </Link>
                   {isAdmin && (
                     <Link
@@ -270,14 +275,14 @@ const Layout = () => {
                       onClick={closeMobileMenu}
                       className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md"
                     >
-                      Admin Panel
+                      {t("nav.adminPanel")}
                     </Link>
                   )}
                   <button
                     onClick={handleSignOut}
                     className="block w-full text-left px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md"
                   >
-                    Sign Out
+                    {t("nav.signOut")}
                   </button>
                 </div>
               ) : (
@@ -287,14 +292,14 @@ const Layout = () => {
                     onClick={closeMobileMenu}
                     className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md"
                   >
-                    Sign In
+                    {t("nav.signIn")}
                   </Link>
                   <Link
                     to="/register"
                     onClick={closeMobileMenu}
                     className="block px-3 py-2 text-base font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md text-center"
                   >
-                    Sign Up
+                    {t("nav.signUp")}
                   </Link>
                 </div>
               )}
@@ -325,7 +330,7 @@ const Layout = () => {
                     className="mt-0.5 flex-shrink-0"
                     fill="#9CA3AF"
                   />
-                  <span>Mirpur-11.5, Housing, Dhaka, Bangladesh</span>
+                  <span>{t("footer.address")}</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <EmailIcon
@@ -389,7 +394,7 @@ const Layout = () => {
             {/* Category */}
             <div>
               <h3 className="text-base font-semibold mb-3 text-white min-h-[25px]">
-                Category
+                {t("footer.category")}
               </h3>
               <ul className="space-y-3 text-sm">
                 {headerCategories
@@ -410,7 +415,7 @@ const Layout = () => {
             {/* About Shop */}
             <div>
               <h3 className="text-base font-semibold mb-3 text-white min-h-[25px]">
-                About Shop
+                {t("footer.aboutShop")}
               </h3>
               <ul className="space-y-3 text-sm">
                 <li>
@@ -418,7 +423,7 @@ const Layout = () => {
                     to={APP_PATHS.products}
                     className="text-white hover:text-gray-400 transition-colors"
                   >
-                    Category
+                    {t("footer.category")}
                   </Link>
                 </li>
                 <li>
@@ -426,7 +431,7 @@ const Layout = () => {
                     to={APP_PATHS.support}
                     className="text-white hover:text-gray-400 transition-colors"
                   >
-                    24/7 Support
+                    {t("footer.support")}
                   </Link>
                 </li>
                 <li>
@@ -434,7 +439,7 @@ const Layout = () => {
                     to={APP_PATHS.shipping}
                     className="text-white hover:text-gray-400 transition-colors"
                   >
-                    Fast Delivery
+                    {t("footer.fastDelivery")}
                   </Link>
                 </li>
                 <li>
@@ -442,7 +447,7 @@ const Layout = () => {
                     to={APP_PATHS.payment}
                     className="text-white hover:text-gray-400 transition-colors"
                   >
-                    Online Payment
+                    {t("footer.onlinePayment")}
                   </Link>
                 </li>
                 <li>
@@ -450,7 +455,7 @@ const Layout = () => {
                     to={APP_PATHS.tracking}
                     className="text-white hover:text-gray-400 transition-colors"
                   >
-                    Tracking
+                    {t("footer.tracking")}
                   </Link>
                 </li>
                 <li>
@@ -458,7 +463,7 @@ const Layout = () => {
                     to={APP_PATHS.about}
                     className="text-white hover:text-gray-400 transition-colors"
                   >
-                    About Us
+                    {t("footer.aboutUs")}
                   </Link>
                 </li>
                 <li>
@@ -466,7 +471,7 @@ const Layout = () => {
                     to={APP_PATHS.terms}
                     className="text-white hover:text-gray-400 transition-colors"
                   >
-                    Terms &amp; Conditions
+                    {t("footer.terms")}
                   </Link>
                 </li>
               </ul>
@@ -477,7 +482,7 @@ const Layout = () => {
               {/* Follow Us */}
               <div className="mb-5">
                 <h3 className="text-base font-semibold mb-3 text-white min-h-[25px]">
-                  Follow Us :
+                  {t("footer.followUs")}
                 </h3>
                 <div className="flex items-center gap-3">
                   <a
@@ -552,7 +557,7 @@ const Layout = () => {
               {/* Payment Method */}
               <div>
                 <h3 className="text-base font-semibold mb-3 text-white">
-                  Payment Method:
+                  {t("footer.paymentMethod")}
                 </h3>
                 <div className="flex items-center gap-2 flex-wrap">
                   <img
@@ -583,7 +588,7 @@ const Layout = () => {
           {/* Copyright */}
           <div className="py-6 border-t border-white">
             <p className="text-center text-gray-400 text-xs">
-              © {new Date().getFullYear()} Aurevo Fashion. All rights reserved.
+              © {new Date().getFullYear()} Aurevo Fashion. {t("footer.rights")}
             </p>
           </div>
         </div>
