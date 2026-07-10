@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "react-i18next";
 import { useProducts } from "@/services";
 import { ProductCard } from "@/components/product-card";
 import {
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/carousel";
 
 export const NewCollectionSection = () => {
+  const { t } = useTranslation();
   const { data: productsData, isLoading } = useProducts({
     page: 1,
     limit: 12,
@@ -22,7 +24,7 @@ export const NewCollectionSection = () => {
       <div className="container-custom">
         <div className="mb-8 text-center">
           <h2 className="sm:text-3xl text-2xl font-bold text-gray-900 uppercase">
-            New Collection
+            {t("home.newCollection")}
           </h2>
         </div>
 

@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 export const AboutStoreSection = () => {
+  const { t } = useTranslation();
   return (
     <section className="py-16 bg-gray-50">
       <div className="container-custom">
@@ -9,7 +11,7 @@ export const AboutStoreSection = () => {
           {/* Left Content */}
           <div className="space-y-6">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-              About The Store
+              {t("home.aboutStore")}
             </h2>
             <div className="space-y-4 text-gray-600 leading-relaxed">
               <p>

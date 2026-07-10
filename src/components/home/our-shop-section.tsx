@@ -1,8 +1,10 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "react-i18next";
 import { useProducts } from "@/services";
 import { ProductCard } from "@/components/product-card";
 
 export const OurShopSection = () => {
+  const { t } = useTranslation();
   const { data: productsData, isLoading } = useProducts({
     page: 1,
     limit: 8,
@@ -14,7 +16,7 @@ export const OurShopSection = () => {
     <section className="bg-white py-10 sm:py-12">
       <div className="container-custom">
         <h2 className="mb-8 text-center text-2xl font-bold uppercase text-gray-900 sm:text-3xl">
-          Our Shop
+          {t("home.ourShop")}
         </h2>
 
         {isLoading ? (

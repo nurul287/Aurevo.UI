@@ -1,10 +1,20 @@
 {
   "nav": {
+    "search": "Search",
     "dashboard": "Dashboard",
     "adminPanel": "Admin Panel",
     "signOut": "Sign Out",
     "signIn": "Sign in",
     "signUp": "Sign Up"
+  },
+  "home": {
+    "productCategory": "Our product category",
+    "newCollection": "New Collection",
+    "ourShop": "Our Shop",
+    "gallery": "Aurevo gallery",
+    "aboutStore": "About The Store",
+    "contactUs": "Contact Us",
+    "storeLocation": "Store Location"
   },
   "footer": {
     "address": "Mirpur-11.5, Housing, Dhaka, Bangladesh",

@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 const GALLERY_COUNT = 8;
 
 const GALLERY_ITEMS = Array.from({ length: GALLERY_COUNT }, (_, i) => {
@@ -57,6 +59,7 @@ function GalleryTileMobile({ item }: { item: GalleryItem }) {
 }
 
 export const SneakerGallerySection = () => {
+  const { t } = useTranslation();
   return (
     <section
       className="border-t border-stone-200/80 bg-stone-50 py-10 sm:py-12"
@@ -68,7 +71,7 @@ export const SneakerGallerySection = () => {
             id="sneaker-gallery-heading"
             className="text-2xl uppercase font-bold tracking-tight text-slate-900 sm:text-3xl md:text-4xl"
           >
-            Aurevo gallery
+            {t("home.gallery")}
           </h2>
         </div>
 

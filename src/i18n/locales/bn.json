@@ -1,10 +1,20 @@
 {
   "nav": {
+    "search": "খুঁজুন",
     "dashboard": "ড্যাশবোর্ড",
     "adminPanel": "অ্যাডমিন প্যানেল",
     "signOut": "সাইন আউট",
     "signIn": "সাইন ইন",
     "signUp": "নিবন্ধন করুন"
+  },
+  "home": {
+    "productCategory": "আমাদের পণ্যের ক্যাটাগরি",
+    "newCollection": "নতুন কালেকশন",
+    "ourShop": "আমাদের শপ",
+    "gallery": "অরেভো গ্যালারি",
+    "aboutStore": "স্টোর সম্পর্কে",
+    "contactUs": "যোগাযোগ করুন",
+    "storeLocation": "স্টোরের ঠিকানা"
   },
   "footer": {
     "address": "মিরপুর-১১.৫, হাউজিং, ঢাকা, বাংলাদেশ",

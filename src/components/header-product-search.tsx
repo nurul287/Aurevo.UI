@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { formatPrice } from "@/lib/currency";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "react-i18next";
 
 const DEBOUNCE_MS = 1000;
 const MIN_CHARS = 2;
@@ -39,6 +40,7 @@ export function HeaderProductSearch({
   formClassName,
   inputClassName,
 }: HeaderProductSearchProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -115,7 +117,7 @@ export function HeaderProductSearch({
           aria-autocomplete="list"
           aria-expanded={showPanel}
           aria-controls={showPanel ? listId : undefined}
-          placeholder="Search"
+          placeholder={t("nav.search")}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onFocus={() => setPanelOpen(true)}

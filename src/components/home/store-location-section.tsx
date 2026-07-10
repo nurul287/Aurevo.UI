@@ -1,12 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { MapPinIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export const StoreLocationSection = () => {
+  const { t } = useTranslation();
   return (
     <section className="py-16 bg-gray-50">
       <div className="container-custom">
         <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-900">
-          Store Location
+          {t("home.storeLocation")}
         </h2>
 
         <div className="grid md:grid-cols-2 gap-12 items-center">
