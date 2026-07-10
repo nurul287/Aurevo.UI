@@ -1,6 +1,11 @@
 import "@testing-library/jest-dom/vitest";
 import { afterAll, afterEach, beforeAll, vi } from "vitest";
 import { server } from "./msw/server";
+// Initialize i18next so components using useTranslation render. Tests always
+// run in English — detection is timezone-based and this must not depend on
+// the machine (a dev box in Asia/Dhaka would otherwise default to Bangla).
+import i18n from "@/i18n";
+void i18n.changeLanguage("en");
 
 // Radix UI components query these browser APIs that jsdom doesn't implement.
 if (!window.matchMedia) {

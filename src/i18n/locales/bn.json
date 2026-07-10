@@ -1,0 +1,55 @@
+{
+  "nav": {
+    "dashboard": "ড্যাশবোর্ড",
+    "adminPanel": "অ্যাডমিন প্যানেল",
+    "signOut": "সাইন আউট",
+    "signIn": "সাইন ইন",
+    "signUp": "নিবন্ধন করুন"
+  },
+  "footer": {
+    "address": "মিরপুর-১১.৫, হাউজিং, ঢাকা, বাংলাদেশ",
+    "category": "ক্যাটাগরি",
+    "aboutShop": "শপ সম্পর্কে",
+    "support": "২৪/৭ সাপোর্ট",
+    "fastDelivery": "দ্রুত ডেলিভারি",
+    "onlinePayment": "অনলাইন পেমেন্ট",
+    "tracking": "অর্ডার ট্র্যাকিং",
+    "aboutUs": "আমাদের সম্পর্কে",
+    "terms": "শর্তাবলী",
+    "followUs": "আমাদের ফলো করুন :",
+    "paymentMethod": "পেমেন্ট মাধ্যম:",
+    "rights": "সর্বস্বত্ব সংরক্ষিত।"
+  },
+  "cart": {
+    "title": "শপিং কার্ট",
+    "itemCount_one": "({{count}}টি পণ্য)",
+    "itemCount_other": "({{count}}টি পণ্য)",
+    "empty": "আপনার কার্ট খালি",
+    "emptyHint": "আপনি এখনও কোনো পণ্য যোগ করেননি।",
+    "continueShopping": "কেনাকাটা চালিয়ে যান",
+    "size": "সাইজ:",
+    "subtotal": "সাবটোটাল:",
+    "checkout": "চেকআউট"
+  },
+  "checkout": {
+    "deliveryAddress": "আপনার ডেলিভারি ঠিকানা",
+    "savedAddresses": "সংরক্ষিত ঠিকানা",
+    "savedAddressesHint": "ফর্ম পূরণ করতে একটি বেছে নিন, অথবা নিচে ভিন্ন ঠিকানা লিখুন।",
+    "default": "ডিফল্ট",
+    "name": "নাম",
+    "phone": "ফোন নম্বর",
+    "email": "ইমেইল (ঐচ্ছিক)",
+    "address": "ঠিকানা",
+    "district": "জেলা",
+    "upazila": "উপজেলা",
+    "selectDistrict": "জেলা নির্বাচন করুন",
+    "selectUpazila": "উপজেলা নির্বাচন করুন",
+    "shippingMethod": "শিপিং পদ্ধতি",
+    "insideDhaka": "ঢাকার ভিতরে",
+    "outsideDhaka": "ঢাকার বাইরে",
+    "paymentMethod": "পেমেন্ট পদ্ধতি",
+    "cashOnDelivery": "ক্যাশ অন ডেলিভারি",
+    "orderNow": "অর্ডার করুন",
+    "placingOrder": "অর্ডার হচ্ছে..."
+  }
+}

@@ -33,6 +33,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCreateGuestOrder } from "@/services/order/use-order-mutation";
 import { CheckCircle2 } from "lucide-react";
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   BANGLADESH_DISTRICTS,
@@ -55,6 +56,7 @@ function shippingZoneForDistrict(
 }
 
 const CheckoutPage = () => {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const { cartItems, cartTotal, loading, clearCart } = useCart();
   const { user } = useAuth();
@@ -495,12 +497,12 @@ const CheckoutPage = () => {
               <Card>
                 <CardContent className="pt-6">
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                    Your delivery address
+                    {t("checkout.deliveryAddress")}
                   </h2>
                   {savedAddresses.length > 0 && (
                     <div className="mb-5">
                       <p className="text-sm font-medium text-gray-700 mb-2">
-                        Saved addresses
+                        {t("checkout.savedAddresses")}
                       </p>
                       <div className="grid gap-2 sm:grid-cols-2">
                         {savedAddresses.map((addr) => (
@@ -518,7 +520,7 @@ const CheckoutPage = () => {
                               {addr.label || "Address"}
                               {addr.is_default && (
                                 <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
-                                  DEFAULT
+                                  {t("checkout.default")}
                                 </span>
                               )}
                               {selectedAddressId === addr.id && (
@@ -535,7 +537,7 @@ const CheckoutPage = () => {
                         ))}
                       </div>
                       <p className="mt-2 text-xs text-gray-500">
-                        Pick one to fill the form, or type a different address below.
+                        {t("checkout.savedAddressesHint")}
                       </p>
                     </div>
                   )}
@@ -545,14 +547,14 @@ const CheckoutPage = () => {
                         htmlFor="name"
                         className="text-sm font-medium text-gray-700"
                       >
-                        Name <span className="text-red-500">*</span>
+                        {t("checkout.name")} <span className="text-red-500">*</span>
                       </Label>
                       <Input
                         id="name"
                         name="name"
                         value={formData.name}
                         onChange={handleInputChange}
-                        placeholder="Name"
+                        placeholder={t("checkout.name")}
                         required
                         className="mt-1 border-gray-300"
                       />
@@ -562,7 +564,7 @@ const CheckoutPage = () => {
                         htmlFor="phone"
                         className="text-sm font-medium text-gray-700"
                       >
-                        Phone Number <span className="text-red-500">*</span>
+                        {t("checkout.phone")} <span className="text-red-500">*</span>
                       </Label>
                       <Input
                         id="phone"
@@ -570,7 +572,7 @@ const CheckoutPage = () => {
                         type="tel"
                         value={formData.phone}
                         onChange={handleInputChange}
-                        placeholder="Phone Number"
+                        placeholder={t("checkout.phone")}
                         required
                         className="mt-1 border-gray-300"
                       />
@@ -580,7 +582,7 @@ const CheckoutPage = () => {
                         htmlFor="email"
                         className="text-sm font-medium text-gray-700"
                       >
-                        Email (Optional)
+                        {t("checkout.email")}
                       </Label>
                       <Input
                         id="email"
@@ -588,7 +590,7 @@ const CheckoutPage = () => {
                         type="email"
                         value={formData.email}
                         onChange={handleInputChange}
-                        placeholder="Email"
+                        placeholder={t("checkout.email")}
                         className="mt-1 border-gray-300"
                       />
                     </div>
@@ -597,14 +599,14 @@ const CheckoutPage = () => {
                         htmlFor="address"
                         className="text-sm font-medium text-gray-700"
                       >
-                        Address <span className="text-red-500">*</span>
+                        {t("checkout.address")} <span className="text-red-500">*</span>
                       </Label>
                       <Input
                         id="address"
                         name="address"
                         value={formData.address}
                         onChange={handleInputChange}
-                        placeholder="Address"
+                        placeholder={t("checkout.address")}
                         required
                         className="mt-1 border-gray-300"
                       />
@@ -614,7 +616,7 @@ const CheckoutPage = () => {
                         htmlFor="district"
                         className="text-sm font-medium text-gray-700"
                       >
-                        District <span className="text-red-500">*</span>
+                        {t("checkout.district")} <span className="text-red-500">*</span>
                       </Label>
                       <DropDownList
                         options={districtOptions}
@@ -626,7 +628,7 @@ const CheckoutPage = () => {
                             upazila: "",
                           }))
                         }
-                        placeholder="Select District"
+                        placeholder={t("checkout.selectDistrict")}
                         searchPlaceholder="Filter"
                         emptyMessage="No districts found"
                         className="mt-1"
@@ -637,7 +639,7 @@ const CheckoutPage = () => {
                         htmlFor="upazila"
                         className="text-sm font-medium text-gray-700"
                       >
-                        Upazilla <span className="text-red-500">*</span>
+                        {t("checkout.upazila")} <span className="text-red-500">*</span>
                       </Label>
                       <Select
                         value={formData.upazila}
@@ -655,7 +657,7 @@ const CheckoutPage = () => {
                               placeholder for values set programmatically (saved
                               address autofill) before the dropdown ever opened. */}
                           <span className={formData.upazila ? "" : "text-muted-foreground"}>
-                            {formData.upazila || "Select Upazila"}
+                            {formData.upazila || t("checkout.selectUpazila")}
                           </span>
                         </SelectTrigger>
                         <SelectContent>
@@ -675,7 +677,7 @@ const CheckoutPage = () => {
               <Card>
                 <CardContent className="pt-6">
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                    Shipping Method
+                    {t("checkout.shippingMethod")}
                   </h2>
                   <RadioGroup
                     value={shippingZone ?? ""}
@@ -698,7 +700,7 @@ const CheckoutPage = () => {
                           id="ship-inside-dhaka"
                         />
                         <span className="text-sm font-medium text-gray-900">
-                          Inside Dhaka
+                          {t("checkout.insideDhaka")}
                         </span>
                       </div>
                       <span className="text-sm font-semibold text-gray-900">
@@ -719,7 +721,7 @@ const CheckoutPage = () => {
                           id="ship-outside-dhaka"
                         />
                         <span className="text-sm font-medium text-gray-900">
-                          Outside Dhaka
+                          {t("checkout.outsideDhaka")}
                         </span>
                       </div>
                       <span className="text-sm font-semibold text-gray-900">
@@ -734,7 +736,7 @@ const CheckoutPage = () => {
               <Card>
                 <CardContent className="pt-6">
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                    Payment method
+                    {t("checkout.paymentMethod")}
                   </h2>
                   <RadioGroup
                     value={paymentMethod}
@@ -748,7 +750,7 @@ const CheckoutPage = () => {
                           htmlFor="cash"
                           className="text-sm font-medium text-gray-900 cursor-pointer"
                         >
-                          Cash On Delivery
+                          {t("checkout.cashOnDelivery")}
                         </Label>
                       </div>
                       {paymentMethod === "cash" && (
@@ -781,7 +783,7 @@ const CheckoutPage = () => {
                 disabled={isSubmitting}
                 className="w-full bg-gray-900 hover:bg-gray-800 text-white h-12 text-base font-medium"
               >
-                {isSubmitting ? "Processing..." : "Order Now"}
+                {isSubmitting ? t("checkout.placingOrder") : t("checkout.orderNow")}
               </Button>
             </div>
           </div>
