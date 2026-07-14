@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { clearStoredTokens, storeTokens } from "@/lib/api";
 import { useUpdatePassword } from "@/services/auth/use-auth-mutation";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 const ResetPasswordPage = () => {
@@ -13,9 +14,48 @@ const ResetPasswordPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [linkInvalid, setLinkInvalid] = useState(false);
 
   const navigate = useNavigate();
   const updatePasswordMutation = useUpdatePassword();
+
+  // Supabase's recovery link redirects here with the session tokens in the
+  // URL hash fragment (#access_token=...&refresh_token=...&type=recovery),
+  // not a query param — GoTrue's own convention, same shape as its implicit
+  // OAuth flow. Nothing else in the app reads this hash, so without this the
+  // page renders a form that always 401s on submit (update-password requires
+  // the Authorization header set from these tokens).
+  //
+  // The ref guard matters: this effect clears the hash via replaceState once
+  // it consumes it, so React 18 StrictMode's dev-only double-invoke would
+  // otherwise read an already-empty hash on its second pass and incorrectly
+  // flag a just-succeeded link as invalid.
+  const hasProcessedHash = useRef(false);
+
+  useEffect(() => {
+    if (hasProcessedHash.current) return;
+    hasProcessedHash.current = true;
+
+    const hash = window.location.hash.startsWith("#")
+      ? window.location.hash.slice(1)
+      : window.location.hash;
+    const params = new URLSearchParams(hash);
+    const accessToken = params.get("access_token");
+    const refreshToken = params.get("refresh_token");
+
+    if (!accessToken || !refreshToken) {
+      setLinkInvalid(true);
+      return;
+    }
+
+    const expiresIn = params.get("expires_in");
+    storeTokens({
+      accessToken,
+      refreshToken,
+      expiresAt: expiresIn ? Date.now() + Number(expiresIn) * 1000 : null,
+    });
+    window.history.replaceState({}, "", window.location.pathname);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +76,9 @@ const ResetPasswordPage = () => {
     try {
       await updatePasswordMutation.mutateAsync({ password });
       setSuccess(true);
+      // The recovery session is single-purpose — don't leave the user
+      // silently logged in as a side effect of resetting their password.
+      clearStoredTokens();
       // Redirect to login after 2 seconds
       setTimeout(() => {
         navigate("/login");
@@ -74,8 +117,23 @@ const ResetPasswordPage = () => {
               </p>
             </div>
 
-            {/* Success Message */}
-            {success ? (
+            {/* Invalid/expired link */}
+            {linkInvalid ? (
+              <div className="text-center py-8">
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  This link is invalid or has expired
+                </h2>
+                <p className="text-gray-500 text-sm mb-6">
+                  Request a new password reset link and try again.
+                </p>
+                <Link
+                  to="/forgot-password"
+                  className="text-[#FF6600] hover:text-[#E65C00] font-medium transition-colors"
+                >
+                  Back to forgot password
+                </Link>
+              </div>
+            ) : success ? (
               <div className="text-center py-8">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <svg
