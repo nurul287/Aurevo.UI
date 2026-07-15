@@ -41,6 +41,8 @@ pnpm test:e2e:ui    # Playwright's interactive debugger
 
 **Sentry** — `src/lib/sentry.ts` initializes `@sentry/react` only if `VITE_SENTRY_DSN` is set (no-op locally without it). Session replay: 10% of normal sessions, 100% of sessions that error.
 
+**AI chat widget** (`src/components/ai-chat-widget.tsx`) — full backend architecture in `Aurevo.BE`'s [`docs/09-ai-chatbot-rag.md`](../Aurevo.BE/docs/09-ai-chatbot-rag.md). A compact floating popup (not a full-height side panel), titled "Aurevo AI Assistant", talking to the RAG-backed `POST /api/chat` SSE endpoint. `src/lib/chat-stream.ts` hand-parses the SSE body over a `fetch` `ReadableStream` since `POST` bodies aren't supported by `EventSource`. Product cards render only for products the backend actually names in its response (see the BE doc's "Product Card Matching" section) and link to `/products/:id`. Replaced the old floating Facebook Messenger deep-link button (`messenger-chat.tsx`, removed) — the static footer Messenger icon link is unrelated and still there.
+
 ## E2E tests (Playwright, local only — not in CI)
 
 `e2e/` covers only the money-critical flows: guest checkout, logged-in checkout with a saved address, cart add/update/remove math. Needs local Supabase + BE + FE all running — see `e2e/README.md`.
