@@ -2,7 +2,7 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { MetaPixelTracker } from "@/components/meta-pixel-tracker";
 import { SpeedInsightsTracker } from "@/components/speed-insights-tracker";
 import { VercelAnalyticsTracker } from "@/components/vercel-analytics-tracker";
-import { MessengerChat } from "@/components/messenger-chat";
+import { AiChatWidget } from "@/components/ai-chat-widget";
 import { OAuthErrorRouteHandler } from "@/components/oauth-error-route-handler";
 import { OAuthSuccessLandingRedirect } from "@/components/oauth-success-landing-redirect";
 import { useEffect } from "react";
@@ -37,7 +37,7 @@ function App() {
         <OAuthSuccessLandingRedirect />
         <GuestCartProvider>
           <AppRoutes />
-          <MessengerChat />
+          <AiChatWidget />
           <Toaster richColors position="top-center" />
         </GuestCartProvider>
       </AuthProvider>
