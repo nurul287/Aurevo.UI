@@ -27,6 +27,8 @@ pnpm test:e2e:headed     # watch the real browser
 - `guest-checkout.spec.ts` — browse → add to cart → guest checkout → order confirmation (the money path, no login required)
 - `checkout-saved-address.spec.ts` — login → saved address autofills the checkout form → shipping zone derives correctly
 - `cart.spec.ts` — add/update/remove quantities → cart totals reconcile
+- `auth.spec.ts` — login with valid/invalid credentials, logout revokes access to a protected page
+- `password-reset.spec.ts` — forgot-password → real email via the local mail catcher → follow the recovery link → set a new password → log in with it; also covers the invalid/expired-link state
 
 These specs were picked because they're the flows a UI regression would
 directly cost an order or a user's data — not because every page needs E2E
@@ -48,6 +50,12 @@ check that the real browser, real API, and real DB agree with each other.
   real catalog stock. If you ever see "Insufficient stock" locally outside
   of a test run, that's the e2e suite's doing — it's a local-only side effect
   (the setup refuses to run against a non-local `DATABASE_URL`).
+
+- **Mail catcher naming**: despite the `[inbucket]` section name in
+  `Aurevo.BE/supabase/config.toml`, the local container is actually Mailpit
+  (`supabase/mailpit` image), reachable at `http://127.0.0.1:54324`. Its REST
+  API (`/api/v1/search`, `/api/v1/message/{id}`) is what `fixtures.ts`'s
+  `waitForEmail` polls — it's not available against real/production SMTP.
 
 ## Adding a new spec
 

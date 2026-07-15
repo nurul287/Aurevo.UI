@@ -78,3 +78,6 @@ temp/
 supabase/manual/prod-*.sql
 
 supabase/.env
+
+# graphify build cache (content-hashed, regenerates locally, not worth committing)
+graphify-out/cache/
