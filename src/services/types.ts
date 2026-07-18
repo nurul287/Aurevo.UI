@@ -254,6 +254,11 @@ export interface Order {
   shipping_method_id?: string; // UUID
   tracking_number?: string;
   estimated_delivery_date?: string; // DATE
+  // Courier (Steadfast)
+  courier_provider?: string | null;
+  courier_consignment_id?: number | null;
+  courier_status?: string | null;
+  courier_status_updated_at?: string | null;
   // Addresses
   billing_address: any; // JSONB
   shipping_address: any; // JSONB
@@ -263,6 +268,24 @@ export interface Order {
   source?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+// NOTE: api.get() deep-converts every response key camelCase → snake_case
+// (see src/lib/api.ts), so these must be declared in snake_case to match
+// what's actually returned at runtime, even though the BE sends camelCase.
+export interface CourierTrackingEvent {
+  status: string | null;
+  message: string | null;
+  event_at: string;
+}
+
+export interface PublicTracking {
+  tracking_code: string | null;
+  provider: string | null;
+  courier_status: string | null;
+  order_status: string | null;
+  estimated_delivery_date: string | null;
+  events: CourierTrackingEvent[];
 }
 
 // Order Item types

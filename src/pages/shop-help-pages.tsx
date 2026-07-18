@@ -1,5 +1,10 @@
 import { InfoPageLayout } from "@/components/info-page-layout";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { APP_PATHS } from "@/constants/app-paths";
+import { usePublicTracking } from "@/services/courier/use-courier-query";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 const SUPPORT_EMAIL = "aurevofashion88@gmail.com";
@@ -177,9 +182,99 @@ export function PaymentPage() {
   );
 }
 
+function formatTrackingDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export function TrackingLookup() {
+  const [inputValue, setInputValue] = useState("");
+  const [submittedCode, setSubmittedCode] = useState("");
+  const { data: tracking, isLoading, isError } = usePublicTracking(submittedCode);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmittedCode(inputValue.trim());
+  };
+
+  return (
+    <div className="not-prose">
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <Input
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          placeholder="Enter your tracking code"
+          aria-label="Tracking code"
+        />
+        <Button type="submit" disabled={!inputValue.trim()}>
+          Track
+        </Button>
+      </form>
+
+      {isLoading && submittedCode && (
+        <p className="text-sm text-gray-500 mt-4">Looking up your parcel...</p>
+      )}
+
+      {isError && submittedCode && (
+        <p className="text-sm text-red-600 mt-4">
+          We couldn't find a parcel with that tracking code. Double-check it, or{" "}
+          <Link
+            to={APP_PATHS.support}
+            className="font-medium underline decoration-gray-300 underline-offset-2 hover:text-[#FF6600]"
+          >
+            contact support
+          </Link>
+          .
+        </p>
+      )}
+
+      {tracking && (
+        <div className="mt-6 rounded-lg border border-gray-200 p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-500">Status</span>
+            <Badge variant="outline" className="capitalize">
+              {tracking.courier_status ?? tracking.order_status ?? "Processing"}
+            </Badge>
+          </div>
+          {tracking.estimated_delivery_date && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-500">Estimated delivery</span>
+              <span className="text-sm text-gray-900">{tracking.estimated_delivery_date}</span>
+            </div>
+          )}
+          {tracking.events.length > 0 && (
+            <ul className="space-y-3 pt-2 border-t border-gray-100">
+              {tracking.events
+                .slice()
+                .reverse()
+                .map((event, i) => (
+                  <li key={i} className="text-sm border-l-2 border-gray-200 pl-3">
+                    <div className="flex items-center gap-2">
+                      {event.status && (
+                        <span className="font-medium text-gray-900 capitalize">{event.status}</span>
+                      )}
+                      <span className="text-xs text-gray-400">{formatTrackingDate(event.event_at)}</span>
+                    </div>
+                    {event.message && <p className="text-gray-600">{event.message}</p>}
+                  </li>
+                ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function TrackingPage() {
   return (
     <InfoPageLayout title="Order tracking" breadcrumbPage="Tracking">
+      <TrackingLookup />
       <p>
         After you place an order, you will see a confirmation screen with your
         order details. We update status as your parcel moves—when you ordered
