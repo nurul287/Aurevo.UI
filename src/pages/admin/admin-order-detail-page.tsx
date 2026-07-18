@@ -1,3 +1,14 @@
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,11 +48,16 @@ import {
 } from "@/services/order/use-order-mutation";
 import { useOrder } from "@/services/order/use-order-query";
 import {
+  useShipOrderWithCourier,
+  useRefreshCourierStatus,
+} from "@/services/courier/use-courier-mutation";
+import { usePublicTracking } from "@/services/courier/use-courier-query";
+import {
   FulfillmentStatus,
   OrderStatus,
   PaymentStatus,
 } from "@/services/types";
-import { ArrowLeft, CreditCard, Edit, Package, Truck } from "lucide-react";
+import { ArrowLeft, CreditCard, Edit, Package, RefreshCw, Send, Truck } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -244,6 +260,9 @@ export default function AdminOrderDetailPage() {
   const updatePaymentStatusMutation = useUpdatePaymentStatus();
   const updateFulfillmentStatusMutation = useUpdateFulfillmentStatus();
   const updateOrderNotesMutation = useUpdateOrderNotes();
+  const shipOrderMutation = useShipOrderWithCourier();
+  const refreshCourierMutation = useRefreshCourierStatus();
+  const { data: tracking } = usePublicTracking(order?.tracking_number || "");
 
   // Dialog handlers
   const openStatusDialog = () => {
@@ -660,6 +679,105 @@ export default function AdminOrderDetailPage() {
                   </div>
                 );
               })()}
+            </CardContent>
+          </Card>
+
+          {/* Courier (Steadfast) */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Courier</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {!order.courier_consignment_id ? (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    No courier consignment booked yet.
+                  </p>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        disabled={shipOrderMutation.isPending}
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        Ship with Steadfast
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Book a Steadfast consignment?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This books a real parcel with Steadfast for order{" "}
+                          {order.order_number} and cannot be undone — Steadfast
+                          has no cancel-consignment API. If this is a cash-on-delivery
+                          order, the full order total will be sent as the COD amount.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => shipOrderMutation.mutate(order.id)}
+                        >
+                          Book Consignment
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <Label className="text-sm font-medium">Consignment ID</Label>
+                    <p className="text-sm font-mono">{order.courier_consignment_id}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Tracking Code</Label>
+                    <p className="text-sm font-mono">{order.tracking_number}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Courier Status</Label>
+                    <div>
+                      <Badge variant="outline" className="capitalize">
+                        {order.courier_status ?? "unknown"}
+                      </Badge>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => refreshCourierMutation.mutate(order.id)}
+                    disabled={refreshCourierMutation.isPending}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    {refreshCourierMutation.isPending ? "Refreshing..." : "Refresh Status"}
+                  </Button>
+                  {tracking && tracking.events.length > 0 && (
+                    <div className="pt-2 space-y-2">
+                      <Label className="text-sm font-medium">Timeline</Label>
+                      <ul className="space-y-2">
+                        {tracking.events
+                          .slice()
+                          .reverse()
+                          .map((event, i) => (
+                            <li key={i} className="text-sm border-l-2 border-muted pl-3">
+                              <div className="flex items-center gap-2">
+                                {event.status && (
+                                  <span className="font-medium capitalize">{event.status}</span>
+                                )}
+                                <span className="text-xs text-muted-foreground">
+                                  {formatDate(event.event_at)}
+                                </span>
+                              </div>
+                              {event.message && (
+                                <p className="text-muted-foreground">{event.message}</p>
+                              )}
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
 
