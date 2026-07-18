@@ -27,6 +27,7 @@ Aurevo Fashion — Frontend E-commerce SPA. React 19 app built with Vite, TypeSc
 | Observability   | Sentry (`@sentry/react`) + top-level Error Boundary |
 | Analytics       | Vercel Analytics / Speed Insights, Meta Pixel       |
 | Icons           | Lucide React, Heroicons                             |
+| Markdown        | react-markdown (AI chat widget assistant replies)   |
 | Package manager | pnpm                                                |
 
 > The Supabase JS SDK is **not** used in this app. Auth (including Google/Facebook OAuth) and all CRUD go through Aurevo.BE. An optional `VITE_SUPABASE_URL` is only for storage image-transform URLs.
@@ -61,10 +62,12 @@ Aurevo Fashion — Frontend E-commerce SPA. React 19 app built with Vite, TypeSc
 - Product detail with variant picker (size/color/SKU), stock availability
 - Guest + authenticated shopping cart (slide-in cart side panel)
 - Checkout with guest order support (no account required)
-- Order confirmation page with itemised receipt and guest token access
+- Order confirmation page with itemised receipt, guest token access, and **Download invoice** PDF link
+- Public parcel tracking at `/tracking` (Steadfast tracking code → status + event timeline, no PII)
 - Saved addresses in the account dashboard; checkout can autofill from them
 - Bangla + English UI (language switcher in the header; default English)
-- Facebook Messenger floating chat + Meta Pixel events
+- AI shopping assistant — floating chat widget backed by the RAG chatbot (`Aurevo.BE`'s `docs/09-ai-chatbot-rag.md`): product search, policy/FAQ answers, and auth-gated order lookup, streamed over SSE
+- Static Facebook Messenger icon link in the footer + Meta Pixel events (the earlier floating Messenger deep-link chat button was removed and replaced by the AI assistant)
 
 ### Account dashboard (`/dashboard`)
 
@@ -78,6 +81,7 @@ Aurevo Fashion — Frontend E-commerce SPA. React 19 app built with Vite, TypeSc
 - Variants — create single or bulk CSV upload, color picker, inventory sync
 - Categories and Brands management with "Clear filters" controls
 - Orders management — server-side pagination, search, status/payment/tracking/fulfillment updates
+- **Ship with Steadfast** on order detail — books a real consignment (explicit admin action); refresh courier status; view tracking timeline
 - Inventory levels — per-variant stock tracking, low-stock view, movement audit log, .xlsx export
 
 ### Authentication
@@ -108,6 +112,7 @@ src/
 ├── components/           # Shared UI components
 │   ├── ui/               # Shadcn/ui primitives (button, card, dialog, …)
 │   ├── cart-side-panel   # Slide-in cart drawer
+│   ├── ai-chat-widget    # Floating AI shopping assistant (RAG chatbot, SSE)
 │   ├── error-boundary    # Top-level error UI + Sentry report
 │   ├── language-switcher # EN / বাং toggle
 │   └── ...
@@ -117,6 +122,7 @@ src/
 ├── i18n/                 # i18next setup + en/bn locale JSON
 ├── lib/
 │   ├── api.ts            # Typed fetch wrapper (api.get / api.post / apiDownloadFile)
+│   ├── chat-stream.ts    # Hand-rolled SSE parser for the AI chat widget
 │   ├── currency.ts       # formatPrice (BDT)
 │   ├── sentry.ts         # Optional Sentry init
 │   └── meta-pixel.ts     # FB Pixel event helpers
@@ -125,14 +131,16 @@ src/
 │   ├── products-page.tsx
 │   ├── product-detail-page.tsx
 │   ├── checkout-page.tsx
-│   ├── order-confirmation-page.tsx
+│   ├── order-confirmation-page.tsx  # Receipt + download invoice PDF
+│   ├── shop-help-pages.tsx          # Support / shipping / payment / tracking
 │   ├── dashboard-*.tsx   # Account dashboard (profile, addresses)
-│   └── admin/            # All admin pages
+│   └── admin/            # All admin pages (incl. Steadfast ship on order detail)
 ├── routes/               # Route definitions (public / protected / guest / admin)
 ├── services/
 │   ├── auth/             # Auth queries & mutations
 │   ├── cart/             # Cart queries, mutations, totals helpers
 │   ├── order/            # Order queries
+│   ├── courier/          # Public tracking + admin ship/refresh mutations
 │   ├── product/          # Product, variant, category, brand, image mutations
 │   ├── inventory/        # Inventory levels, movements, low-stock, export
 │   ├── user/             # Saved addresses
@@ -171,7 +179,7 @@ VITE_API_URL=http://localhost:5000/api
 # VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
 # VITE_USE_SUPABASE_IMAGE_TRANSFORM=true
 
-# Facebook Messenger floating chat button
+# Facebook Messenger footer icon link
 VITE_FACEBOOK_PAGE_ID=855862097613203
 
 # Meta Pixel (ads & remarketing)
@@ -245,6 +253,10 @@ These are different ledgers. `upsertInventory` syncs both atomically.
 
 The page reads `?orderId=&orderNumber=&guestToken=` from the URL. The API returns camelCase item fields (`productName`, `variantName`, `unitPrice`, `totalPrice`); the component normalises both casings for backwards compat.
 
+### AI Chat Widget (`src/components/ai-chat-widget.tsx`)
+
+A floating popup talking to the RAG-backed `POST /api/chat` SSE endpoint — full backend architecture in `Aurevo.BE`'s [`docs/09-ai-chatbot-rag.md`](../Aurevo.BE/docs/09-ai-chatbot-rag.md). `src/lib/chat-stream.ts` hand-parses the SSE body over a `fetch` `ReadableStream`, since `POST` bodies aren't supported by the browser's `EventSource` API. Assistant replies render via `react-markdown`; product cards render only for products the backend actually names in its response and link to `/products/:id`.
+
 ---
 
 ## Testing
@@ -268,6 +280,16 @@ CI (`.github/workflows/ci.yml`) runs lint → typecheck → unit tests → build
 
 See [memory-bank/TESTING.md](memory-bank/TESTING.md) for full details: test infrastructure, patterns, and what each layer covers.
 
+### E2E tests (Playwright, local only — not in CI)
+
+`e2e/` covers the money-critical flows: guest checkout, logged-in checkout with a saved address, cart math, auth (login/logout/password reset). Needs local Supabase + Aurevo.BE + this app all running.
+
+```bash
+pnpm test:e2e         # run the suite
+pnpm test:e2e:ui      # Playwright's interactive debugger
+pnpm test:e2e:headed  # run with a visible browser
+```
+
 ---
 
 ## Available Scripts
@@ -275,11 +297,15 @@ See [memory-bank/TESTING.md](memory-bank/TESTING.md) for full details: test infr
 ```bash
 pnpm dev              # dev server (port 5173)
 pnpm build            # production build
+pnpm preview           # preview the production build locally
 pnpm typecheck        # TypeScript check (no emit)
 pnpm lint             # ESLint
 pnpm test             # unit tests (single run)
 pnpm test:watch       # unit tests (watch)
 pnpm coverage         # test coverage report
+pnpm test:e2e         # Playwright e2e (local only)
+pnpm test:e2e:ui      # Playwright interactive debugger
+pnpm test:e2e:headed  # Playwright with a visible browser
 ```
 
 > DB scripts (`db:start`, `db:reset`, `db:migrate:*`, etc.) live in `Aurevo.BE` — run them from there.
@@ -294,6 +320,7 @@ pnpm coverage         # test coverage report
 | [memory-bank/RECENT_INTEGRATIONS.md](memory-bank/RECENT_INTEGRATIONS.md) | Summary of recent feature integrations |
 | [memory-bank/RECENT_FIXES.md](memory-bank/RECENT_FIXES.md)               | Bugfix / change log                    |
 | [env.example](env.example)                                               | Environment variable template          |
+| [../Aurevo.BE/docs/09-ai-chatbot-rag.md](../Aurevo.BE/docs/09-ai-chatbot-rag.md) | AI chat widget's backend RAG architecture |
 
 ---
 

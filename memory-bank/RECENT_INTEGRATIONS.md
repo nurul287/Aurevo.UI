@@ -78,11 +78,56 @@ Summary of major features and architecture changes integrated into the frontend.
 
 ---
 
+## AI shopping assistant — chat widget (RAG)
+
+**What changed:** A floating AI chat widget was added, backed by Aurevo.BE's RAG chatbot pipeline (Claude + Voyage AI embeddings + pgvector). Replaced the old floating Facebook Messenger deep-link chat button (`messenger-chat.tsx`, removed) — the static footer Messenger icon link is unrelated and still there.
+
+| Piece         | Location                                                        |
+| ------------- | ---------------------------------------------------------------- |
+| Widget        | `src/components/ai-chat-widget.tsx`                               |
+| SSE parsing   | `src/lib/chat-stream.ts` (hand-rolled over `fetch` `ReadableStream` — `EventSource` doesn't support POST bodies) |
+| Endpoint      | `POST /api/chat` (SSE stream)                                     |
+| Backend docs  | `Aurevo.BE`'s [`docs/09-ai-chatbot-rag.md`](../../Aurevo.BE/docs/09-ai-chatbot-rag.md) |
+| Assistant markdown | `react-markdown`                                              |
+
+---
+
+## Order invoice PDF download
+
+**What changed:** After checkout, customers can download a PDF invoice from the confirmation page (and receive the same PDF attached to the Resend confirmation email from the BE).
+
+| Piece | Location |
+| ----- | -------- |
+| Confirmation UI | `src/pages/order-confirmation-page.tsx` — Download invoice link |
+| Endpoint | `GET /orders/by-number/:orderNumber/invoice` (`?guestToken=` for guests) |
+| Tests | `src/pages/__tests__/order-confirmation-page.test.tsx` |
+| Backend | `Aurevo.BE` `src/lib/invoice-pdf.ts` + `src/lib/email.ts` |
+
+Guest downloads use a direct URL (not `apiDownloadFile`) so the guest token can be passed in the query string.
+
+---
+
+## Courier tracking (Steadfast)
+
+**What changed:** Public parcel lookup and admin consignment booking against Aurevo.BE's Steadfast integration.
+
+| Piece | Location |
+| ----- | -------- |
+| Public page | `/tracking` — `TrackingPage` in `src/pages/shop-help-pages.tsx` |
+| Public hook | `src/services/courier/use-courier-query.ts` → `GET /courier/track/:code` |
+| Admin ship / refresh | `src/services/courier/use-courier-mutation.ts` |
+| Admin UI | `src/pages/admin/admin-order-detail-page.tsx` — Ship with Steadfast |
+| Types | `PublicTracking`, `CourierTrackingEvent` in `src/services/types.ts` |
+| Tests | `tracking-lookup.test.tsx`, courier query/mutation tests under `src/services/courier/__tests__/` |
+
+Booking is an explicit admin click only (never automatic) — the BE books a real Steadfast consignment that commits COD/delivery charges.
+
+---
+
 ## What was intentionally dropped from older docs
 
 These appeared in earlier README drafts but are **not** in the current codebase:
 
 - Wishlist / saved-items product feature
-- AI shopping assistant (SSE / Claude)
 - Dedicated `/cart` page (cart is the side panel only)
 - Direct Supabase client auth / OAuth in the browser
