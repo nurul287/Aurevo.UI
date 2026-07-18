@@ -204,7 +204,7 @@ export function AiChatWidget() {
       <button
         aria-label={open ? "Close Aurevo AI assistant" : "Chat with Aurevo's AI shopping assistant"}
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-3 right-3 z-[9999] flex h-11 w-11 items-center justify-center rounded-full shadow-[0_3px_14px_rgba(255,102,0,0.45)] transition-transform hover:scale-[1.03] motion-reduce:transform-none sm:bottom-6 sm:right-6 sm:h-14 sm:w-14"
+        className="fixed bottom-3 right-3 z-[9999] flex h-11 w-11 cursor-pointer items-center justify-center rounded-full shadow-[0_3px_14px_rgba(255,102,0,0.45)] transition-transform hover:scale-[1.03] motion-reduce:transform-none sm:bottom-6 sm:right-6 sm:h-14 sm:w-14"
       >
         {open ? (
           <span className="flex h-full w-full items-center justify-center rounded-full bg-[#111111] text-white">
@@ -243,7 +243,7 @@ export function AiChatWidget() {
                       key={suggestion}
                       type="button"
                       onClick={() => void sendMessage(suggestion)}
-                      className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[11px] font-medium text-gray-700 transition-colors hover:border-[#FF6600] hover:text-[#FF6600]"
+                      className="cursor-pointer rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[11px] font-medium text-gray-700 transition-colors hover:border-[#FF6600] hover:text-[#FF6600]"
                     >
                       {suggestion}
                     </button>
