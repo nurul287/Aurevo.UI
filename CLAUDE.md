@@ -43,6 +43,10 @@ pnpm test:e2e:ui    # Playwright's interactive debugger
 
 **AI chat widget** (`src/components/ai-chat-widget.tsx`) — full backend architecture in `Aurevo.BE`'s [`docs/09-ai-chatbot-rag.md`](../Aurevo.BE/docs/09-ai-chatbot-rag.md). A compact floating popup (not a full-height side panel), titled "Aurevo AI Assistant", talking to the RAG-backed `POST /api/chat` SSE endpoint. `src/lib/chat-stream.ts` hand-parses the SSE body over a `fetch` `ReadableStream` since `POST` bodies aren't supported by `EventSource`. Product cards render only for products the backend actually names in its response (see the BE doc's "Product Card Matching" section) and link to `/products/:id`. Replaced the old floating Facebook Messenger deep-link button (`messenger-chat.tsx`, removed) — the static footer Messenger icon link is unrelated and still there.
 
+**Order invoice download** — confirmation page builds a direct link to `GET /orders/by-number/:orderNumber/invoice` (with `?guestToken=` for guests). Uses a plain `<a href>` rather than `apiDownloadFile` so the guest token can travel in the query string; the BE streams `application/pdf` with a Content-Disposition attachment.
+
+**Courier tracking** — public `/tracking` page (`TrackingPage` in `shop-help-pages.tsx`) uses `usePublicTracking` → `GET /courier/track/:trackingCode`. Admin order detail (`admin-order-detail-page.tsx`) exposes **Ship with Steadfast** (`useShipOrderWithCourier`) and status refresh — booking is never automatic. Hooks live in `src/services/courier/`.
+
 ## E2E tests (Playwright, local only — not in CI)
 
 `e2e/` covers only the money-critical flows: guest checkout, logged-in checkout with a saved address, cart add/update/remove math. Needs local Supabase + BE + FE all running — see `e2e/README.md`.
