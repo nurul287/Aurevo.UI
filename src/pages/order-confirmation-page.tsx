@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { APP_PATHS } from "@/constants/app-paths";
+import { API_URL } from "@/lib/api";
 import { formatPrice } from "@/lib/currency";
 import { trackMetaPixelPurchase } from "@/lib/meta-pixel";
 import { useFetchOrderWithGuestToken } from "@/services/order/use-order-query";
-import { CheckCircle2, Home, Mail, Package, Sparkles } from "lucide-react";
+import { Download, Home, Mail, Package, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -103,6 +104,16 @@ const OrderConfirmationPage = () => {
 
   const orderItems = fullOrderData?.items ?? [];
 
+  // Public invoice endpoint — reachable by guests via the guest token in the URL
+  // (apiDownloadFile can't carry that token, so link straight to the endpoint).
+  const invoiceUrl = orderDetails
+    ? `${API_URL}/orders/by-number/${encodeURIComponent(orderDetails.orderNumber)}/invoice${
+        orderDetails.guestToken
+          ? `?guestToken=${encodeURIComponent(orderDetails.guestToken)}`
+          : ""
+      }`
+    : null;
+
   const showNotFound =
     !orderDetails || (!loading && !orderLoading && orderError);
 
@@ -133,20 +144,11 @@ const OrderConfirmationPage = () => {
     <div className="min-h-screen bg-[#FAFAF8] py-8 sm:py-10 px-4">
       <div className="mx-auto w-full max-w-sm sm:max-w-md">
         {/* Success */}
-        <header className="text-center mb-5 sm:mb-6">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 ring-4 ring-emerald-500/10">
-            <CheckCircle2
-              className="h-7 w-7 text-emerald-600"
-              strokeWidth={1.75}
-            />
-          </div>
-          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-            Thank you
-          </p>
-          <h1 className="mt-0.5 text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">
-            Order confirmed
+        <header className="text-center mb-6 sm:mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-emerald-600">
+            Order confirmed!
           </h1>
-          <p className="mt-2 text-sm text-gray-600 max-w-sm mx-auto leading-snug">
+          <p className="mt-2 text-sm sm:text-base text-gray-600 max-w-sm mx-auto leading-snug">
             We have received your order and will prepare it for shipment. You
             will hear from us by email.
           </p>
@@ -156,23 +158,28 @@ const OrderConfirmationPage = () => {
         <Card className="overflow-hidden border border-gray-200/80 bg-white shadow-sm rounded-xl">
           <CardContent className="p-0">
             <div className="border-b border-gray-100 bg-gradient-to-b from-gray-50/80 to-white px-4 py-4 sm:px-5">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
-                    Order number
-                  </p>
-                  <p className="mt-0.5 font-mono text-base font-semibold text-gray-900 tracking-tight break-all">
+                  <p className="font-mono text-base font-semibold text-gray-900 tracking-tight break-all">
                     {orderDetails.orderNumber}
                   </p>
-                  <p className="mt-1.5 text-[10px] leading-snug text-gray-400 font-mono break-all">
-                    Ref. {orderDetails.orderId}
-                  </p>
+                  <span
+                    className={`mt-1.5 inline-flex w-fit shrink-0 items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold capitalize ring-1 ring-inset ${statusStyles(fullOrderData?.status)}`}
+                  >
+                    {fullOrderData?.status || "Pending"}
+                  </span>
                 </div>
-                <span
-                  className={`inline-flex w-fit shrink-0 items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold capitalize ring-1 ring-inset ${statusStyles(fullOrderData?.status)}`}
-                >
-                  {fullOrderData?.status || "Pending"}
-                </span>
+                {invoiceUrl && fullOrderData && !loading && (
+                  <a
+                    href={invoiceUrl}
+                    aria-label="Download invoice"
+                    title="Download invoice"
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-gray-900 px-5 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-gray-800"
+                  >
+                    <Download className="h-3.5 w-3.5 shrink-0" />
+                    Invoice
+                  </a>
+                )}
               </div>
             </div>
 
@@ -303,17 +310,28 @@ const OrderConfirmationPage = () => {
                     .
                   </li>
                 </ol>
+                <p className="mt-3 flex items-center gap-1.5 border-t border-gray-200 pt-3 text-xs sm:text-sm text-gray-600">
+                  Need help?
+                  <a
+                    href={`mailto:${SUPPORT_EMAIL}`}
+                    className="inline-flex items-center gap-1 font-medium text-gray-900 underline-offset-4 hover:underline"
+                  >
+                    <Mail className="h-3.5 w-3.5 shrink-0" />
+                    {SUPPORT_EMAIL}
+                  </a>
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Actions */}
-        <div className="mt-5 flex flex-col items-center gap-3">
+        <div className="mt-5 flex justify-center">
           <Button
             asChild
+            variant="outline"
             size="default"
-            className="h-10 rounded-full px-6 bg-gray-900 hover:bg-gray-800 text-white w-auto min-w-[10rem]"
+            className="h-11 w-full rounded-full px-6 border-gray-300 sm:w-auto sm:min-w-[10rem]"
           >
             <Link
               to={APP_PATHS.products}
@@ -323,7 +341,9 @@ const OrderConfirmationPage = () => {
               Continue shopping
             </Link>
           </Button>
-          {ENABLE_ORDER_TRACKING && (
+        </div>
+        {ENABLE_ORDER_TRACKING && (
+          <div className="mt-3 flex justify-center">
             <Button
               variant="outline"
               size="default"
@@ -332,19 +352,8 @@ const OrderConfirmationPage = () => {
             >
               Track your order
             </Button>
-          )}
-        </div>
-
-        <p className="mt-6 text-center text-xs sm:text-sm text-gray-500 leading-relaxed">
-          Need help?{" "}
-          <a
-            href={`mailto:${SUPPORT_EMAIL}`}
-            className="inline-flex items-center gap-1 font-medium text-gray-900 underline-offset-4 hover:underline"
-          >
-            <Mail className="h-3.5 w-3.5 shrink-0" />
-            {SUPPORT_EMAIL}
-          </a>
-        </p>
+          </div>
+        )}
       </div>
     </div>
   );
