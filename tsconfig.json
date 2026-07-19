@@ -5,6 +5,10 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
+    // TS 6.0 stopped auto-including every package under node_modules/@types
+    // (previously implicit) — e2e/*.ts and playwright.config.ts use Node
+    // globals (process.env etc.), so restore @types/node explicitly.
+    "types": ["node"],
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -21,7 +25,6 @@
     "noFallthroughCasesInSwitch": true,
 
     /* Path mapping */
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
