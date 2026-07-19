@@ -24,22 +24,37 @@ export default defineConfig({
     },
   },
   build: {
-    rollupOptions: {
+    // Vite 8 (Rolldown) renamed this from rollupOptions and requires
+    // manualChunks as a function, not the old { chunkName: [pkgs] } object.
+    rolldownOptions: {
       output: {
-        manualChunks: {
+        manualChunks(id: string) {
+          if (!id.includes("node_modules")) return;
           // Core React runtime — cached aggressively across deploys
-          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          if (
+            id.includes("/node_modules/react/") ||
+            id.includes("/node_modules/react-dom/") ||
+            id.includes("/node_modules/react-router-dom/")
+          ) {
+            return "vendor-react";
+          }
           // Data layer — changes less often than UI
-          "vendor-query": ["@tanstack/react-query"],
+          if (id.includes("/node_modules/@tanstack/react-query")) {
+            return "vendor-query";
+          }
           // Heavy UI primitives — rarely change between deploys
-          "vendor-ui": [
-            "@radix-ui/react-dialog",
-            "@radix-ui/react-dropdown-menu",
-            "@radix-ui/react-select",
-            "@radix-ui/react-tabs",
-            "@radix-ui/react-popover",
-            "@radix-ui/react-tooltip",
-          ],
+          if (
+            [
+              "@radix-ui/react-dialog",
+              "@radix-ui/react-dropdown-menu",
+              "@radix-ui/react-select",
+              "@radix-ui/react-tabs",
+              "@radix-ui/react-popover",
+              "@radix-ui/react-tooltip",
+            ].some((pkg) => id.includes(`/node_modules/${pkg}/`))
+          ) {
+            return "vendor-ui";
+          }
         },
       },
     },
