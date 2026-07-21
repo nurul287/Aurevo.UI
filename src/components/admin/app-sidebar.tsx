@@ -16,7 +16,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/auth-context";
-import { Home, Layers, LogOut, Package, ShoppingCart } from "lucide-react";
+import { Bot, Home, Layers, LogOut, Package, ShoppingCart } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 const data = {
@@ -65,6 +65,11 @@ const data = {
       title: "Inventory",
       url: "/admin/inventory",
       icon: Package,
+    },
+    {
+      title: "AI Assistant",
+      url: "/admin/ai",
+      icon: Bot,
     },
     {
       title: "Orders",
